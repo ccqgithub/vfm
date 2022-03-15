@@ -1,0 +1,14 @@
+{
+  "folders": [
+    {
+      "path": "./",
+      "name": "vfm-project"
+    },
+    {
+      "path": "packages/vfm"
+    },
+    {
+      "path": "packages/example"
+    },
+  ]
+}
