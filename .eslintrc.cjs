@@ -3,9 +3,10 @@ module.exports = {
   env: {
     node: true
   },
-  ignorePatterns: ['!.*.js', 'dist/**.*'],
-  parser: '@typescript-eslint/parser',
+  ignorePatterns: ['!.*.js', '!.*.cjs', '**/dist/**.*'],
+  parser: 'vue-eslint-parser',
   parserOptions: {
+    parser: '@typescript-eslint/parser',
     ecmaVersion: 2020,
     sourceType: 'module',
     ecmaFeatures: {
@@ -15,6 +16,7 @@ module.exports = {
   plugins: ['prettier', '@typescript-eslint'],
   extends: [
     'eslint:recommended',
+    'plugin:vue/vue3-recommended',
     'plugin:@typescript-eslint/recommended',
     'prettier'
   ],
@@ -30,7 +32,7 @@ module.exports = {
   },
   overrides: [
     {
-      files: ['*.js'],
+      files: ['*.js', '*.cjs'],
       // parser: '@babel/eslint-parser',
       plugins: ['import', 'prettier'],
       extends: [

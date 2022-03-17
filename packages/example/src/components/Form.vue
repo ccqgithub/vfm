@@ -72,7 +72,10 @@ const submit = () => {
         </button>
       </div>
       <div class="error">
-        {{ formState.error }}
+        {{ formState.error?.message }}
+      </div>
+      <div class="error">
+        {{ formState.virtualErrors.hasNameOrPassword?.message }}
       </div>
     </div>
   </div>

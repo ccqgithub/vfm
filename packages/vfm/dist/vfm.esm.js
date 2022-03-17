@@ -48,11 +48,9 @@ function __awaiter(thisArg, _arguments, P, generator) {
 
 class Field {
     constructor(form, args) {
-        // key path in form data
-        this.name = '';
         this.data = null;
         // 验证函数
-        this.validateFn = null;
+        this.validate = null;
         this.validateCount = 0;
         // watcher
         this.stopValidateWatcher = null;
@@ -60,6 +58,7 @@ class Field {
         this.form = form;
         this.name = args.name;
         this._data = reactive({
+            name: this.name,
             value: args.value === undefined ? args.defaultValue : args.value,
             defaultValue: args.defaultValue,
             error: { message: '' },
@@ -70,7 +69,7 @@ class Field {
             isChanged: false
         });
         this.data = readonly(this._data);
-        this.validateFn = args.validateFn || null;
+        this.validate = args.validate || null;
         this.initWatcher();
     }
     get state() {
@@ -79,6 +78,7 @@ class Field {
         return this.data;
     }
     initWatcher() {
+        let canCelLastValidate = null;
         // auto validate
         this.stopValidateWatcher = watchEffect(() => __awaiter(this, void 0, void 0, function* () {
             this.validateCount++;
@@ -86,15 +86,30 @@ class Field {
             const formState = this.form.state;
             const count = this.validateCount;
             this._data.isValidating = true;
-            const err = this.validateFn
-                ? (yield this.validateFn(value, formState)) || {}
-                : {};
+            canCelLastValidate === null || canCelLastValidate === void 0 ? void 0 : canCelLastValidate();
+            canCelLastValidate = null;
+            let err = null;
+            if (this.validate) {
+                const promise = this.validate(value, formState);
+                if (promise instanceof Promise) {
+                    canCelLastValidate = promise.cancel || null;
+                }
+                err = (yield promise) || null;
+            }
             if (count !== this.validateCount)
                 return;
             this._data.isValidating = false;
-            const hasError = !!err.message;
-            this._data.error.message = err.message || '';
-            this._data.error.types = err.types;
+            const hasError = !!(err === null || err === void 0 ? void 0 : err.message);
+            if (hasError) {
+                if (!this._data.error)
+                    this._data.error = { message: '' };
+                this._data.error.message = (err === null || err === void 0 ? void 0 : err.message) || '';
+                this._data.error.type = (err === null || err === void 0 ? void 0 : err.type) || 'default';
+                this._data.error.types = err === null || err === void 0 ? void 0 : err.types;
+            }
+            else {
+                this._data.error = null;
+            }
             this._data.isError = hasError;
         }));
         // dirty watch
@@ -124,7 +139,7 @@ class Field {
         (_b = this.stopDirtyWatcher) === null || _b === void 0 ? void 0 : _b.call(this);
         if (resetValue !== undefined)
             this._data.defaultValue = resetValue;
-        this._data.error = {};
+        this._data.error = null;
         this._data.isError = false;
         this._data.isValidating = false;
         this._data.isDirty = false;
@@ -132,6 +147,73 @@ class Field {
         this._data.isChanged = false;
         this._data.value = this._data.defaultValue;
         this.initWatcher();
+    }
+}
+// virtual field
+class VirtualField {
+    constructor(form, args) {
+        this.name = '';
+        this.data = null;
+        // 验证函数
+        this.validate = null;
+        this.validateCount = 0;
+        // watcher
+        this.stopValidateWatcher = null;
+        this.form = form;
+        this.name = args.name;
+        this._data = reactive({
+            name: this.name,
+            error: { message: '' },
+            isError: false,
+            isValidating: false
+        });
+        this.data = readonly(this._data);
+        this.validate = args.validate || null;
+        this.initWatcher();
+    }
+    get state() {
+        if (!this.data)
+            this.data = readonly(this._data);
+        return this.data;
+    }
+    initWatcher() {
+        let canCelLastValidate = null;
+        // auto validate
+        this.stopValidateWatcher = watchEffect(() => __awaiter(this, void 0, void 0, function* () {
+            this.validateCount++;
+            const formState = this.form.state;
+            const count = this.validateCount;
+            this._data.isValidating = true;
+            canCelLastValidate === null || canCelLastValidate === void 0 ? void 0 : canCelLastValidate();
+            canCelLastValidate = null;
+            let err = null;
+            if (this.validate) {
+                const promise = this.validate(formState);
+                if (promise instanceof Promise) {
+                    canCelLastValidate = promise.cancel || null;
+                }
+                err = (yield promise) || null;
+            }
+            if (count !== this.validateCount)
+                return;
+            this._data.isValidating = false;
+            const hasError = !!(err === null || err === void 0 ? void 0 : err.message);
+            if (hasError) {
+                if (!this._data.error)
+                    this._data.error = { message: '' };
+                this._data.error.message = (err === null || err === void 0 ? void 0 : err.message) || '';
+                this._data.error.type = (err === null || err === void 0 ? void 0 : err.type) || 'default';
+                this._data.error.types = err === null || err === void 0 ? void 0 : err.types;
+            }
+            else {
+                this._data.error = null;
+            }
+            this._data.isError = hasError;
+        }));
+    }
+    onUnregister() {
+        var _a;
+        (_a = this.stopValidateWatcher) === null || _a === void 0 ? void 0 : _a.call(this);
     }
 }
 
@@ -187,6 +269,8 @@ class Form {
     constructor(args) {
         this.fieldsKeys = ref([]);
         this.fields = new Map();
+        this.virtualFieldsKeys = ref([]);
+        this.virtualFields = new Map();
         this.data = null;
         this._fieldStates = reactive({});
         this._fieldStatesReadonly = null;
@@ -201,8 +285,9 @@ class Form {
         this.defaultValues = (args.defaultValues || {});
         this._data = reactive({
             values: toRaw(this.defaultValues) || {},
-            error: '',
+            error: null,
             errors: {},
+            virtualErrors: {},
             isError: false,
             isValidating: false,
             isDirty: false,
@@ -229,15 +314,18 @@ class Form {
     mount() {
         this.stopStateWatcher = watchEffect(() => {
             const keys = this.fieldsKeys.value;
+            const virtualKeys = this.virtualFieldsKeys.value;
             let isError = false;
             let isValidating = false;
             let isDirty = false;
             let isTouched = false;
             let isChanged = false;
+            // fields
             const fieldStates = {};
             const errors = {};
-            let error = '';
+            let error = null;
             keys.forEach((k) => {
+                var _a;
                 const field = this.fields.get(k);
                 if (!field)
                     return;
@@ -254,12 +342,29 @@ class Form {
                     isTouched = true;
                 if (!field.state.isChanged)
                     isChanged = true;
-                if (field.state.error.message && !error) {
-                    error = field.state.error.message;
+                if (((_a = field.state.error) === null || _a === void 0 ? void 0 : _a.message) && !error) {
+                    error = field.state.error;
                 }
             });
             updateObject(this._fieldStates, fieldStates);
             updateObject(this._data.errors, errors);
+            // virtual fields
+            const virtualErrors = {};
+            virtualKeys.forEach((k) => {
+                var _a;
+                const field = this.virtualFields.get(k);
+                if (!field)
+                    return;
+                setKeyValue(virtualErrors, k, field.state.error);
+                if (field.state.isError)
+                    isError = true;
+                if (field.state.isValidating)
+                    isValidating = true;
+                if (((_a = field.state.error) === null || _a === void 0 ? void 0 : _a.message) && !error) {
+                    error = field.state.error;
+                }
+            });
+            updateObject(this._data.virtualErrors, virtualErrors);
             this._data.isError = isError;
             this._data.error = error;
             this._data.isValidating = isValidating;
@@ -286,11 +391,11 @@ class Form {
     registerField(name, args = {}) {
         const { fieldsKeys, fields } = this;
         if (fieldsKeys.value.includes(name)) {
-            throw `字段已存在`;
+            throw `Duplicate field <${name}>.`;
         }
         for (const k of fieldsKeys.value) {
-            if (k.includes(name) || name.includes(k)) {
-                throw `一个字段内不能包含另一个字段`;
+            if (k.startsWith(`${name}.`) || name.startsWith(`${k}.`)) {
+                throw `Fields can not be nested together: <${name}> <${k}>.`;
             }
         }
         // field value
@@ -306,11 +411,20 @@ class Form {
         fields.set(name, field);
         this.fieldsKeys.value.push(name);
     }
+    registerVirtualField(name, args = {}) {
+        const { virtualFieldsKeys, virtualFields } = this;
+        if (virtualFieldsKeys.value.includes(name)) {
+            throw `Duplicate virtual field <${name}>.`;
+        }
+        const field = new VirtualField(this, Object.assign(Object.assign({}, args), { name }));
+        virtualFields.set(name, field);
+        this.virtualFieldsKeys.value.push(name);
+    }
     unregisterField(name) {
         const { fields } = this;
         const field = fields.get(name);
         if (!field) {
-            throw `字段不存在`;
+            throw `Field not exists <${name}>.`;
         }
         field.onUnregister();
         const findIndex = this.fieldsKeys.value.indexOf(name);
@@ -318,29 +432,40 @@ class Form {
         delKey(this._data.values, name);
         fields.delete(name);
     }
+    unregisterVirtualField(name) {
+        const { virtualFields } = this;
+        const field = virtualFields.get(name);
+        if (!field) {
+            throw `Virtual field not exists <${name}>.`;
+        }
+        field.onUnregister();
+        const findIndex = this.virtualFieldsKeys.value.indexOf(name);
+        findIndex !== -1 && this.virtualFieldsKeys.value.splice(findIndex, 1);
+        virtualFields.delete(name);
+    }
     setValue(name, value) {
         if (value === undefined)
             return;
         const field = this.fields.get(name);
         if (!field) {
-            throw `字段不存在`;
+            throw `Field not exists <${name}>.`;
         }
         field.onChange(value);
     }
     submit(onSuccess, onError) {
         const callback = () => {
+            this._data.isSubmitting = false;
             if (this.state.isError) {
                 onError(toRaw(this.state.errors));
                 return;
             }
-            this._data.isSubmitting = false;
             this._data.isSubmitted = true;
             onSuccess(toRaw(this.state.values));
         };
         this._data.submitCount++;
         this._data.isSubmitting = true;
         // check validdating status
-        if (!this.state.isValidating) {
+        if (this.state.isValidating) {
             this.waiters.push(() => {
                 callback();
             });
@@ -369,4 +494,93 @@ class Form {
     }
 }
 
-export { Field, Form };
+const alpha = ({ name, value }) => {
+    const msg = `${name} is not alphabetical`;
+    if (typeof value !== 'string')
+        return msg;
+    return /^[a-zA-Z]*$/.test(value) ? '' : msg;
+};
+
+const alphaNum = ({ name, value }) => {
+    const msg = `${name} must be alpha-numeric`;
+    if (typeof value !== 'string' && typeof value !== 'number')
+        return msg;
+    return /^[a-zA-Z0-9]*$/.test(`${value}`) ? '' : msg;
+};
+
+const decimal = ({ name, value }) => {
+    const msg = `${name} must be decimal`;
+    if (typeof value !== 'string' && typeof value !== 'number')
+        return msg;
+    return /^[-]?\d*(\.\d+)?$/.test(`${value}`) ? '' : msg;
+};
+
+const emailRegex = 
+// eslint-disable-next-line no-control-regex
+/^(?:[A-z0-9!#$%&'*+/=?^_`{|}~-]+(?:\.[A-z0-9!#$%&'*+/=?^_`{|}~-]+)*|"(?:[\x01-\x08\x0b\x0c\x0e-\x1f\x21\x23-\x5b\x5d-\x7f]|[\x01-\x09\x0b\x0c\x0e-\x7f])*")@(?:(?:[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\.)+[a-z0-9]{2,}(?:[a-z0-9-]*[a-z0-9])?|\[(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?|[a-z0-9-]*[a-z0-9]:(?:[\x01-\x08\x0b\x0c\x0e-\x1f\x21-\x5a\x53-\x7f]|\\[\x01-\x09\x0b\x0c\x0e-\x7f])+)\])$/i;
+const email = ({ name, value }) => {
+    const msg = `${name} is not a valid email address`;
+    if (typeof value !== 'string')
+        return msg;
+    return emailRegex.test(value) ? '' : msg;
+};
+
+const integer = ({ name, value }) => {
+    const msg = `${name} is not an integer`;
+    if (typeof value !== 'string' && typeof value !== 'number')
+        return msg;
+    return /(^[0-9]*$)|(^-[0-9]+$)/.test(`${value}`) ? '' : msg;
+};
+
+const ipAddress = ({ name, value }) => {
+    const msg = `${name} is not a valid IP address`;
+    if (typeof value !== 'string')
+        return msg;
+    const nibbles = value.split('.');
+    return nibbles.length === 4 && nibbles.every(nibbleValid) ? '' : msg;
+};
+const nibbleValid = (nibble) => {
+    if (nibble.length > 3 || nibble.length === 0) {
+        return false;
+    }
+    if (nibble[0] === '0' && nibble !== '0') {
+        return false;
+    }
+    if (!nibble.match(/^\d+$/)) {
+        return false;
+    }
+    const numeric = +nibble;
+    return numeric >= 0 && numeric <= 255;
+};
+
+const macAddress = ({ name, value }) => {
+    const msg = `${name} is not a valid MAC Address`;
+    if (typeof value !== 'string')
+        return msg;
+    const separator = ':';
+    const parts = value.split(separator);
+    return (parts.length === 6 || parts.length === 8) && parts.every(hexValid)
+        ? ''
+        : msg;
+};
+const hexValid = (hex) => hex.toLowerCase().match(/^[0-9a-f]{2}$/);
+
+const numeric = ({ name, value }) => {
+    const msg = `${name} must be numeric`;
+    if (typeof value !== 'string' && typeof value !== 'number')
+        return msg;
+    return /^\d*(\.\d+)?$/.test(`${value}`) ? '' : msg;
+};
+
+const validators = {
+    alpha,
+    alphaNum,
+    decimal,
+    email,
+    integer,
+    ipAddress,
+    macAddress,
+    numeric
+};
+
+export { Field, Form, VirtualField, validators };

@@ -6,42 +6,30 @@ import {
   WatchStopHandle,
   toRaw
 } from 'vue';
-import { Field, ValidateFunc, FieldError } from './field';
+import { Field, VirtualField } from './field';
 import { getKeyValue, setKeyValue, delKey, updateObject } from './untils';
-import { FieldValuesType, FieldValues, KeyPathValue } from './types';
+import {
+  FieldValuesType,
+  FieldValues,
+  KeyPathValue,
+  ValidateFunc,
+  FieldError,
+  FormState,
+  FormErrors,
+  VirtualValidateFunc
+} from './types';
 
-export type FormErrors = Record<string, FieldError | null>;
-
-export type FormState<T extends FieldValuesType> = {
-  // 当前值 { a: { b: { c: 222 }, d: [{ e: 2}] } }
-  values: FieldValues<T>;
-  // 错误信息
-  error: string;
-  errors: FormErrors;
-  // 是否有错误
-  isError: boolean;
-  // 正在验证
-  isValidating: boolean;
-  // 值被更改过, 当前值和默认值不相等
-  isDirty: boolean;
-  // 字段有过交互，比如 input focus
-  isTouched: boolean;
-  // 是否改变过
-  isChanged: boolean;
-  // 是否提交过
-  isSubmitted: boolean;
-  // 正在提交
-  isSubmitting: boolean;
-  // 提交次数
-  submitCount: number;
-};
-
-export class Form<T extends FieldValuesType = {}> {
+export class Form<
+  T extends FieldValuesType = FieldValuesType,
+  VFK extends string = string
+> {
   private fieldsKeys = ref<string[]>([]);
-  private fields: Map<string, Field<T, this>> = new Map();
+  private fields: Map<string, Field> = new Map();
+  private virtualFieldsKeys = ref<string[]>([]);
+  private virtualFields: Map<string, VirtualField> = new Map();
   // data
-  private _data: FormState<T>;
-  private data: FormState<T> | null = null;
+  private _data: FormState<T, VFK>;
+  private data: FormState<T, VFK> | null = null;
   private _fieldStates: Record<string, any> = reactive({});
   private _fieldStatesReadonly: Record<string, any> | null = null;
   // watcher
@@ -51,14 +39,18 @@ export class Form<T extends FieldValuesType = {}> {
   // waiter
   private waiters: (() => void)[] = [];
   // default values
-  defaultValues: FieldValues<T> = {} as FieldValues<T>;
+  private defaultValues: FieldValues<T> = {} as FieldValues<T>;
 
-  constructor(args: { defaultValues?: FieldValues<T> }) {
+  constructor(args: {
+    defaultValues?: FieldValues<T>;
+    virtualFields?: Record<string, VirtualField<Form<T, VFK>>>;
+  }) {
     this.defaultValues = (args.defaultValues || {}) as FieldValues<T>;
     this._data = reactive({
       values: toRaw(this.defaultValues) || {},
-      error: '',
+      error: null,
       errors: {},
+      virtualErrors: {},
       isError: false,
       isValidating: false,
       isDirty: false,
@@ -67,12 +59,12 @@ export class Form<T extends FieldValuesType = {}> {
       isSubmitted: false,
       isSubmitting: false,
       submitCount: 0
-    }) as FormState<T>;
+    }) as FormState<T, VFK>;
   }
 
   // form state
   get state() {
-    if (!this.data) this.data = readonly(this._data) as FormState<T>;
+    if (!this.data) this.data = readonly(this._data) as FormState<T, VFK>;
     return this.data;
   }
 
@@ -87,15 +79,18 @@ export class Form<T extends FieldValuesType = {}> {
   mount() {
     this.stopStateWatcher = watchEffect(() => {
       const keys = this.fieldsKeys.value;
+      const virtualKeys = this.virtualFieldsKeys.value;
+
       let isError = false;
       let isValidating = false;
       let isDirty = false;
       let isTouched = false;
       let isChanged = false;
 
+      // fields
       const fieldStates = {};
       const errors = {};
-      let error = '';
+      let error: FieldError | null = null;
       keys.forEach((k) => {
         const field = this.fields.get(k);
         if (!field) return;
@@ -107,12 +102,28 @@ export class Form<T extends FieldValuesType = {}> {
         if (field.state.isDirty) isDirty = true;
         if (field.state.isTouched) isTouched = true;
         if (!field.state.isChanged) isChanged = true;
-        if (field.state.error.message && !error) {
-          error = field.state.error.message;
+        if (field.state.error?.message && !error) {
+          error = field.state.error;
         }
       });
       updateObject(this._fieldStates, fieldStates);
       updateObject(this._data.errors, errors);
+
+      // virtual fields
+      const virtualErrors = {};
+      virtualKeys.forEach((k) => {
+        const field = this.virtualFields.get(k);
+        if (!field) return;
+
+        setKeyValue(virtualErrors, k, field.state.error);
+        if (field.state.isError) isError = true;
+        if (field.state.isValidating) isValidating = true;
+        if (field.state.error?.message && !error) {
+          error = field.state.error;
+        }
+      });
+      updateObject(this._data.virtualErrors, virtualErrors);
+
       this._data.isError = isError;
       this._data.error = error;
       this._data.isValidating = isValidating;
@@ -142,16 +153,16 @@ export class Form<T extends FieldValuesType = {}> {
     args: {
       value?: KeyPathValue<T, N>;
       defaultValue?: KeyPathValue<T, N>;
-      validateFn?: ValidateFunc<T, N> | null;
+      validate?: ValidateFunc<KeyPathValue<T, N>, FormState<T, VFK>> | null;
     } = {}
   ) {
     const { fieldsKeys, fields } = this;
     if (fieldsKeys.value.includes(name)) {
-      throw `字段已存在`;
+      throw `Duplicate field <${name}>.`;
     }
     for (const k of fieldsKeys.value) {
-      if (k.includes(name) || name.includes(k)) {
-        throw `一个字段内不能包含另一个字段`;
+      if (k.startsWith(`${name}.`) || name.startsWith(`${k}.`)) {
+        throw `Fields can not be nested together: <${name}> <${k}>.`;
       }
     }
     // field value
@@ -167,11 +178,26 @@ export class Form<T extends FieldValuesType = {}> {
     this.fieldsKeys.value.push(name);
   }
 
+  registerVirtualField(
+    name: string,
+    args: {
+      validate?: VirtualValidateFunc<FormState<T, VFK>> | null;
+    } = {}
+  ) {
+    const { virtualFieldsKeys, virtualFields } = this;
+    if (virtualFieldsKeys.value.includes(name)) {
+      throw `Duplicate virtual field <${name}>.`;
+    }
+    const field = new VirtualField(this, { ...args, name });
+    virtualFields.set(name, field as any);
+    this.virtualFieldsKeys.value.push(name);
+  }
+
   unregisterField(name: string) {
     const { fields } = this;
     const field = fields.get(name);
     if (!field) {
-      throw `字段不存在`;
+      throw `Field not exists <${name}>.`;
     }
     field.onUnregister();
     const findIndex = this.fieldsKeys.value.indexOf(name);
@@ -180,11 +206,23 @@ export class Form<T extends FieldValuesType = {}> {
     fields.delete(name);
   }
 
+  unregisterVirtualField(name: string) {
+    const { virtualFields } = this;
+    const field = virtualFields.get(name);
+    if (!field) {
+      throw `Virtual field not exists <${name}>.`;
+    }
+    field.onUnregister();
+    const findIndex = this.virtualFieldsKeys.value.indexOf(name);
+    findIndex !== -1 && this.virtualFieldsKeys.value.splice(findIndex, 1);
+    virtualFields.delete(name);
+  }
+
   setValue(name: string, value: any) {
     if (value === undefined) return;
     const field = this.fields.get(name);
     if (!field) {
-      throw `字段不存在`;
+      throw `Field not exists <${name}>.`;
     }
     field.onChange(value);
   }
@@ -194,18 +232,18 @@ export class Form<T extends FieldValuesType = {}> {
     onError: (errors: FormErrors) => void
   ) {
     const callback = () => {
+      this._data.isSubmitting = false;
       if (this.state.isError) {
         onError(toRaw(this.state.errors));
         return;
       }
-      this._data.isSubmitting = false;
       this._data.isSubmitted = true;
       onSuccess(toRaw(this.state.values));
     };
     this._data.submitCount++;
     this._data.isSubmitting = true;
     // check validdating status
-    if (!this.state.isValidating) {
+    if (this.state.isValidating) {
       this.waiters.push(() => {
         callback();
       });

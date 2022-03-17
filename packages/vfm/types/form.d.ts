@@ -1,22 +1,10 @@
-import { ValidateFunc, FieldError } from './field';
-import { FieldValuesType, FieldValues, KeyPathValue } from './types';
-export declare type FormErrors = Record<string, FieldError | null>;
-export declare type FormState<T extends FieldValuesType> = {
-    values: FieldValues<T>;
-    error: string;
-    errors: FormErrors;
-    isError: boolean;
-    isValidating: boolean;
-    isDirty: boolean;
-    isTouched: boolean;
-    isChanged: boolean;
-    isSubmitted: boolean;
-    isSubmitting: boolean;
-    submitCount: number;
-};
-export declare class Form<T extends FieldValuesType = {}> {
+import { VirtualField } from './field';
+import { FieldValuesType, FieldValues, KeyPathValue, ValidateFunc, FormState, FormErrors, VirtualValidateFunc } from './types';
+export declare class Form<T extends FieldValuesType = FieldValuesType, VFK extends string = string> {
     private fieldsKeys;
     private fields;
+    private virtualFieldsKeys;
+    private virtualFields;
     private _data;
     private data;
     private _fieldStates;
@@ -25,20 +13,25 @@ export declare class Form<T extends FieldValuesType = {}> {
     private stopStatusWatcher;
     private stopValidatingWatcher;
     private waiters;
-    defaultValues: FieldValues<T>;
+    private defaultValues;
     constructor(args: {
         defaultValues?: FieldValues<T>;
+        virtualFields?: Record<string, VirtualField<Form<T, VFK>>>;
     });
-    get state(): FormState<T>;
+    get state(): FormState<T, VFK>;
     get fieldStates(): Record<string, any>;
     mount(): void;
     unmount(): void;
     registerField<N extends string>(name: N, args?: {
         value?: KeyPathValue<T, N>;
         defaultValue?: KeyPathValue<T, N>;
-        validateFn?: ValidateFunc<T, N> | null;
+        validate?: ValidateFunc<KeyPathValue<T, N>, FormState<T, VFK>> | null;
+    }): void;
+    registerVirtualField(name: string, args?: {
+        validate?: VirtualValidateFunc<FormState<T, VFK>> | null;
     }): void;
     unregisterField(name: string): void;
+    unregisterVirtualField(name: string): void;
     setValue(name: string, value: any): void;
     submit(onSuccess: (data: FieldValues<T>) => void, onError: (errors: FormErrors) => void): void;
     reset(values?: FormData): void;
