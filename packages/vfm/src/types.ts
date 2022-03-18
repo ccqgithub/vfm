@@ -41,15 +41,16 @@ export type DeepPartial<T extends ObjectType> = T extends
   ? T
   : { [K in keyof T]?: DeepPartial<T[K]> };
 
-export type FieldValuesType = Record<string, any>;
+export type FormType = Record<string, any>;
 
-export type FieldValues<T extends FieldValuesType = FieldValuesType> =
-  UnpackNestedValue<DeepPartial<T>>;
+export type FieldValues<T extends FormType = FormType> = UnpackNestedValue<
+  DeepPartial<T>
+>;
 
 // get value of object by key path
 // key path: a.b.0.c
 export type KeyPathValue<
-  V extends FieldValuesType,
+  V extends FormType,
   Path extends string
 > = ArrayPathValue<V, SplitPath<Path>>;
 
@@ -61,13 +62,12 @@ export type FieldError = {
   // default: 'default'
   type?: string;
   message: string;
-  types?: Record<string, string>;
 };
 
 export type FormErrors = Record<string, FieldError | null>;
 
 export type FormState<
-  T extends FieldValuesType = FieldValuesType,
+  T extends FormType = FormType,
   VFK extends string = string
 > = {
   // 当前值 { a: { b: { c: 222 }, d: [{ e: 2}] } }
@@ -136,7 +136,21 @@ export type VirtualValidateFunc<F extends FormState> = (
 export type Validator<
   V = any,
   F extends Record<string, any> = Record<string, any>
-> = (
-  field: { value: V; name: string },
-  form: F
-) => string | CancellablePromise<string>;
+> = (value: V, form: F) => string | CancellablePromise<string>;
+
+export type FieldRule<V = any, F extends FormState = FormState> = {
+  type?: string;
+  required?: boolean;
+  requiredLength?: boolean;
+  minLength?: number;
+  maxLength?: number;
+  min?: number;
+  max?: number;
+  pattern?: RegExp;
+  validators?: (string | Validator<V, F>)[];
+  messate?: string;
+};
+
+export type InputLikeRef = {
+  focus?: () => void;
+};

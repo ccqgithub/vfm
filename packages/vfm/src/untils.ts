@@ -5,7 +5,7 @@ export const setKeyValue = (
 ) => {
   const arr = keyPath.split('.');
   let v: any = data;
-  while (arr.length) {
+  while (arr.length && typeof v === 'object' && v !== null) {
     const k = arr.shift()!;
     if (arr.length === 0) {
       v[k] = value;
@@ -23,7 +23,7 @@ export const getKeyValue = (data: Record<string, any>, keyPath: string) => {
     const k = arr.shift()!;
     v = typeof v === 'object' && v !== null ? v[k] : undefined;
   }
-  return arr.length === 0 ? v : undefined;
+  return v;
 };
 
 export const delKey = (data: Record<string, any>, keyPath: string) => {
@@ -32,7 +32,11 @@ export const delKey = (data: Record<string, any>, keyPath: string) => {
   while (arr.length && typeof v === 'object' && v !== null) {
     const k = arr.shift()!;
     if (arr.length === 0) {
-      delete v[k];
+      if (!Array.isArray(v)) {
+        delete v[k];
+      } else if (/^\d+$/.test(k)) {
+        v.splice(Number(k), 1);
+      }
     } else {
       v = v[k];
     }
@@ -60,6 +64,11 @@ export const recursiveUpdateObject = (
 ) => {
   if (typeof obj !== 'object' || obj === null) return;
   if (typeof newObj !== 'object' || newObj === null) return;
+  if (Array.isArray(obj) && Array.isArray(newObj)) {
+    obj.splice(0, obj.length, [...newObj]);
+  } else if (Array.isArray(obj) || Array.isArray(newObj)) {
+    return;
+  }
   const oldKeys = Object.keys(obj);
   const newKeys = Object.keys(newObj);
   const delKeys = oldKeys.filter((k) => !newKeys.includes(k));

@@ -1,7 +1,7 @@
 import { Validator } from '../types';
 
-export const ipAddress: Validator = ({ name, value }) => {
-  const msg = `${name} is not a valid IP address`;
+export const ipAddress: Validator = (value: any) => {
+  const msg = '{{name}} is not a valid IP address';
   if (typeof value !== 'string') return msg;
   const nibbles = value.split('.');
   return nibbles.length === 4 && nibbles.every(nibbleValid) ? '' : msg;

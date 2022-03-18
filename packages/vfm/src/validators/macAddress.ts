@@ -1,7 +1,7 @@
 import { Validator } from '../types';
 
-export const macAddress: Validator = ({ name, value }) => {
-  const msg = `${name} is not a valid MAC Address`;
+export const macAddress: Validator = (value: any) => {
+  const msg = '{{name}} is not a valid MAC Address';
   if (typeof value !== 'string') return msg;
   const separator = ':';
   const parts = value.split(separator);

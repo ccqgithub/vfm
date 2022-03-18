@@ -5,40 +5,51 @@ import {
   ValidateFunc,
   VirtualValidateFunc,
   FieldState,
-  VirtualFieldState
+  VirtualFieldState,
+  FormType,
+  FormState,
+  KeyPathValue
 } from './types';
 
-export class Field<F extends Form = Form, V = any> {
+export class Field<
+  T extends FormType = FormType,
+  N extends string = string,
+  V extends KeyPathValue<T, N> = KeyPathValue<T, N>
+> {
   // key path in form data
-  name: string;
+  name: N;
   // 所属表单
-  private form: F;
+  private form: Form<T>;
   // 当前状态
   private _data: FieldState<V>;
   private data: FieldState<V> | null = null;
   // 验证函数
-  private validate: ValidateFunc<V, F['state']> | null = null;
+  private validate: ValidateFunc<V, FormState<T>> | null = null;
   private validateCount = 0;
   // watcher
   private stopValidateWatcher: WatchStopHandle | null = null;
   private stopDirtyWatcher: WatchStopHandle | null = null;
+  // if registered
+  isRegistered = false;
 
   constructor(
-    form: F,
+    form: Form<T>,
     args: {
-      name: string;
+      name: N;
       value?: string;
       defaultValue?: string;
-      validate?: ValidateFunc<V, F['state']> | null;
+      validate?: ValidateFunc<V, FormState<T>> | null;
+      immediate?: boolean;
     }
   ) {
+    const { immediate = true } = args;
     this.form = form;
     this.name = args.name;
     this._data = reactive({
       name: this.name,
       value: args.value === undefined ? args.defaultValue : args.value,
       defaultValue: args.defaultValue,
-      error: { message: '' },
+      error: null,
       isError: false,
       isValidating: false,
       isDirty: false,
@@ -47,7 +58,9 @@ export class Field<F extends Form = Form, V = any> {
     }) as FieldState<V>;
     this.data = readonly(this._data) as FieldState<V>;
     this.validate = args.validate || null;
-    this.initWatcher();
+    if (immediate) {
+      this.onRegister();
+    }
   }
 
   get state() {
@@ -80,8 +93,7 @@ export class Field<F extends Form = Form, V = any> {
       if (hasError) {
         if (!this._data.error) this._data.error = { message: '' };
         this._data.error.message = err?.message || '';
-        this._data.error.type = err?.type || 'default';
-        this._data.error.types = err?.types;
+        this._data.error.type = err?.type;
       } else {
         this._data.error = null;
       }
@@ -93,9 +105,16 @@ export class Field<F extends Form = Form, V = any> {
     });
   }
 
+  onRegister() {
+    if (this.isRegistered) return;
+    this.initWatcher();
+    this.isRegistered = true;
+  }
+
   onUnregister() {
     this.stopValidateWatcher?.();
     this.stopDirtyWatcher?.();
+    this.isRegistered = false;
   }
 
   onChange(value: V) {
@@ -105,8 +124,8 @@ export class Field<F extends Form = Form, V = any> {
     this._data.isChanged = this._data.isChanged || isChanged;
   }
 
-  onTouched() {
-    this._data.isTouched = true;
+  onTouched(touched = true) {
+    this._data.isTouched = touched;
   }
 
   reset(resetValue?: V) {
@@ -126,37 +145,43 @@ export class Field<F extends Form = Form, V = any> {
 }
 
 // virtual field
-export class VirtualField<F extends Form = Form> {
+export class VirtualField<T extends FormType = FormType> {
   name = '';
   // 所属表单
-  private form: F;
+  private form: Form<T>;
   // 当前状态
   private _data: VirtualFieldState;
   private data: VirtualFieldState | null = null;
   // 验证函数
-  private validate: VirtualValidateFunc<F['state']> | null = null;
+  private validate: VirtualValidateFunc<FormState<T>> | null = null;
   private validateCount = 0;
   // watcher
   private stopValidateWatcher: WatchStopHandle | null = null;
+  // if registered
+  isRegistered = false;
 
   constructor(
-    form: F,
+    form: Form<T>,
     args: {
       name: string;
-      validate?: VirtualValidateFunc<F['state']> | null;
+      validate?: VirtualValidateFunc<FormState<T>> | null;
+      immediate?: boolean;
     }
   ) {
+    const { immediate = true } = args;
     this.form = form;
     this.name = args.name;
     this._data = reactive({
       name: this.name,
-      error: { message: '' },
+      error: null,
       isError: false,
       isValidating: false
     });
     this.data = readonly(this._data);
     this.validate = args.validate || null;
-    this.initWatcher();
+    if (immediate) {
+      this.initWatcher();
+    }
   }
 
   get state() {
@@ -188,13 +213,18 @@ export class VirtualField<F extends Form = Form> {
       if (hasError) {
         if (!this._data.error) this._data.error = { message: '' };
         this._data.error.message = err?.message || '';
-        this._data.error.type = err?.type || 'default';
-        this._data.error.types = err?.types;
+        this._data.error.type = err?.type;
       } else {
         this._data.error = null;
       }
       this._data.isError = hasError;
     });
+  }
+
+  onRegister() {
+    if (this.isRegistered) return;
+    this.initWatcher();
+    this.isRegistered = true;
   }
 
   onUnregister() {

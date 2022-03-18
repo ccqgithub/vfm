@@ -1,7 +1,8 @@
 module.exports = {
   root: true,
   env: {
-    node: true
+    node: true,
+    'vue/setup-compiler-macros': true
   },
   ignorePatterns: ['!.*.js', '!.*.cjs', '**/dist/**.*'],
   parser: 'vue-eslint-parser',
@@ -28,7 +29,8 @@ module.exports = {
     '@typescript-eslint/explicit-module-boundary-types': 'off',
     '@typescript-eslint/ban-types': 'off',
     '@typescript-eslint/no-non-null-assertion': 'off',
-    'no-prototype-builtins': 'off'
+    'no-prototype-builtins': 'off',
+    'vue/script-setup-uses-vars': 'error'
   },
   overrides: [
     {

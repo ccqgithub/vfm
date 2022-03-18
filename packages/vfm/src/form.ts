@@ -7,9 +7,9 @@ import {
   toRaw
 } from 'vue';
 import { Field, VirtualField } from './field';
-import { getKeyValue, setKeyValue, delKey, updateObject } from './untils';
+import { getKeyValue, setKeyValue, delKey } from './untils';
 import {
-  FieldValuesType,
+  FormType,
   FieldValues,
   KeyPathValue,
   ValidateFunc,
@@ -19,10 +19,9 @@ import {
   VirtualValidateFunc
 } from './types';
 
-export class Form<
-  T extends FieldValuesType = FieldValuesType,
-  VFK extends string = string
-> {
+export type GetFormType<T> = T extends Form<infer U> ? U : never;
+
+export class Form<T extends FormType = FormType, VFK extends string = string> {
   private fieldsKeys = ref<string[]>([]);
   private fields: Map<string, Field> = new Map();
   private virtualFieldsKeys = ref<string[]>([]);
@@ -48,9 +47,9 @@ export class Form<
     this.defaultValues = (args.defaultValues || {}) as FieldValues<T>;
     this._data = reactive({
       values: toRaw(this.defaultValues) || {},
-      error: null,
       errors: {},
       virtualErrors: {},
+      error: null,
       isError: false,
       isValidating: false,
       isDirty: false,
@@ -86,43 +85,36 @@ export class Form<
       let isDirty = false;
       let isTouched = false;
       let isChanged = false;
+      let error: FieldError | null = null;
 
       // fields
-      const fieldStates = {};
-      const errors = {};
-      let error: FieldError | null = null;
       keys.forEach((k) => {
         const field = this.fields.get(k);
         if (!field) return;
-        setKeyValue(fieldStates, k, field.state);
-        setKeyValue(errors, k, field.state.error);
         setKeyValue(this._data.values, k, field.state.value);
+        setKeyValue(this._data.errors, k, field.state.error);
+        setKeyValue(this._fieldStates, k, field.state);
         if (field.state.isError) isError = true;
         if (field.state.isValidating) isValidating = true;
         if (field.state.isDirty) isDirty = true;
         if (field.state.isTouched) isTouched = true;
         if (!field.state.isChanged) isChanged = true;
-        if (field.state.error?.message && !error) {
+        if (field.state.error && !error) {
           error = field.state.error;
         }
       });
-      updateObject(this._fieldStates, fieldStates);
-      updateObject(this._data.errors, errors);
 
       // virtual fields
-      const virtualErrors = {};
       virtualKeys.forEach((k) => {
         const field = this.virtualFields.get(k);
         if (!field) return;
-
-        setKeyValue(virtualErrors, k, field.state.error);
+        setKeyValue(this._data.virtualErrors, k, field.state.error);
         if (field.state.isError) isError = true;
         if (field.state.isValidating) isValidating = true;
-        if (field.state.error?.message && !error) {
+        if (field.state.error && !error) {
           error = field.state.error;
         }
       });
-      updateObject(this._data.virtualErrors, virtualErrors);
 
       this._data.isError = isError;
       this._data.error = error;
@@ -146,6 +138,12 @@ export class Form<
     this.stopStateWatcher?.();
     this.stopStatusWatcher?.();
     this.stopValidatingWatcher?.();
+    for (const name of this.fieldsKeys.value) {
+      this.unregisterField(name);
+    }
+    for (const name of this.virtualFieldsKeys.value) {
+      this.unregisterVirtualField(name);
+    }
   }
 
   registerField<N extends string>(
@@ -154,8 +152,10 @@ export class Form<
       value?: KeyPathValue<T, N>;
       defaultValue?: KeyPathValue<T, N>;
       validate?: ValidateFunc<KeyPathValue<T, N>, FormState<T, VFK>> | null;
+      immediate?: boolean;
     } = {}
   ) {
+    const { immediate = true } = args;
     const { fieldsKeys, fields } = this;
     if (fieldsKeys.value.includes(name)) {
       throw `Duplicate field <${name}>.`;
@@ -173,24 +173,45 @@ export class Form<
     // field default value
     const defaultValue =
       formValue === undefined ? args.defaultValue : formValue;
-    const field = new Field(this, { ...args, name, value, defaultValue });
-    fields.set(name, field as any);
-    this.fieldsKeys.value.push(name);
+    const field: Field<T, N> = new Field(this, {
+      ...args,
+      name,
+      value,
+      defaultValue
+    });
+    const register = () => {
+      fields.set(name, field as any);
+      this.fieldsKeys.value.push(name);
+    };
+    if (immediate) {
+      register();
+      return { field, register: () => {} };
+    }
+    return { register, field };
   }
 
   registerVirtualField(
     name: string,
     args: {
       validate?: VirtualValidateFunc<FormState<T, VFK>> | null;
+      immediate?: boolean;
     } = {}
   ) {
+    const { immediate = true } = args;
     const { virtualFieldsKeys, virtualFields } = this;
     if (virtualFieldsKeys.value.includes(name)) {
       throw `Duplicate virtual field <${name}>.`;
     }
     const field = new VirtualField(this, { ...args, name });
-    virtualFields.set(name, field as any);
-    this.virtualFieldsKeys.value.push(name);
+    const register = () => {
+      virtualFields.set(name, field as any);
+      this.virtualFieldsKeys.value.push(name);
+    };
+    if (immediate) {
+      register();
+      return { field, register: () => {} };
+    }
+    return { register, field };
   }
 
   unregisterField(name: string) {
@@ -203,6 +224,8 @@ export class Form<
     const findIndex = this.fieldsKeys.value.indexOf(name);
     findIndex !== -1 && this.fieldsKeys.value.splice(findIndex, 1);
     delKey(this._data.values, name);
+    delKey(this._data.errors, name);
+    delKey(this._fieldStates, name);
     fields.delete(name);
   }
 
@@ -215,6 +238,7 @@ export class Form<
     field.onUnregister();
     const findIndex = this.virtualFieldsKeys.value.indexOf(name);
     findIndex !== -1 && this.virtualFieldsKeys.value.splice(findIndex, 1);
+    delKey(this._data.virtualErrors, name);
     virtualFields.delete(name);
   }
 
@@ -225,6 +249,14 @@ export class Form<
       throw `Field not exists <${name}>.`;
     }
     field.onChange(value);
+  }
+
+  setTouched(name: string, touched = true) {
+    const field = this.fields.get(name);
+    if (!field) {
+      throw `Field not exists <${name}>.`;
+    }
+    field.onTouched(touched);
   }
 
   submit(
@@ -257,6 +289,8 @@ export class Form<
     this._data.values =
       values === undefined ? this.defaultValues : (values as FieldValues<T>);
     this._data.errors = {};
+    this._data.virtualErrors = {} as Record<VFK, FieldError | null>;
+    this._data.error = null;
     this._data.isError = false;
     this._data.isValidating = false;
     this._data.isDirty = false;
