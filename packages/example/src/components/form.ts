@@ -1,7 +1,7 @@
 /* eslint-disable import/no-unresolved */
-import { Form } from 'vfm';
+import { createForm } from 'vfm';
 
-const form = new Form<
+const form = createForm<
   {
     username: string;
     test: number;
@@ -18,18 +18,18 @@ const form = new Form<
   }
 });
 form.mount();
-form.registerField('username', {
-  validate: (v) => {
-    if (!v || !v.trim()) return { message: 'username required.' };
-    return new Promise((resolve) => {
-      setTimeout(() => {
-        if (v !== 'test')
-          return resolve({ message: 'username is not correct.' });
-        return resolve(null);
-      }, 2000);
-    });
-  }
-});
+// form.registerField('username', {
+//   validate: (v) => {
+//     if (!v || !v.trim()) return { message: 'username required.' };
+//     return new Promise((resolve) => {
+//       setTimeout(() => {
+//         if (v !== 'test')
+//           return resolve({ message: 'username is not correct.' });
+//         return resolve(null);
+//       }, 2000);
+//     });
+//   }
+// });
 form.registerField('password', {
   validate: (v) => {
     if (!v || !v.trim()) return { message: 'password required.' };

@@ -4,7 +4,7 @@ module.exports = {
     node: true,
     'vue/setup-compiler-macros': true
   },
-  ignorePatterns: ['!.*.js', '!.*.cjs', '**/dist/**.*'],
+  ignorePatterns: ['**/dist/**.*'],
   parser: 'vue-eslint-parser',
   parserOptions: {
     parser: '@typescript-eslint/parser',
@@ -30,7 +30,8 @@ module.exports = {
     '@typescript-eslint/ban-types': 'off',
     '@typescript-eslint/no-non-null-assertion': 'off',
     'no-prototype-builtins': 'off',
-    'vue/script-setup-uses-vars': 'error'
+    'vue/script-setup-uses-vars': 'error',
+    'vue/multi-word-component-names': 'off'
   },
   overrides: [
     {

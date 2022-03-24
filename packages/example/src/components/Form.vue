@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, toRaw } from 'vue';
+import { Field } from 'vfm';
 import form from './form';
 
 const formState = computed(() => form.state);
@@ -17,6 +18,17 @@ const submit = () => {
     }
   );
 };
+const usernameValidators = [
+  (v: string) => {
+    if (!v || !v.trim()) return 'username required.';
+    return new Promise((resolve) => {
+      setTimeout(() => {
+        if (v !== 'test') return resolve('username is not correct.');
+        return resolve(null);
+      }, 2000);
+    });
+  }
+];
 </script>
 
 <template>
@@ -25,11 +37,25 @@ const submit = () => {
       <div class="pc">
         <div class="label">用户名:</div>
         <div class="input">
-          <input
+          <!-- <input
             type="text"
             :value="formState.values.username"
             @input="setFormValue('username', ($event.currentTarget as HTMLInputElement)?.value)"
-          />
+          /> -->
+          <Field
+            :form="form"
+            name="username"
+            value="3"
+            :rules="[
+              {
+                validators: usernameValidators
+              }
+            ]"
+          >
+            <template #default="field">
+              <input type="text" v-bind="field" />
+            </template>
+          </Field>
         </div>
         <div class="loading">
           {{ fieldStates.username?.isValidating ? 'loading...' : '' }}

@@ -1,12 +1,10 @@
 {
   "name": "vfm",
-  "version": "0.0.2",
+  "version": "0.1.0",
   "description": "Vue driven form management tool。",
-  "main": "dist/vfm.js",
-  "module": "dist/vfm.esm.js",
-  "unpkg": "dist/vfm.umd.js",
-  "jsdelivr": "dist/vfm.umd.js",
-  "types": "types/index.d.ts",
+  "main": "dist/vfm.es.js",
+  "types": "dist/types/index.d.ts",
+  "type": "module",
   "files": [
     "src",
     "dist",
@@ -15,18 +13,34 @@
     "LICENSE",
     "README.md"
   ],
-  "type": "module",
   "scripts": {
-    "build": "node scripts/build.js",
-    "lint": "eslint --ext .ts src/**",
+    "build-dts": "vue-tsc --emitDeclarationOnly && mv dist/src dist/types",
+    "build": "vite build && npm run build-dts",
+    "lint:ts": "vue-ts --noEmit",
+    "lint": "eslint --ext .ts 'src/**' && npm run lint:ts",
     "changelog": "conventional-changelog -p angular -i CHANGELOG.md -s",
     "serve": "serve"
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/ccqgithub/vfm.git"
+    "url": "git+https://github.com/ccqgithub/vfm.git"
   },
   "peerDependencies": {
     "vue": "^3.2.0"
+  },
+  "bugs": {
+    "url": "https://github.com/ccqgithub/vfm/issues"
+  },
+  "homepage": "https://github.com/ccqgithub/vfm#readme",
+  "directories": {
+    "doc": "docs"
+  },
+  "author": "",
+  "license": "ISC",
+  "exports": {
+    ".": {
+      "import": "./dist/vfm.es.js",
+      "require": "./dist/vfm.umd.js"
+    }
   }
 }

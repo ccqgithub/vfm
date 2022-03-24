@@ -1,5 +1,5 @@
 import { watchEffect, reactive, WatchStopHandle, readonly } from 'vue';
-import { Form } from './form';
+import { FormClass } from './form';
 import {
   FieldError,
   ValidateFunc,
@@ -11,7 +11,7 @@ import {
   KeyPathValue
 } from './types';
 
-export class Field<
+export class FieldClass<
   T extends FormType = FormType,
   N extends string = string,
   V extends KeyPathValue<T, N> = KeyPathValue<T, N>
@@ -19,7 +19,7 @@ export class Field<
   // key path in form data
   name: N;
   // 所属表单
-  private form: Form<T>;
+  private form: FormClass<T>;
   // 当前状态
   private _data: FieldState<V>;
   private data: FieldState<V> | null = null;
@@ -33,7 +33,7 @@ export class Field<
   isRegistered = false;
 
   constructor(
-    form: Form<T>,
+    form: FormClass<T>,
     args: {
       name: N;
       value?: string;
@@ -68,7 +68,7 @@ export class Field<
     return this.data;
   }
 
-  private initWatcher() {
+  initWatcher() {
     let canCelLastValidate: (() => void) | null = null;
     // auto validate
     this.stopValidateWatcher = watchEffect(async () => {
@@ -145,10 +145,10 @@ export class Field<
 }
 
 // virtual field
-export class VirtualField<T extends FormType = FormType> {
+export class VirtualFieldClass<T extends FormType = FormType> {
   name = '';
   // 所属表单
-  private form: Form<T>;
+  private form: FormClass<T>;
   // 当前状态
   private _data: VirtualFieldState;
   private data: VirtualFieldState | null = null;
@@ -161,7 +161,7 @@ export class VirtualField<T extends FormType = FormType> {
   isRegistered = false;
 
   constructor(
-    form: Form<T>,
+    form: FormClass<T>,
     args: {
       name: string;
       validate?: VirtualValidateFunc<FormState<T>> | null;

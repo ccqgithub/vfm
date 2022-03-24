@@ -1,5 +1,5 @@
 {
-  "name": "example",
+  "name": "vfm-example",
   "private": true,
   "version": "0.0.0",
   "scripts": {
@@ -9,6 +9,6 @@
   },
   "dependencies": {
     "vue": "^3.2.31",
-    "vfm": "^0.0.2"
+    "vfm": "^0.0.3"
   }
 }

@@ -6,7 +6,7 @@ import {
   WatchStopHandle,
   toRaw
 } from 'vue';
-import { Field, VirtualField } from './field';
+import { FieldClass, VirtualFieldClass } from './field';
 import { getKeyValue, setKeyValue, delKey } from './untils';
 import {
   FormType,
@@ -19,13 +19,16 @@ import {
   VirtualValidateFunc
 } from './types';
 
-export type GetFormType<T> = T extends Form<infer U> ? U : never;
+export type GetFormType<T> = T extends FormClass<infer U> ? U : never;
 
-export class Form<T extends FormType = FormType, VFK extends string = string> {
+export class FormClass<
+  T extends FormType = FormType,
+  VFK extends string = string
+> {
   private fieldsKeys = ref<string[]>([]);
-  private fields: Map<string, Field> = new Map();
+  private fields: Map<string, FieldClass> = new Map();
   private virtualFieldsKeys = ref<string[]>([]);
-  private virtualFields: Map<string, VirtualField> = new Map();
+  private virtualFields: Map<string, VirtualFieldClass> = new Map();
   // data
   private _data: FormState<T, VFK>;
   private data: FormState<T, VFK> | null = null;
@@ -42,7 +45,7 @@ export class Form<T extends FormType = FormType, VFK extends string = string> {
 
   constructor(args: {
     defaultValues?: FieldValues<T>;
-    virtualFields?: Record<string, VirtualField<Form<T, VFK>>>;
+    virtualFields?: Record<string, VirtualFieldClass<FormClass<T, VFK>>>;
   }) {
     this.defaultValues = (args.defaultValues || {}) as FieldValues<T>;
     this._data = reactive({
@@ -173,7 +176,7 @@ export class Form<T extends FormType = FormType, VFK extends string = string> {
     // field default value
     const defaultValue =
       formValue === undefined ? args.defaultValue : formValue;
-    const field: Field<T, N> = new Field(this, {
+    const field: FieldClass<T, N> = new FieldClass(this, {
       ...args,
       name,
       value,
@@ -182,6 +185,7 @@ export class Form<T extends FormType = FormType, VFK extends string = string> {
     const register = () => {
       fields.set(name, field as any);
       this.fieldsKeys.value.push(name);
+      field.initWatcher();
     };
     if (immediate) {
       register();
@@ -202,7 +206,7 @@ export class Form<T extends FormType = FormType, VFK extends string = string> {
     if (virtualFieldsKeys.value.includes(name)) {
       throw `Duplicate virtual field <${name}>.`;
     }
-    const field = new VirtualField(this, { ...args, name });
+    const field = new VirtualFieldClass(this, { ...args, name });
     const register = () => {
       virtualFields.set(name, field as any);
       this.virtualFieldsKeys.value.push(name);
@@ -305,3 +309,13 @@ export class Form<T extends FormType = FormType, VFK extends string = string> {
     }
   }
 }
+
+export const createForm = <
+  T extends FormType = FormType,
+  VFK extends string = string
+>(args: {
+  defaultValues?: FieldValues<T>;
+  virtualFields?: Record<string, VirtualFieldClass<FormClass<T, VFK>>>;
+}) => {
+  return new FormClass<T, VFK>(args);
+};

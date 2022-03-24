@@ -1,4 +1,7 @@
 {
+  "extensions": {
+    "recommendations": ["johnsoncodehk.volar"]
+  },
   "folders": [
     {
       "path": "./",
