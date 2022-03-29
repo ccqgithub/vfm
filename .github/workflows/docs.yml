@@ -19,8 +19,9 @@ jobs:
 
       - name: Install and Build 🔧
         run: |
+          cd packages/docs
           npm i
-          npm run docs:build -w docs
+          npm run docs:build
 
       - name: Deploy 🚀
         run: |
