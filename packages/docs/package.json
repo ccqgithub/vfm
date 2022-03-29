@@ -1,7 +1,7 @@
 {
   "name": "docs",
   "version": "0.0.0",
-  "description": "mobx-fm docs",
+  "description": "vfm docs",
   "main": "index.js",
   "scripts": {
     "docs:dev": "vuepress dev docs",

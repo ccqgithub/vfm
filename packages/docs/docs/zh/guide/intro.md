@@ -13,14 +13,14 @@ For these reasons, this tool used [mobx](https://github.com/mobxjs/mobx)'s react
 
 ## Packages
 
-- `mobx-fm`: The form management core, use with [mobx](https://github.com/mobxjs/mobx) stand-alone.
-- `mobx-fm-react`: Use `mobx-fm` with react.
+- `vfm`: The form management core, use with [mobx](https://github.com/mobxjs/mobx) stand-alone.
+- `vfm-react`: Use `vfm` with react.
 
 ## Features
 
 - **🍦 Easy To Use**: Simple way to create forms and use validations, few APIs and less configurations.
 - **🍡 Reactivity**: Driven by mobx, inherit the reactivity capability of it, field level update.
-- **🍲 Flexible**: Can use component or hooks with react by `mobx-fm-react`, also can be used with mobx stand-alone.
+- **🍲 Flexible**: Can use component or hooks with react by `vfm-react`, also can be used with mobx stand-alone.
 - **🍰 Virtual Fields**: Can register virtual validations with form states, not limited to the real fields that have value.
 - **🍚 Custom UI**: Not bound to any UI libraries, can use with any UI libraries.
 - **🍭 Fully Typed**: Flexible programmatic APIs with full TypeScript typing.

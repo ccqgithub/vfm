@@ -7,30 +7,30 @@ import {
 } from './config/index'
 
 export default defineConfig(ctx => ({
-  base: ctx.isProd ? '/mobx-fm/' : '/' as any,
-  title: 'mobx-fm',
+  base: ctx.isProd ? '/vfm/' : '/' as any,
+  title: 'vfm',
   description: 'Mobx driven form management tool.',
   locales: {
     '/': {
       lang: 'en-US',
-      title: 'mobx-fm',
+      title: 'vfm',
       description: 'Mobx driven form management tool.'
     },
     '/zh/': {
       lang: 'zh-CN',
-      title: 'mobx-fm',
+      title: 'vfm',
       description: 'Mobx 驱动的表单管理工具'
     }
   },
   themeConfig: {
-    repo: 'ccqgithub/mobx-fm',
+    repo: 'ccqgithub/vfm',
     editLinks: true,
     docsDir: 'packages/docs/docs',
     // #697 Provided by the official algolia team.
     algolia: ctx.isProd
       ? {
         appId: '9VJEAY5FMM',
-        indexName: 'mobx-fm',
+        indexName: 'vfm',
         apiKey: 'd33934e356eba49983bfc14b7d7769cb'
       }
       : null,

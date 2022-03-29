@@ -3,15 +3,15 @@
 ## Needs
 
 - [Mobx6+](https://github.com/mobxjs/mobx).
-- [React16.8+](https://github.com/facebook/react/), only when use `mobx-fm-react`.
+- [React16.8+](https://github.com/facebook/react/), only when use `vfm-react`.
 
 ## Install
 
 ```sh
-# Only use `mobx-fm`.
-npm install mobx mobx-fm
-# Use with `react`, you need install `mobx-fm-react`.
-npm install mobx mobx-fm mobx-fm-reaact
+# Only use `vfm`.
+npm install mobx vfm
+# Use with `react`, you need install `vfm-react`.
+npm install mobx vfm vfm-reaact
 ```
 
 ## Create Form
@@ -51,7 +51,7 @@ export const createForm = <FormType, VirtualFields>(args: {
 **Code example**:
 
 ```ts
-import { createForm } from 'mobx-fm';
+import { createForm } from 'vfm';
 
 const form = createForm<
   {
@@ -152,7 +152,7 @@ autorun(() => {
 
 ```tsx
 import { observer } form 'mobx-react-lite';
-import { Field, VirtualField } from 'mobx-fm-react';
+import { Field, VirtualField } from 'vfm-react';
 import form from '/form';
 
 export const Form = observer(() => {

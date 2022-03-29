@@ -1,4 +1,4 @@
-# API: mobx-fm
+# API: vfm
 
 ## createForm
 
@@ -7,7 +7,7 @@
 Create a form instance.
 
 ```ts
-import { createForm } from 'mobx-fm';
+import { createForm } from 'vfm';
 
 type FormType = {
   username: string;
