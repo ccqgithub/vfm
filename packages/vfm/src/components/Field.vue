@@ -12,9 +12,11 @@ interface UseFieldPropsDefine {
 }
 
 const props = defineProps<UseFieldPropsDefine>();
-const slotProps = useField(props as UseFieldProps);
+const [slotProps, state] = useField(props as UseFieldProps);
 </script>
 
 <template>
-  <slot v-bind="slotProps"></slot>
+  <template v-if="state">
+    <slot :field="slotProps" :state="state"></slot>
+  </template>
 </template>

@@ -1,15 +1,73 @@
-import { watchEffect, reactive, WatchStopHandle, readonly } from 'vue';
+import { reactive, watchEffect, WatchStopHandle } from 'vue';
 import { FormClass } from './form';
 import {
   FieldError,
   ValidateFunc,
-  VirtualValidateFunc,
   FieldState,
-  VirtualFieldState,
   FormType,
   FormState,
-  KeyPathValue
+  KeyPathValue,
+  FieldRule
 } from './types';
+import { validators } from './validators';
+
+const validateRule = async (rule: FieldRule, v: any, f: FormState) => {
+  // required
+  if (rule.required) {
+    if (!v) return '{{name}} is required';
+  }
+  // requiredLength
+  if (rule.requiredLength) {
+    if (typeof v?.length !== 'number' || v.length <= 0) {
+      return '{{name}} is required';
+    }
+  }
+  // minLength
+  if (rule.minLength !== undefined) {
+    if (typeof v?.length !== 'number' || v.length < rule.minLength) {
+      return `{{name}}'s length cannot be less than ${rule.minLength}`;
+    }
+  }
+  // maxLength
+  if (rule.maxLength !== undefined) {
+    if (typeof v?.length !== 'number' || v.length > rule.maxLength) {
+      return `{{name}}'s length cannot be greater than ${rule.maxLength}`;
+    }
+  }
+  // min
+  if (rule.min !== undefined) {
+    if (typeof v !== 'number' || v < rule.min) {
+      return `{{name}} cannot be less than ${rule.min}`;
+    }
+  }
+  // max
+  if (rule.max !== undefined) {
+    if (typeof v !== 'number' || v > rule.max) {
+      return `{{name}} cannot be greater than ${rule.max}`;
+    }
+  }
+  // pattern
+  if (rule.pattern) {
+    if (typeof v !== 'string' || !rule.pattern.test(v)) {
+      return `{{name}} not match ${rule.pattern.toString()}`;
+    }
+  }
+  // builtin validators
+  for (const str of Object.keys(validators) as (keyof typeof validators)[]) {
+    if (rule[str] === true) {
+      const vld = validators[str];
+      const msg = await vld(v, f);
+      if (msg) return msg;
+    }
+  }
+  // validators
+  if (rule.validator) {
+    const msg = await rule.validator(v, f);
+    if (msg) return msg;
+  }
+  // no error
+  return '';
+};
 
 export class FieldClass<
   T extends FormType = FormType,
@@ -17,12 +75,11 @@ export class FieldClass<
   V extends KeyPathValue<T, N> = KeyPathValue<T, N>
 > {
   // key path in form data
-  name: N;
+  public name: N;
+  // 当前状态
+  public state: FieldState<V>;
   // 所属表单
   private form: FormClass<T>;
-  // 当前状态
-  private _data: FieldState<V>;
-  private data: FieldState<V> | null = null;
   // 验证函数
   private validate: ValidateFunc<V, FormState<T>> | null = null;
   private validateCount = 0;
@@ -30,7 +87,7 @@ export class FieldClass<
   private stopValidateWatcher: WatchStopHandle | null = null;
   private stopDirtyWatcher: WatchStopHandle | null = null;
   // if registered
-  isRegistered = false;
+  private isRegistered = false;
 
   constructor(
     form: FormClass<T>,
@@ -38,14 +95,14 @@ export class FieldClass<
       name: N;
       value?: string;
       defaultValue?: string;
-      validate?: ValidateFunc<V, FormState<T>> | null;
+      rules?: FieldRule<KeyPathValue<T, N>, FormState<T>>[];
       immediate?: boolean;
     }
   ) {
-    const { immediate = true } = args;
+    const { immediate = true, rules = [] } = args;
     this.form = form;
     this.name = args.name;
-    this._data = reactive({
+    this.state = reactive({
       name: this.name,
       value: args.value === undefined ? args.defaultValue : args.value,
       defaultValue: args.defaultValue,
@@ -56,17 +113,37 @@ export class FieldClass<
       isTouched: false,
       isChanged: false
     }) as FieldState<V>;
-    this.data = readonly(this._data) as FieldState<V>;
-    this.validate = args.validate || null;
+    // validate
+    const validate: ValidateFunc<KeyPathValue<T, N>, FormState<T>> = async (
+      v,
+      fs
+    ) => {
+      let error: FieldError | null = null;
+      for (const rule of rules) {
+        const errMsg = await validateRule(rule as FieldRule<T>, v, fs);
+        if (errMsg) {
+          error =
+            typeof errMsg === 'string'
+              ? {
+                  type: rule.type,
+                  message: errMsg
+                }
+              : errMsg;
+          return error;
+        }
+      }
+      return null;
+    };
+    this.validate = validate;
+    // if immediate register
     if (immediate) {
       this.onRegister();
     }
   }
 
-  get state() {
-    if (!this.data) this.data = readonly(this._data) as FieldState<V>;
-    return this.data;
-  }
+  private runInAction = (fn: (...args: any[]) => void) => {
+    fn();
+  };
 
   initWatcher() {
     let canCelLastValidate: (() => void) | null = null;
@@ -76,32 +153,42 @@ export class FieldClass<
       const value = this.state.value;
       const formState = this.form.state;
       const count = this.validateCount;
-      this._data.isValidating = true;
+      const validate = this.validate;
+      // cancel last validate
       canCelLastValidate?.();
       canCelLastValidate = null;
+      // start validate
+      this.runInAction(() => {
+        this.state.isValidating = true;
+      });
       let err: FieldError | null = null;
-      if (this.validate) {
-        const promise = this.validate(value, formState);
-        if (promise instanceof Promise) {
-          canCelLastValidate = promise.cancel || null;
-        }
+      if (validate) {
+        const promise = validate(value, formState);
+        canCelLastValidate = (promise as any)?.cancel || null;
         err = (await promise) || null;
       }
+      // has other validate start after this
       if (count !== this.validateCount) return;
-      this._data.isValidating = false;
-      const hasError = !!err?.message;
-      if (hasError) {
-        if (!this._data.error) this._data.error = { message: '' };
-        this._data.error.message = err?.message || '';
-        this._data.error.type = err?.type;
-      } else {
-        this._data.error = null;
-      }
-      this._data.isError = hasError;
+      // update validate status
+      this.runInAction(() => {
+        this.state.isValidating = false;
+        const hasError = !!err?.message;
+        if (hasError) {
+          if (!this.state.error) this.state.error = { message: '' };
+          this.state.error.message = err?.message || '';
+          this.state.error.type = err?.type;
+        } else {
+          this.state.error = null;
+        }
+        this.state.isError = hasError;
+      });
     });
     // dirty watch
     this.stopDirtyWatcher = watchEffect(() => {
-      this._data.isDirty = this._data.value !== this._data.defaultValue;
+      const { value, defaultValue } = this.state;
+      this.runInAction(() => {
+        this.state.isDirty = value !== defaultValue;
+      });
     });
   }
 
@@ -120,114 +207,32 @@ export class FieldClass<
   onChange(value: V) {
     if (value === undefined) return;
     const isChanged = this.state.value !== value;
-    this._data.value = value;
-    this._data.isChanged = this._data.isChanged || isChanged;
+    this.runInAction(() => {
+      this.state.value = value;
+      this.state.isChanged = this.state.isChanged || isChanged;
+    });
   }
 
   onTouched(touched = true) {
-    this._data.isTouched = touched;
+    this.runInAction(() => {
+      this.state.isTouched = touched;
+    });
   }
 
   reset(resetValue?: V) {
     this.validateCount++;
     this.stopValidateWatcher?.();
     this.stopDirtyWatcher?.();
-    if (resetValue !== undefined) this._data.defaultValue = resetValue;
-    this._data.error = null;
-    this._data.isError = false;
-    this._data.isValidating = false;
-    this._data.isDirty = false;
-    this._data.isTouched = false;
-    this._data.isChanged = false;
-    this._data.value = this._data.defaultValue;
-    this.initWatcher();
-  }
-}
-
-// virtual field
-export class VirtualFieldClass<T extends FormType = FormType> {
-  name = '';
-  // 所属表单
-  private form: FormClass<T>;
-  // 当前状态
-  private _data: VirtualFieldState;
-  private data: VirtualFieldState | null = null;
-  // 验证函数
-  private validate: VirtualValidateFunc<FormState<T>> | null = null;
-  private validateCount = 0;
-  // watcher
-  private stopValidateWatcher: WatchStopHandle | null = null;
-  // if registered
-  isRegistered = false;
-
-  constructor(
-    form: FormClass<T>,
-    args: {
-      name: string;
-      validate?: VirtualValidateFunc<FormState<T>> | null;
-      immediate?: boolean;
-    }
-  ) {
-    const { immediate = true } = args;
-    this.form = form;
-    this.name = args.name;
-    this._data = reactive({
-      name: this.name,
-      error: null,
-      isError: false,
-      isValidating: false
+    this.runInAction(() => {
+      if (resetValue !== undefined) this.state.defaultValue = resetValue;
+      this.state.error = null;
+      this.state.isError = false;
+      this.state.isValidating = false;
+      this.state.isDirty = false;
+      this.state.isTouched = false;
+      this.state.isChanged = false;
+      this.state.value = this.state.defaultValue;
     });
-    this.data = readonly(this._data);
-    this.validate = args.validate || null;
-    if (immediate) {
-      this.initWatcher();
-    }
-  }
-
-  get state() {
-    if (!this.data) this.data = readonly(this._data);
-    return this.data;
-  }
-
-  private initWatcher() {
-    let canCelLastValidate: (() => void) | null = null;
-    // auto validate
-    this.stopValidateWatcher = watchEffect(async () => {
-      this.validateCount++;
-      const formState = this.form.state;
-      const count = this.validateCount;
-      this._data.isValidating = true;
-      canCelLastValidate?.();
-      canCelLastValidate = null;
-      let err: FieldError | null = null;
-      if (this.validate) {
-        const promise = this.validate(formState);
-        if (promise instanceof Promise) {
-          canCelLastValidate = promise.cancel || null;
-        }
-        err = (await promise) || null;
-      }
-      if (count !== this.validateCount) return;
-      this._data.isValidating = false;
-      const hasError = !!err?.message;
-      if (hasError) {
-        if (!this._data.error) this._data.error = { message: '' };
-        this._data.error.message = err?.message || '';
-        this._data.error.type = err?.type;
-      } else {
-        this._data.error = null;
-      }
-      this._data.isError = hasError;
-    });
-  }
-
-  onRegister() {
-    if (this.isRegistered) return;
     this.initWatcher();
-    this.isRegistered = true;
-  }
-
-  onUnregister() {
-    this.stopValidateWatcher?.();
   }
 }

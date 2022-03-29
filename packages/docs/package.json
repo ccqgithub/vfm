@@ -1,0 +1,16 @@
+{
+  "name": "docs",
+  "version": "0.0.0",
+  "description": "mobx-fm docs",
+  "main": "index.js",
+  "scripts": {
+    "docs:dev": "vuepress dev docs",
+    "docs:build": "vuepress build docs",
+    "docs:deploy": "gh-pages --dist './docs/.vuepress/dist/' --src '**/*'"
+  },
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "vuepress": "^1.9.7"
+  }
+}

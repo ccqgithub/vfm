@@ -17,476 +17,7 @@ var __spreadValues = (a, b) => {
   return a;
 };
 var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
-import { reactive, readonly, watchEffect, ref, toRaw, inject, computed, onMounted, onUnmounted, defineComponent, renderSlot, normalizeProps, guardReactiveProps, unref, provide } from "vue";
-class FieldClass {
-  constructor(form, args) {
-    this.data = null;
-    this.validate = null;
-    this.validateCount = 0;
-    this.stopValidateWatcher = null;
-    this.stopDirtyWatcher = null;
-    this.isRegistered = false;
-    const { immediate = true } = args;
-    this.form = form;
-    this.name = args.name;
-    this._data = reactive({
-      name: this.name,
-      value: args.value === void 0 ? args.defaultValue : args.value,
-      defaultValue: args.defaultValue,
-      error: null,
-      isError: false,
-      isValidating: false,
-      isDirty: false,
-      isTouched: false,
-      isChanged: false
-    });
-    this.data = readonly(this._data);
-    this.validate = args.validate || null;
-    if (immediate) {
-      this.onRegister();
-    }
-  }
-  get state() {
-    if (!this.data)
-      this.data = readonly(this._data);
-    return this.data;
-  }
-  initWatcher() {
-    let canCelLastValidate = null;
-    this.stopValidateWatcher = watchEffect(async () => {
-      this.validateCount++;
-      const value = this.state.value;
-      const formState = this.form.state;
-      const count = this.validateCount;
-      this._data.isValidating = true;
-      canCelLastValidate == null ? void 0 : canCelLastValidate();
-      canCelLastValidate = null;
-      let err = null;
-      if (this.validate) {
-        const promise = this.validate(value, formState);
-        if (promise instanceof Promise) {
-          canCelLastValidate = promise.cancel || null;
-        }
-        err = await promise || null;
-      }
-      if (count !== this.validateCount)
-        return;
-      this._data.isValidating = false;
-      const hasError = !!(err == null ? void 0 : err.message);
-      if (hasError) {
-        if (!this._data.error)
-          this._data.error = { message: "" };
-        this._data.error.message = (err == null ? void 0 : err.message) || "";
-        this._data.error.type = err == null ? void 0 : err.type;
-      } else {
-        this._data.error = null;
-      }
-      this._data.isError = hasError;
-    });
-    this.stopDirtyWatcher = watchEffect(() => {
-      this._data.isDirty = this._data.value !== this._data.defaultValue;
-    });
-  }
-  onRegister() {
-    if (this.isRegistered)
-      return;
-    this.initWatcher();
-    this.isRegistered = true;
-  }
-  onUnregister() {
-    var _a, _b;
-    (_a = this.stopValidateWatcher) == null ? void 0 : _a.call(this);
-    (_b = this.stopDirtyWatcher) == null ? void 0 : _b.call(this);
-    this.isRegistered = false;
-  }
-  onChange(value) {
-    if (value === void 0)
-      return;
-    const isChanged = this.state.value !== value;
-    this._data.value = value;
-    this._data.isChanged = this._data.isChanged || isChanged;
-  }
-  onTouched(touched = true) {
-    this._data.isTouched = touched;
-  }
-  reset(resetValue) {
-    var _a, _b;
-    this.validateCount++;
-    (_a = this.stopValidateWatcher) == null ? void 0 : _a.call(this);
-    (_b = this.stopDirtyWatcher) == null ? void 0 : _b.call(this);
-    if (resetValue !== void 0)
-      this._data.defaultValue = resetValue;
-    this._data.error = null;
-    this._data.isError = false;
-    this._data.isValidating = false;
-    this._data.isDirty = false;
-    this._data.isTouched = false;
-    this._data.isChanged = false;
-    this._data.value = this._data.defaultValue;
-    this.initWatcher();
-  }
-}
-class VirtualFieldClass {
-  constructor(form, args) {
-    this.name = "";
-    this.data = null;
-    this.validate = null;
-    this.validateCount = 0;
-    this.stopValidateWatcher = null;
-    this.isRegistered = false;
-    const { immediate = true } = args;
-    this.form = form;
-    this.name = args.name;
-    this._data = reactive({
-      name: this.name,
-      error: null,
-      isError: false,
-      isValidating: false
-    });
-    this.data = readonly(this._data);
-    this.validate = args.validate || null;
-    if (immediate) {
-      this.initWatcher();
-    }
-  }
-  get state() {
-    if (!this.data)
-      this.data = readonly(this._data);
-    return this.data;
-  }
-  initWatcher() {
-    let canCelLastValidate = null;
-    this.stopValidateWatcher = watchEffect(async () => {
-      this.validateCount++;
-      const formState = this.form.state;
-      const count = this.validateCount;
-      this._data.isValidating = true;
-      canCelLastValidate == null ? void 0 : canCelLastValidate();
-      canCelLastValidate = null;
-      let err = null;
-      if (this.validate) {
-        const promise = this.validate(formState);
-        if (promise instanceof Promise) {
-          canCelLastValidate = promise.cancel || null;
-        }
-        err = await promise || null;
-      }
-      if (count !== this.validateCount)
-        return;
-      this._data.isValidating = false;
-      const hasError = !!(err == null ? void 0 : err.message);
-      if (hasError) {
-        if (!this._data.error)
-          this._data.error = { message: "" };
-        this._data.error.message = (err == null ? void 0 : err.message) || "";
-        this._data.error.type = err == null ? void 0 : err.type;
-      } else {
-        this._data.error = null;
-      }
-      this._data.isError = hasError;
-    });
-  }
-  onRegister() {
-    if (this.isRegistered)
-      return;
-    this.initWatcher();
-    this.isRegistered = true;
-  }
-  onUnregister() {
-    var _a;
-    (_a = this.stopValidateWatcher) == null ? void 0 : _a.call(this);
-  }
-}
-const setKeyValue = (data, keyPath, value) => {
-  const arr = keyPath.split(".");
-  let v = data;
-  while (arr.length && typeof v === "object" && v !== null) {
-    const k = arr.shift();
-    if (arr.length === 0) {
-      v[k] = value;
-    } else if (typeof v[k] !== "object" || v[k] === null) {
-      v[k] = /^\d+$/.test(k) ? [] : {};
-    }
-    v = v[k];
-  }
-};
-const getKeyValue = (data, keyPath) => {
-  const arr = keyPath.split(".");
-  let v = data;
-  while (arr.length && v) {
-    const k = arr.shift();
-    v = typeof v === "object" && v !== null ? v[k] : void 0;
-  }
-  return v;
-};
-const delKey = (data, keyPath) => {
-  const arr = keyPath.split(".");
-  let v = data;
-  while (arr.length && typeof v === "object" && v !== null) {
-    const k = arr.shift();
-    if (arr.length === 0) {
-      if (!Array.isArray(v)) {
-        delete v[k];
-      } else if (/^\d+$/.test(k)) {
-        v.splice(Number(k), 1);
-      }
-    } else {
-      v = v[k];
-    }
-  }
-};
-class FormClass {
-  constructor(args) {
-    this.fieldsKeys = ref([]);
-    this.fields = /* @__PURE__ */ new Map();
-    this.virtualFieldsKeys = ref([]);
-    this.virtualFields = /* @__PURE__ */ new Map();
-    this.data = null;
-    this._fieldStates = reactive({});
-    this._fieldStatesReadonly = null;
-    this.stopStateWatcher = null;
-    this.stopStatusWatcher = null;
-    this.stopValidatingWatcher = null;
-    this.waiters = [];
-    this.defaultValues = {};
-    this.defaultValues = args.defaultValues || {};
-    this._data = reactive({
-      values: toRaw(this.defaultValues) || {},
-      errors: {},
-      virtualErrors: {},
-      error: null,
-      isError: false,
-      isValidating: false,
-      isDirty: false,
-      isTouched: false,
-      isChanged: false,
-      isSubmitted: false,
-      isSubmitting: false,
-      submitCount: 0
-    });
-  }
-  get state() {
-    if (!this.data)
-      this.data = readonly(this._data);
-    return this.data;
-  }
-  get fieldStates() {
-    if (!this._fieldStatesReadonly) {
-      this._fieldStatesReadonly = readonly(this._fieldStates);
-    }
-    return this._fieldStatesReadonly;
-  }
-  mount() {
-    this.stopStateWatcher = watchEffect(() => {
-      const keys = this.fieldsKeys.value;
-      const virtualKeys = this.virtualFieldsKeys.value;
-      let isError = false;
-      let isValidating = false;
-      let isDirty = false;
-      let isTouched = false;
-      let isChanged = false;
-      let error = null;
-      keys.forEach((k) => {
-        const field = this.fields.get(k);
-        if (!field)
-          return;
-        setKeyValue(this._data.values, k, field.state.value);
-        setKeyValue(this._data.errors, k, field.state.error);
-        setKeyValue(this._fieldStates, k, field.state);
-        if (field.state.isError)
-          isError = true;
-        if (field.state.isValidating)
-          isValidating = true;
-        if (field.state.isDirty)
-          isDirty = true;
-        if (field.state.isTouched)
-          isTouched = true;
-        if (!field.state.isChanged)
-          isChanged = true;
-        if (field.state.error && !error) {
-          error = field.state.error;
-        }
-      });
-      virtualKeys.forEach((k) => {
-        const field = this.virtualFields.get(k);
-        if (!field)
-          return;
-        setKeyValue(this._data.virtualErrors, k, field.state.error);
-        if (field.state.isError)
-          isError = true;
-        if (field.state.isValidating)
-          isValidating = true;
-        if (field.state.error && !error) {
-          error = field.state.error;
-        }
-      });
-      this._data.isError = isError;
-      this._data.error = error;
-      this._data.isValidating = isValidating;
-      this._data.isDirty = isDirty;
-      this._data.isTouched = isTouched;
-      this._data.isChanged = isChanged;
-    });
-    this.stopValidatingWatcher = watchEffect(() => {
-      const isValidating = this.state.isValidating;
-      if (!isValidating) {
-        this.waiters.forEach((fn) => {
-          fn();
-        });
-      }
-      this.waiters = [];
-    });
-  }
-  unmount() {
-    var _a, _b, _c;
-    (_a = this.stopStateWatcher) == null ? void 0 : _a.call(this);
-    (_b = this.stopStatusWatcher) == null ? void 0 : _b.call(this);
-    (_c = this.stopValidatingWatcher) == null ? void 0 : _c.call(this);
-    for (const name of this.fieldsKeys.value) {
-      this.unregisterField(name);
-    }
-    for (const name of this.virtualFieldsKeys.value) {
-      this.unregisterVirtualField(name);
-    }
-  }
-  registerField(name, args = {}) {
-    const { immediate = true } = args;
-    const { fieldsKeys, fields } = this;
-    if (fieldsKeys.value.includes(name)) {
-      throw `Duplicate field <${name}>.`;
-    }
-    for (const k of fieldsKeys.value) {
-      if (k.startsWith(`${name}.`) || name.startsWith(`${k}.`)) {
-        throw `Fields can not be nested together: <${name}> <${k}>.`;
-      }
-    }
-    const formValue = getKeyValue(this.state.values, name);
-    let value = args.value;
-    if (value === void 0)
-      value = formValue;
-    if (value === void 0)
-      value = args.defaultValue;
-    const defaultValue = formValue === void 0 ? args.defaultValue : formValue;
-    const field = new FieldClass(this, __spreadProps(__spreadValues({}, args), {
-      name,
-      value,
-      defaultValue
-    }));
-    const register = () => {
-      fields.set(name, field);
-      this.fieldsKeys.value.push(name);
-      field.initWatcher();
-    };
-    if (immediate) {
-      register();
-      return { field, register: () => {
-      } };
-    }
-    return { register, field };
-  }
-  registerVirtualField(name, args = {}) {
-    const { immediate = true } = args;
-    const { virtualFieldsKeys, virtualFields } = this;
-    if (virtualFieldsKeys.value.includes(name)) {
-      throw `Duplicate virtual field <${name}>.`;
-    }
-    const field = new VirtualFieldClass(this, __spreadProps(__spreadValues({}, args), { name }));
-    const register = () => {
-      virtualFields.set(name, field);
-      this.virtualFieldsKeys.value.push(name);
-    };
-    if (immediate) {
-      register();
-      return { field, register: () => {
-      } };
-    }
-    return { register, field };
-  }
-  unregisterField(name) {
-    const { fields } = this;
-    const field = fields.get(name);
-    if (!field) {
-      throw `Field not exists <${name}>.`;
-    }
-    field.onUnregister();
-    const findIndex = this.fieldsKeys.value.indexOf(name);
-    findIndex !== -1 && this.fieldsKeys.value.splice(findIndex, 1);
-    delKey(this._data.values, name);
-    delKey(this._data.errors, name);
-    delKey(this._fieldStates, name);
-    fields.delete(name);
-  }
-  unregisterVirtualField(name) {
-    const { virtualFields } = this;
-    const field = virtualFields.get(name);
-    if (!field) {
-      throw `Virtual field not exists <${name}>.`;
-    }
-    field.onUnregister();
-    const findIndex = this.virtualFieldsKeys.value.indexOf(name);
-    findIndex !== -1 && this.virtualFieldsKeys.value.splice(findIndex, 1);
-    delKey(this._data.virtualErrors, name);
-    virtualFields.delete(name);
-  }
-  setValue(name, value) {
-    if (value === void 0)
-      return;
-    const field = this.fields.get(name);
-    if (!field) {
-      throw `Field not exists <${name}>.`;
-    }
-    field.onChange(value);
-  }
-  setTouched(name, touched = true) {
-    const field = this.fields.get(name);
-    if (!field) {
-      throw `Field not exists <${name}>.`;
-    }
-    field.onTouched(touched);
-  }
-  submit(onSuccess, onError) {
-    const callback = () => {
-      this._data.isSubmitting = false;
-      if (this.state.isError) {
-        onError(toRaw(this.state.errors));
-        return;
-      }
-      this._data.isSubmitted = true;
-      onSuccess(toRaw(this.state.values));
-    };
-    this._data.submitCount++;
-    this._data.isSubmitting = true;
-    if (this.state.isValidating) {
-      this.waiters.push(() => {
-        callback();
-      });
-    } else {
-      callback();
-    }
-  }
-  reset(values) {
-    this.waiters = [];
-    this._data.values = values === void 0 ? this.defaultValues : values;
-    this._data.errors = {};
-    this._data.virtualErrors = {};
-    this._data.error = null;
-    this._data.isError = false;
-    this._data.isValidating = false;
-    this._data.isDirty = false;
-    this._data.isTouched = false;
-    this._data.isChanged = false;
-    this._data.isSubmitted = false;
-    this._data.isSubmitting = false;
-    this._data.submitCount = 0;
-    for (const [name, field] of this.fields) {
-      const formValue = getKeyValue(this.state.values, name);
-      field.reset(formValue);
-    }
-  }
-}
-const createForm = (args) => {
-  return new FormClass(args);
-};
+import { reactive, watchEffect, ref, toRaw, inject, computed, onMounted, onUnmounted, defineComponent, unref, renderSlot, createCommentVNode, provide } from "vue";
 const alpha = (value) => {
   const msg = "{{name}} is not alphabetical";
   if (typeof value !== "string")
@@ -563,8 +94,7 @@ const validators = {
   macAddress,
   numeric
 };
-const vfmInjectionKey = Symbol();
-const validateRule = async (rule, v, f) => {
+const validateRule$1 = async (rule, v, f) => {
   if (rule.required) {
     if (!v)
       return "{{name}} is required";
@@ -599,44 +129,628 @@ const validateRule = async (rule, v, f) => {
       return `{{name}} not match ${rule.pattern.toString()}`;
     }
   }
-  for (let vld of rule.validators || []) {
-    if (typeof vld === "string") {
-      vld = validators[vld];
-    }
-    if (!vld) {
-      console.warn(`validator ${vld} is not registered`);
-    } else {
+  for (const str of Object.keys(validators)) {
+    if (rule[str] === true) {
+      const vld = validators[str];
       const msg = await vld(v, f);
       if (msg)
         return msg;
     }
   }
+  if (rule.validator) {
+    const msg = await rule.validator(v, f);
+    if (msg)
+      return msg;
+  }
   return "";
 };
+class FieldClass {
+  constructor(form, args) {
+    this.validate = null;
+    this.validateCount = 0;
+    this.stopValidateWatcher = null;
+    this.stopDirtyWatcher = null;
+    this.isRegistered = false;
+    this.runInAction = (fn) => {
+      fn();
+    };
+    const { immediate = true, rules = [] } = args;
+    this.form = form;
+    this.name = args.name;
+    this.state = reactive({
+      name: this.name,
+      value: args.value === void 0 ? args.defaultValue : args.value,
+      defaultValue: args.defaultValue,
+      error: null,
+      isError: false,
+      isValidating: false,
+      isDirty: false,
+      isTouched: false,
+      isChanged: false
+    });
+    const validate = async (v, fs) => {
+      let error = null;
+      for (const rule of rules) {
+        const errMsg = await validateRule$1(rule, v, fs);
+        if (errMsg) {
+          error = typeof errMsg === "string" ? {
+            type: rule.type,
+            message: errMsg
+          } : errMsg;
+          return error;
+        }
+      }
+      return null;
+    };
+    this.validate = validate;
+    if (immediate) {
+      this.onRegister();
+    }
+  }
+  initWatcher() {
+    let canCelLastValidate = null;
+    this.stopValidateWatcher = watchEffect(async () => {
+      this.validateCount++;
+      const value = this.state.value;
+      const formState = this.form.state;
+      const count = this.validateCount;
+      const validate = this.validate;
+      canCelLastValidate == null ? void 0 : canCelLastValidate();
+      canCelLastValidate = null;
+      this.runInAction(() => {
+        this.state.isValidating = true;
+      });
+      let err = null;
+      if (validate) {
+        const promise = validate(value, formState);
+        canCelLastValidate = (promise == null ? void 0 : promise.cancel) || null;
+        err = await promise || null;
+      }
+      if (count !== this.validateCount)
+        return;
+      this.runInAction(() => {
+        this.state.isValidating = false;
+        const hasError = !!(err == null ? void 0 : err.message);
+        if (hasError) {
+          if (!this.state.error)
+            this.state.error = { message: "" };
+          this.state.error.message = (err == null ? void 0 : err.message) || "";
+          this.state.error.type = err == null ? void 0 : err.type;
+        } else {
+          this.state.error = null;
+        }
+        this.state.isError = hasError;
+      });
+    });
+    this.stopDirtyWatcher = watchEffect(() => {
+      const { value, defaultValue } = this.state;
+      this.runInAction(() => {
+        this.state.isDirty = value !== defaultValue;
+      });
+    });
+  }
+  onRegister() {
+    if (this.isRegistered)
+      return;
+    this.initWatcher();
+    this.isRegistered = true;
+  }
+  onUnregister() {
+    var _a, _b;
+    (_a = this.stopValidateWatcher) == null ? void 0 : _a.call(this);
+    (_b = this.stopDirtyWatcher) == null ? void 0 : _b.call(this);
+    this.isRegistered = false;
+  }
+  onChange(value) {
+    if (value === void 0)
+      return;
+    const isChanged = this.state.value !== value;
+    this.runInAction(() => {
+      this.state.value = value;
+      this.state.isChanged = this.state.isChanged || isChanged;
+    });
+  }
+  onTouched(touched = true) {
+    this.runInAction(() => {
+      this.state.isTouched = touched;
+    });
+  }
+  reset(resetValue) {
+    var _a, _b;
+    this.validateCount++;
+    (_a = this.stopValidateWatcher) == null ? void 0 : _a.call(this);
+    (_b = this.stopDirtyWatcher) == null ? void 0 : _b.call(this);
+    this.runInAction(() => {
+      if (resetValue !== void 0)
+        this.state.defaultValue = resetValue;
+      this.state.error = null;
+      this.state.isError = false;
+      this.state.isValidating = false;
+      this.state.isDirty = false;
+      this.state.isTouched = false;
+      this.state.isChanged = false;
+      this.state.value = this.state.defaultValue;
+    });
+    this.initWatcher();
+  }
+}
+const validateRule = async (rule, f) => {
+  if (rule.validator) {
+    const msg = await rule.validator(f);
+    if (msg)
+      return msg;
+  }
+  return "";
+};
+class VirtualFieldClass {
+  constructor(form, args) {
+    this.name = "";
+    this.validate = null;
+    this.validateCount = 0;
+    this.stopValidateWatcher = null;
+    this.isRegistered = false;
+    this.runInAction = (fn) => {
+      fn();
+    };
+    const { immediate = true, rules = [] } = args;
+    this.form = form;
+    this.name = args.name;
+    this.state = reactive({
+      name: this.name,
+      error: null,
+      isError: false,
+      isValidating: false
+    });
+    const validate = async (fs) => {
+      let error = null;
+      for (const rule of rules) {
+        const errMsg = await validateRule(rule, fs);
+        if (errMsg) {
+          error = typeof errMsg === "string" ? {
+            type: rule.type,
+            message: errMsg
+          } : errMsg;
+          return error;
+        }
+      }
+      return null;
+    };
+    this.validate = validate;
+    if (immediate) {
+      this.initWatcher();
+    }
+  }
+  initWatcher() {
+    let canCelLastValidate = null;
+    this.stopValidateWatcher = watchEffect(async () => {
+      this.validateCount++;
+      const formState = this.form.state;
+      const count = this.validateCount;
+      this.runInAction(() => {
+        this.state.isValidating = true;
+      });
+      canCelLastValidate == null ? void 0 : canCelLastValidate();
+      canCelLastValidate = null;
+      let err = null;
+      if (this.validate) {
+        const promise = this.validate(formState);
+        if (promise instanceof Promise) {
+          canCelLastValidate = promise.cancel || null;
+        }
+        err = await promise || null;
+      }
+      if (count !== this.validateCount)
+        return;
+      this.runInAction(() => {
+        this.state.isValidating = false;
+        const hasError = !!(err == null ? void 0 : err.message);
+        if (hasError) {
+          if (!this.state.error)
+            this.state.error = { message: "" };
+          this.state.error.message = (err == null ? void 0 : err.message) || "";
+          this.state.error.type = err == null ? void 0 : err.type;
+        } else {
+          this.state.error = null;
+        }
+        this.state.isError = hasError;
+      });
+    });
+  }
+  onRegister() {
+    if (this.isRegistered)
+      return;
+    this.initWatcher();
+    this.isRegistered = true;
+  }
+  onUnregister() {
+    var _a;
+    (_a = this.stopValidateWatcher) == null ? void 0 : _a.call(this);
+  }
+}
+const setKeyValue = (data, keyPath, value) => {
+  const arr = keyPath.split(".");
+  let v = data;
+  while (arr.length && typeof v === "object" && v !== null) {
+    const k = arr.shift();
+    if (arr.length === 0) {
+      v[k] = value;
+    } else if (typeof v[k] !== "object" || v[k] === null) {
+      v[k] = /^\d+$/.test(k) ? [] : {};
+    }
+    v = v[k];
+  }
+};
+const getKeyValue = (data, keyPath) => {
+  const arr = keyPath.split(".");
+  let v = data;
+  while (arr.length && v) {
+    const k = arr.shift();
+    v = typeof v === "object" && v !== null ? v[k] : void 0;
+  }
+  return v;
+};
+const delKey = (data, keyPath) => {
+  const arr = keyPath.split(".");
+  let v = data;
+  while (arr.length && typeof v === "object" && v !== null) {
+    const k = arr.shift();
+    if (arr.length === 0) {
+      if (!Array.isArray(v)) {
+        delete v[k];
+      } else if (/^\d+$/.test(k)) {
+        v.splice(Number(k), 1);
+      }
+    } else {
+      v = v[k];
+    }
+  }
+};
+class FormClass {
+  constructor(args) {
+    this.fieldStates = reactive({});
+    this.virtualFieldStates = reactive({});
+    this.cacheFields = [];
+    this.cacheVirtualFields = [];
+    this.isMounted = false;
+    this.fieldsKeys = ref([]);
+    this.fields = /* @__PURE__ */ new Map();
+    this.virtualFieldsKeys = ref([]);
+    this.virtualFields = /* @__PURE__ */ new Map();
+    this.stopStateWatcher = null;
+    this.stopStatusWatcher = null;
+    this.stopValidatingWatcher = null;
+    this.waiters = [];
+    this.defaultValues = {};
+    this.runInAction = (fn) => {
+      fn();
+    };
+    this.defaultValues = toRaw(args.defaultValues || {});
+    this.state = reactive({
+      values: toRaw(this.defaultValues) || {},
+      errors: {},
+      virtualErrors: {},
+      error: null,
+      isError: false,
+      isValidating: false,
+      isDirty: false,
+      isTouched: false,
+      isChanged: false,
+      isSubmitted: false,
+      isSubmitting: false,
+      submitCount: 0
+    });
+  }
+  mount() {
+    if (this.isMounted)
+      return;
+    const { cacheFields, cacheVirtualFields } = this;
+    this.fieldsKeys.value.push(...cacheFields);
+    this.virtualFieldsKeys.value.push(...cacheVirtualFields);
+    this.cacheFields = [];
+    this.cacheVirtualFields = [];
+    this.stopStateWatcher = watchEffect(() => {
+      const keys = this.fieldsKeys.value;
+      const virtualKeys = this.virtualFieldsKeys.value;
+      let isError = false;
+      let isValidating = false;
+      let isDirty = false;
+      let isTouched = false;
+      let isChanged = false;
+      let error = null;
+      keys.forEach((k) => {
+        const field = this.fields.get(k);
+        if (!field)
+          return;
+        const fieldState = field.state;
+        const fieldValue = field.state.value;
+        const fieldError = field.state.error;
+        const fieldStateIsError = field.state.isError;
+        const fieldIsValidating = field.state.isValidating;
+        const fieldIsDirty = field.state.isDirty;
+        const fieldIsTouched = field.state.isTouched;
+        const fieldIsChanged = field.state.isChanged;
+        this.runInAction(() => {
+          setKeyValue(this.state.values, k, fieldValue);
+          setKeyValue(this.state.errors, k, fieldError);
+          setKeyValue(this.fieldStates, k, fieldState);
+          if (fieldStateIsError)
+            isError = true;
+          if (fieldIsValidating)
+            isValidating = true;
+          if (fieldIsDirty)
+            isDirty = true;
+          if (fieldIsTouched)
+            isTouched = true;
+          if (!fieldIsChanged)
+            isChanged = true;
+          if (fieldError && !error) {
+            error = fieldError;
+          }
+        });
+      });
+      virtualKeys.forEach((k) => {
+        const field = this.virtualFields.get(k);
+        if (!field)
+          return;
+        const fieldState = field.state;
+        const fieldError = field.state.error;
+        const fieldIsError = field.state.isError;
+        const fieldIsValidating = field.state.isValidating;
+        this.runInAction(() => {
+          setKeyValue(this.state.virtualErrors, k, fieldError);
+          setKeyValue(this.virtualFieldStates, k, fieldState);
+          if (fieldIsError)
+            isError = true;
+          if (fieldIsValidating)
+            isValidating = true;
+          if (fieldError && !error) {
+            error = fieldError;
+          }
+        });
+      });
+      this.runInAction(() => {
+        this.state.isError = isError;
+        this.state.error = error;
+        this.state.isValidating = isValidating;
+        this.state.isDirty = isDirty;
+        this.state.isTouched = isTouched;
+        this.state.isChanged = isChanged;
+      });
+    });
+    this.stopValidatingWatcher = watchEffect(() => {
+      const isValidating = this.state.isValidating;
+      if (!isValidating) {
+        this.waiters.forEach((fn) => {
+          fn();
+        });
+      }
+      this.waiters = [];
+    });
+    this.isMounted = true;
+  }
+  unmount() {
+    var _a, _b, _c;
+    (_a = this.stopStateWatcher) == null ? void 0 : _a.call(this);
+    (_b = this.stopStatusWatcher) == null ? void 0 : _b.call(this);
+    (_c = this.stopValidatingWatcher) == null ? void 0 : _c.call(this);
+    for (const name of this.fieldsKeys.value) {
+      this.unregisterField(name);
+    }
+    for (const name of this.virtualFieldsKeys.value) {
+      this.unregisterVirtualField(name);
+    }
+    for (const name of this.cacheFields) {
+      this.unregisterField(name);
+    }
+    for (const name of this.cacheVirtualFields) {
+      this.unregisterVirtualField(name);
+    }
+    this.isMounted = false;
+  }
+  registerField(name, args = {}) {
+    const { immediate = true } = args;
+    const { fieldsKeys, fields } = this;
+    if (fieldsKeys.value.includes(name)) {
+      console.warn(`Duplicate field <${name}>.`);
+      return {
+        field: this.fields.get(name),
+        register: () => {
+        }
+      };
+    }
+    for (const k of fieldsKeys.value) {
+      if (k.startsWith(`${name}.`) || name.startsWith(`${k}.`)) {
+        console.warn(`Fields can not be nested together: <${name}> <${k}>.`);
+        return {
+          field: this.fields.get(name),
+          register: () => {
+          }
+        };
+      }
+    }
+    const formValue = getKeyValue(this.state.values, name);
+    let value = args.value;
+    if (value === void 0)
+      value = formValue;
+    if (value === void 0)
+      value = args.defaultValue;
+    const defaultValue = formValue === void 0 ? args.defaultValue : formValue;
+    const field = new FieldClass(this, __spreadProps(__spreadValues({}, args), {
+      name,
+      value,
+      defaultValue
+    }));
+    const register = () => {
+      fields.set(name, field);
+      this.runInAction(() => {
+        if (this.isMounted) {
+          this.fieldsKeys.value.push(name);
+        } else {
+          this.cacheFields.push(name);
+        }
+      });
+      field.initWatcher();
+    };
+    if (immediate) {
+      register();
+      return { field, register: () => {
+      } };
+    }
+    return { register, field };
+  }
+  registerVirtualField(name, args = {}) {
+    const { immediate = true } = args;
+    const { virtualFieldsKeys, virtualFields } = this;
+    if (virtualFieldsKeys.value.includes(name)) {
+      console.warn(`Duplicate virtual field <${name}>.`);
+      return {
+        field: this.virtualFields.get(name),
+        register: () => {
+        }
+      };
+    }
+    const field = new VirtualFieldClass(this, __spreadProps(__spreadValues({}, args), { name }));
+    const register = () => {
+      virtualFields.set(name, field);
+      this.runInAction(() => {
+        if (this.isMounted) {
+          this.virtualFieldsKeys.value.push(name);
+        } else {
+          this.cacheVirtualFields.push(name);
+        }
+      });
+      field.initWatcher();
+    };
+    if (immediate) {
+      register();
+      return { field, register: () => {
+      } };
+    }
+    return { register, field };
+  }
+  unregisterField(name) {
+    const { fields } = this;
+    const field = fields.get(name);
+    if (!field) {
+      console.warn(`Field not exists <${name}>.`);
+      return;
+    }
+    field.onUnregister();
+    if (this.isMounted) {
+      const findIndex = this.fieldsKeys.value.indexOf(name);
+      findIndex !== -1 && this.fieldsKeys.value.splice(findIndex, 1);
+    } else {
+      const findIndex = this.cacheFields.indexOf(name);
+      findIndex !== -1 && this.cacheFields.splice(findIndex, 1);
+    }
+    this.runInAction(() => {
+      delKey(this.state.values, name);
+      delKey(this.state.errors, name);
+      delKey(this.fieldStates, name);
+    });
+    fields.delete(name);
+  }
+  unregisterVirtualField(name) {
+    const { virtualFields } = this;
+    const field = virtualFields.get(name);
+    if (!field) {
+      console.warn(`Virtual field not exists <${name}>.`);
+      return;
+    }
+    field.onUnregister();
+    if (this.isMounted) {
+      const findIndex = this.virtualFieldsKeys.value.indexOf(name);
+      findIndex !== -1 && this.virtualFieldsKeys.value.splice(findIndex, 1);
+    } else {
+      const findIndex = this.cacheVirtualFields.indexOf(name);
+      findIndex !== -1 && this.cacheVirtualFields.splice(findIndex, 1);
+    }
+    this.runInAction(() => {
+      delKey(this.state.virtualErrors, name);
+      delKey(this.virtualFieldStates, name);
+    });
+    virtualFields.delete(name);
+  }
+  setValue(name, value) {
+    if (value === void 0)
+      return;
+    const field = this.fields.get(name);
+    if (!field) {
+      console.warn(`Field not exists <${name}>.`);
+      return;
+    }
+    field.onChange(value);
+  }
+  setTouched(name, touched = true) {
+    const field = this.fields.get(name);
+    if (!field) {
+      console.warn(`Field not exists <${name}>.`);
+      return;
+    }
+    field.onTouched(touched);
+  }
+  submit(onSuccess, onError) {
+    const callback = () => {
+      this.runInAction(() => {
+        this.state.isSubmitting = false;
+      });
+      if (this.state.isError) {
+        onError(toRaw(this.state.errors));
+        return;
+      }
+      this.runInAction(() => {
+        this.state.isSubmitted = true;
+      });
+      onSuccess(toRaw(this.state.values));
+    };
+    this.runInAction(() => {
+      this.state.submitCount++;
+      this.state.isSubmitting = true;
+    });
+    if (this.state.isValidating) {
+      this.waiters.push(() => {
+        callback();
+      });
+    } else {
+      callback();
+    }
+  }
+  reset(values) {
+    this.waiters = [];
+    this.runInAction(() => {
+      this.state.values = values === void 0 ? this.defaultValues : values;
+      this.state.errors = {};
+      this.state.virtualErrors = {};
+      this.state.error = null;
+      this.state.isError = false;
+      this.state.isValidating = false;
+      this.state.isDirty = false;
+      this.state.isTouched = false;
+      this.state.isChanged = false;
+      this.state.isSubmitted = false;
+      this.state.isSubmitting = false;
+      this.state.submitCount = 0;
+    });
+    for (const [name, field] of this.fields) {
+      const formValue = getKeyValue(this.state.values, name);
+      field.reset(formValue);
+    }
+  }
+}
+const createForm = (args) => {
+  return new FormClass(args);
+};
+const vfmInjectionKey = Symbol();
 const useField = (props) => {
   const injectedForm = inject(vfmInjectionKey, null);
-  const { form = injectedForm, name, rules = [] } = props;
+  const { form = injectedForm, name } = props;
   if (!form) {
     throw new Error(`No form in the injected context or props, can not use Field <${props.name}>`);
   }
-  const validate = async (v, fs) => {
-    let error = null;
-    for (const rule of rules) {
-      const errMsg = await validateRule(rule, v, fs);
-      if (errMsg) {
-        error = typeof errMsg === "string" ? {
-          type: rule.type,
-          message: errMsg
-        } : errMsg;
-        return error;
-      }
-    }
-    return null;
-  };
   const { register, field } = form.registerField(name, {
     value: props.value,
     defaultValue: props.defaultValue,
-    validate,
+    rules: props.rules,
     immediate: false
   });
   const state = computed(() => {
@@ -660,15 +774,39 @@ const useField = (props) => {
     form.unregisterField(name);
   });
   const res = reactive({
-    state,
     value,
     onChange,
     onBlur,
     setRef
   });
-  return res;
+  return [res, state.value];
 };
-const _sfc_main$1 = /* @__PURE__ */ defineComponent({
+const useVirtualField = (props) => {
+  const injectedForm = inject(vfmInjectionKey, null);
+  const { form = injectedForm, name } = props;
+  if (!form) {
+    throw new Error(`No form in the injected context or props, can not use Field <${props.name}>`);
+  }
+  const { register } = form.registerVirtualField(name, {
+    rules: props.rules,
+    immediate: false
+  });
+  const state = computed(() => {
+    return getKeyValue(form.fieldStates, name);
+  });
+  onMounted(() => {
+    register();
+  });
+  onUnmounted(() => {
+    form.unregisterField(name);
+  });
+  return [state.value];
+};
+const useForm = () => {
+  const form = inject(vfmInjectionKey);
+  return form;
+};
+const _sfc_main$2 = /* @__PURE__ */ defineComponent({
   props: {
     form: null,
     name: null,
@@ -678,9 +816,30 @@ const _sfc_main$1 = /* @__PURE__ */ defineComponent({
   },
   setup(__props) {
     const props = __props;
-    const slotProps = useField(props);
+    const [slotProps, state] = useField(props);
     return (_ctx, _cache) => {
-      return renderSlot(_ctx.$slots, "default", normalizeProps(guardReactiveProps(unref(slotProps))));
+      return unref(state) ? renderSlot(_ctx.$slots, "default", {
+        key: 0,
+        field: unref(slotProps),
+        state: unref(state)
+      }) : createCommentVNode("", true);
+    };
+  }
+});
+const _sfc_main$1 = /* @__PURE__ */ defineComponent({
+  props: {
+    form: null,
+    name: null,
+    rules: null
+  },
+  setup(__props) {
+    const props = __props;
+    const [state] = useVirtualField(props);
+    return (_ctx, _cache) => {
+      return unref(state) ? renderSlot(_ctx.$slots, "default", {
+        key: 0,
+        state: unref(state)
+      }) : createCommentVNode("", true);
     };
   }
 });
@@ -696,4 +855,4 @@ const _sfc_main = /* @__PURE__ */ defineComponent({
     };
   }
 });
-export { _sfc_main$1 as Field, FieldClass, FormClass, _sfc_main as FormProvider, VirtualFieldClass, createForm, useField, validators, vfmInjectionKey };
+export { _sfc_main$2 as Field, FieldClass, FormClass, _sfc_main as FormProvider, _sfc_main$1 as VirtualField, VirtualFieldClass, createForm, useField, useForm, useVirtualField, validators, vfmInjectionKey };

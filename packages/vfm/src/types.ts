@@ -4,40 +4,64 @@ export type ObjectType = Record<string, any>;
 
 export type NativeObjectType = Date | Blob | File | FileList;
 
-export type NestedValue<T = any> = {
+export type NestedValue<T extends ObjectType> = {
   [$NestedValue]: never;
 } & T;
 
-export type UnpackNestedValue<T> = T extends NestedValue<infer U>
-  ? U
-  : T extends NativeObjectType
-  ? T
-  : T extends ObjectType
-  ? { [K in keyof T]: UnpackNestedValue<T[K]> }
+export type NestedValueType = {
+  [$NestedValue]: never;
+};
+
+export type UnpackNestedValue<T> = T extends ObjectType
+  ? T extends NativeObjectType
+    ? T
+    : T extends NestedValue<infer U>
+    ? U
+    : { [K in keyof T]: UnpackNestedValue<T[K]> }
   : T;
 
-// 'a.b.c' => ['a', 'b', 'c']
-type SplitPath<T extends string> = T extends ''
-  ? []
-  : T extends `${infer A}.${infer B}`
-  ? [A, ...SplitPath<B>]
-  : [T];
+export type UnpackFieldState<T> = T extends ObjectType
+  ? T extends NativeObjectType
+    ? FieldState<T>
+    : T extends NestedValue<infer U>
+    ? FieldState<U>
+    : { [K in keyof T]: UnpackFieldState<T[K]> }
+  : FieldState<T>;
+
+export type UnpackVirtualFieldState<T> = T extends ObjectType
+  ? T extends NativeObjectType | NestedValueType
+    ? VirtualFieldState
+    : { [K in keyof T]: UnpackVirtualFieldState<T[K]> }
+  : VirtualFieldState;
 
 // get value of object by key path
-// key path: '[a', 'b', '1', 'c']
-type ArrayPathValue<Values, Path> = Path extends [infer Key, ...infer Rest]
-  ? Key extends keyof Values
-    ? Values[Key] extends NestedValue | NativeObjectType
-      ? Values[Key] extends NestedValue<infer U>
+// key path: a.b.0.c
+export type KeyPathValue<
+  V extends ObjectType,
+  Path extends string
+> = Path extends `${infer Key}.${infer Rest}`
+  ? // path: 'x.y'
+    Key extends keyof V
+    ? // Key in v
+      V[Key] extends NestedValueType | NativeObjectType
+      ? // Nested value or Native object
+        V extends NestedValue<infer U>
         ? U
-        : Values[Key]
-      : ArrayPathValue<Values[Key], Rest>
-    : undefined
-  : Values;
+        : V
+      : // Other object
+      Rest extends string
+      ? KeyPathValue<V[Key], Rest>
+      : V[Key]
+    : // Key not in v
+      undefined
+  : // path: 'x'
+  Path extends keyof V
+  ? V[Path]
+  : undefined;
 
 export type DeepPartial<T extends ObjectType> = T extends
   | NativeObjectType
-  | NestedValue
+  | NestedValueType
   ? T
   : { [K in keyof T]?: DeepPartial<T[K]> };
 
@@ -47,12 +71,12 @@ export type FieldValues<T extends FormType = FormType> = UnpackNestedValue<
   DeepPartial<T>
 >;
 
-// get value of object by key path
-// key path: a.b.0.c
-export type KeyPathValue<
-  V extends FormType,
-  Path extends string
-> = ArrayPathValue<V, SplitPath<Path>>;
+export type FieldStates<T extends FormType = FormType> = UnpackFieldState<
+  DeepPartial<T>
+>;
+
+export type VirtualFieldStates<T extends FormType = FormType> =
+  UnpackVirtualFieldState<DeepPartial<T>>;
 
 export interface CancellablePromise<T> extends Promise<T> {
   cancel?: () => void;
@@ -114,8 +138,8 @@ export type FieldState<V> = {
   isChanged: boolean;
 };
 
-export type VirtualFieldState = {
-  name: string;
+export type VirtualFieldState<VFK extends string = string> = {
+  name: VFK;
   // 错误信息
   error: FieldError | null;
   // 是否有错误
@@ -138,6 +162,10 @@ export type Validator<
   F extends Record<string, any> = Record<string, any>
 > = (value: V, form: F) => string | CancellablePromise<string>;
 
+export type VirtualFieldValidator<
+  F extends Record<string, any> = Record<string, any>
+> = (form: F) => string | CancellablePromise<string>;
+
 export type FieldRule<V = any, F extends FormState = FormState> = {
   type?: string;
   required?: boolean;
@@ -147,8 +175,21 @@ export type FieldRule<V = any, F extends FormState = FormState> = {
   min?: number;
   max?: number;
   pattern?: RegExp;
-  validators?: (string | Validator<V, F>)[];
+  alpha?: boolean;
+  alphaNum?: boolean;
+  decimal?: boolean;
+  numeric?: boolean;
+  email?: boolean;
+  integer?: boolean;
+  ipAddress?: boolean;
+  macAddress?: boolean;
+  validator?: Validator<V, F>;
   messate?: string;
+};
+
+export type VirtualFieldRule<F extends FormState = FormState> = {
+  type?: string;
+  validator?: VirtualFieldValidator<F>;
 };
 
 export type InputLikeRef = {

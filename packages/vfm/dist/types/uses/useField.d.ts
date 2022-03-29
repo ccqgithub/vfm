@@ -9,11 +9,10 @@ export declare type UseFieldProps<T extends FormType = FormType, N extends strin
     defaultValue?: KeyPathValue<T, N>;
 };
 export declare type UseFieldReturn<T extends FormType = FormType, N extends string = string> = {
-    state: FieldState<KeyPathValue<T, N>>;
     value?: KeyPathValue<T, N>;
     onChange: (v: KeyPathValue<T, N>) => void;
     onBlur: () => void;
     setRef: (el: InputLikeRef | null) => void;
 };
-export declare const useField: <T extends FormType, N extends string>(props: UseFieldProps<T, N>) => UseFieldReturn<T, N>;
+export declare const useField: <T extends FormType, N extends string>(props: UseFieldProps<T, N>) => [UseFieldReturn<T, N>, FieldState<KeyPathValue<T, N>> | undefined];
 //# sourceMappingURL=useField.d.ts.map
