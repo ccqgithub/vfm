@@ -1,7 +1,7 @@
 ---
 home: true
 heroText: vfm
-tagline: Mobx driven form management and validation tool.
+tagline: Vue driven form management tool.
 actionText: Get Started →
 actionLink: /guide/
 features:
