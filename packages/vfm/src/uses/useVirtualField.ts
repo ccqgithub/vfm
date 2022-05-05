@@ -1,10 +1,8 @@
-import { onUnmounted, onMounted, inject } from 'vue';
-import { vfmInjectionKey } from '../context';
-import { FieldState, VirtualFieldRule } from './../types';
-import { computed } from 'vue';
-import { getKeyValue } from '../untils';
+import { onUnmounted, onMounted, inject, Ref, ref } from 'vue';
 import { FormClass } from '../form';
-import { KeyPathValue, FormType, VirtualFieldState } from '../types';
+import { vfmInjectionKey } from '../context';
+import { VirtualFieldRule } from './../types';
+import { FormType, VirtualFieldState } from '../types';
 
 export type UseVirtualFieldProps<
   T extends FormType = FormType,
@@ -17,9 +15,16 @@ export type UseVirtualFieldProps<
 
 export const useVirtualField = <T extends FormType, N extends string>(
   props: UseVirtualFieldProps<T, N>
-): [VirtualFieldState | undefined] => {
-  const injectedForm = inject(vfmInjectionKey, null) as FormClass<T, N> | null;
+): [
+  VirtualFieldState,
+  {
+    mounted: Ref<Boolean>;
+    form: FormClass<T>;
+  }
+] => {
+  const injectedForm = inject(vfmInjectionKey, null) as FormClass<T> | null;
   const { form = injectedForm, name } = props;
+  const mounted = ref(false);
 
   if (!form) {
     throw new Error(
@@ -27,23 +32,25 @@ export const useVirtualField = <T extends FormType, N extends string>(
     );
   }
 
-  const { register } = form.registerVirtualField(name, {
+  const { register, field } = form.registerVirtualField(name, {
     rules: props.rules,
     immediate: false
-  });
-  const state = computed(() => {
-    return getKeyValue(form.fieldStates, name) as
-      | FieldState<KeyPathValue<T, N>>
-      | undefined;
   });
 
   onMounted(() => {
     register();
+    mounted.value = true;
   });
 
   onUnmounted(() => {
     form.unregisterField(name);
   });
 
-  return [state.value];
+  return [
+    field.state,
+    {
+      mounted,
+      form
+    }
+  ];
 };

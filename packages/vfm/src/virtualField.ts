@@ -8,15 +8,22 @@ import {
   FormState,
   VirtualFieldRule
 } from './types';
+import { makeCancellablePromise } from './untils';
 
-const validateRule = async (rule: VirtualFieldRule, f: FormState) => {
-  // validators
-  if (rule.validator) {
-    const msg = await rule.validator(f);
-    if (msg) return msg;
-  }
-  // no error
-  return '';
+const validateRule = (rule: VirtualFieldRule, f: FormState) => {
+  return makeCancellablePromise(async (onCancel) => {
+    // validators
+    if (rule.validator) {
+      const p = rule.validator(f);
+      if (typeof p === 'object' && typeof p.cancel === 'function') {
+        onCancel(() => p.cancel?.());
+      }
+      const msg = await p;
+      if (msg) return msg;
+    }
+    // no error
+    return '';
+  });
 };
 
 // virtual field
@@ -27,7 +34,7 @@ export class VirtualFieldClass<T extends FormType = FormType> {
   // 所属表单
   private form: FormClass<T>;
   // 验证函数
-  private validate: VirtualValidateFunc<FormState<T>> | null = null;
+  private validate: VirtualValidateFunc<FormState<T>>;
   private validateCount = 0;
   // watcher
   private stopValidateWatcher: WatchStopHandle | null = null;
@@ -52,25 +59,27 @@ export class VirtualFieldClass<T extends FormType = FormType> {
       isValidating: false
     });
     // validate
-    const validate: VirtualValidateFunc<FormState<T>> = async (fs) => {
-      let error: FieldError | null = null;
-      for (const rule of rules) {
-        const errMsg = await validateRule(
-          rule as VirtualFieldRule<FormState>,
-          fs
-        );
-        if (errMsg) {
-          error =
-            typeof errMsg === 'string'
-              ? {
-                  type: rule.type,
-                  message: errMsg
-                }
-              : errMsg;
-          return error;
+    const validate: VirtualValidateFunc<FormState<T>> = (fs) => {
+      return makeCancellablePromise(async (onCancel) => {
+        let error: FieldError | null = null;
+        for (const rule of rules) {
+          const promise = validateRule(rule as VirtualFieldRule<FormState>, fs);
+          onCancel(() => promise.cancel?.());
+          const errMsg = await promise;
+          if (errMsg) {
+            error =
+              typeof errMsg === 'string'
+                ? {
+                    type: rule.type,
+                    message: errMsg
+                  }
+                : errMsg;
+            error.message = error.message.replace(/\{\{name\}\}/g, this.name);
+            return error;
+          }
         }
-      }
-      return null;
+        return null;
+      });
     };
     this.validate = validate;
     // if immediate register
@@ -84,26 +93,20 @@ export class VirtualFieldClass<T extends FormType = FormType> {
   };
 
   public initWatcher() {
-    let canCelLastValidate: (() => void) | null = null;
     // auto validate
-    this.stopValidateWatcher = watchEffect(async () => {
+    this.stopValidateWatcher = watchEffect(async (onCleanup) => {
       this.validateCount++;
       const formState = this.form.state;
       const count = this.validateCount;
       this.runInAction(() => {
         this.state.isValidating = true;
       });
-      canCelLastValidate?.();
-      canCelLastValidate = null;
-      let err: FieldError | null = null;
-      if (this.validate) {
-        const promise = this.validate(formState);
-        if (promise instanceof Promise) {
-          canCelLastValidate = promise.cancel || null;
-        }
-        err = (await promise) || null;
-      }
+      // validate
+      const promise = this.validate(formState);
+      onCleanup(() => promise.cancel?.());
+      const err = await promise;
       if (count !== this.validateCount) return;
+      // update state
       this.runInAction(() => {
         this.state.isValidating = false;
         const hasError = !!err?.message;

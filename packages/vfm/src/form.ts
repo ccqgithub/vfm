@@ -1,7 +1,20 @@
-import { toRaw, reactive, ref, watchEffect, WatchStopHandle } from 'vue';
+import {
+  toRaw,
+  reactive,
+  ref,
+  watchEffect,
+  WatchStopHandle,
+  computed,
+  ComputedRef
+} from 'vue';
 import { FieldClass } from './field';
 import { VirtualFieldClass } from './virtualField';
-import { getKeyValue, setKeyValue, delKey } from './untils';
+import {
+  getKeyValue,
+  setKeyValue,
+  delKey,
+  recursiveUpdateObject
+} from './untils';
 import {
   FormType,
   FieldValues,
@@ -27,6 +40,7 @@ export class FormClass<
   public virtualFieldStates = reactive<VirtualFieldStates<T>>(
     {} as VirtualFieldStates<T>
   );
+  public touchType: 'FOCUS' | 'BLUR' = 'BLUR';
   private cacheFields: string[] = [];
   private cacheVirtualFields: string[] = [];
   private isMounted = false;
@@ -47,11 +61,12 @@ export class FormClass<
   constructor(args: {
     defaultValues?: FieldValues<T>;
     virtualFields?: Record<string, VirtualFieldClass<FormClass<T, VFK>>>;
+    touchType?: 'FOCUS' | 'BLUR';
   }) {
     this.defaultValues = toRaw(args.defaultValues || {}) as FieldValues<T>;
     this.state = reactive({
       values: toRaw(this.defaultValues) || {},
-      errors: {},
+      errors: {} as FormErrors<T>,
       virtualErrors: {} as Record<VFK, FieldError | null>,
       error: null,
       isError: false,
@@ -63,6 +78,7 @@ export class FormClass<
       isSubmitting: false,
       submitCount: 0
     }) as FormState<T, VFK>;
+    this.touchType = args.touchType || 'BLUR';
   }
 
   private runInAction = (fn: (...args: any[]) => void) => {
@@ -90,12 +106,17 @@ export class FormClass<
       let isTouched = false;
       let isChanged = false;
       let error: FieldError | null = null;
+      const updateValues: Record<string, any> = {};
+      const updateErrors: Record<string, any> = {};
+      const updateFieldStates: Record<string, any> = {};
+      const updateVirtualErrors: Record<string, any> = {};
+      const updateVirtualFieldStates: Record<string, any> = {};
 
       // fields
       keys.forEach((k) => {
         const field = this.fields.get(k);
         if (!field) return;
-        // get propeties here, so mobx autoRun can track
+        // get propeties here sync, so vue can track
         const fieldState = field.state;
         const fieldValue = field.state.value;
         const fieldError = field.state.error;
@@ -104,19 +125,17 @@ export class FormClass<
         const fieldIsDirty = field.state.isDirty;
         const fieldIsTouched = field.state.isTouched;
         const fieldIsChanged = field.state.isChanged;
-        this.runInAction(() => {
-          setKeyValue(this.state.values, k, fieldValue);
-          setKeyValue(this.state.errors, k, fieldError);
-          setKeyValue(this.fieldStates, k, fieldState);
-          if (fieldStateIsError) isError = true;
-          if (fieldIsValidating) isValidating = true;
-          if (fieldIsDirty) isDirty = true;
-          if (fieldIsTouched) isTouched = true;
-          if (!fieldIsChanged) isChanged = true;
-          if (fieldError && !error) {
-            error = fieldError;
-          }
-        });
+        setKeyValue(updateValues, k, fieldValue);
+        setKeyValue(updateErrors, k, fieldError);
+        setKeyValue(updateFieldStates, k, fieldState);
+        if (fieldStateIsError) isError = true;
+        if (fieldIsValidating) isValidating = true;
+        if (fieldIsDirty) isDirty = true;
+        if (fieldIsTouched) isTouched = true;
+        if (!fieldIsChanged) isChanged = true;
+        if (fieldError && !error) {
+          error = fieldError;
+        }
       });
 
       // virtual fields
@@ -127,18 +146,24 @@ export class FormClass<
         const fieldError = field.state.error;
         const fieldIsError = field.state.isError;
         const fieldIsValidating = field.state.isValidating;
-        this.runInAction(() => {
-          setKeyValue(this.state.virtualErrors, k, fieldError);
-          setKeyValue(this.virtualFieldStates, k, fieldState);
-          if (fieldIsError) isError = true;
-          if (fieldIsValidating) isValidating = true;
-          if (fieldError && !error) {
-            error = fieldError;
-          }
-        });
+        setKeyValue(updateVirtualErrors, k, fieldError);
+        setKeyValue(updateVirtualFieldStates, k, fieldState);
+        if (fieldIsError) isError = true;
+        if (fieldIsValidating) isValidating = true;
+        if (fieldError && !error) {
+          error = fieldError;
+        }
       });
 
       this.runInAction(() => {
+        recursiveUpdateObject(this.state.values, updateValues);
+        recursiveUpdateObject(this.state.errors, updateErrors);
+        recursiveUpdateObject(this.state.virtualErrors, updateVirtualErrors);
+        recursiveUpdateObject(this.fieldStates, updateFieldStates);
+        recursiveUpdateObject(
+          this.virtualFieldStates,
+          updateVirtualFieldStates
+        );
         this.state.isError = isError;
         this.state.error = error;
         this.state.isValidating = isValidating;
@@ -149,6 +174,7 @@ export class FormClass<
     });
     this.stopValidatingWatcher = watchEffect(() => {
       const isValidating = this.state.isValidating;
+      // validate end
       if (!isValidating) {
         this.waiters.forEach((fn) => {
           fn();
@@ -185,6 +211,8 @@ export class FormClass<
       defaultValue?: KeyPathValue<T, N>;
       rules?: FieldRule<KeyPathValue<T, N>, FormState<T>>[];
       immediate?: boolean;
+      transform?: (v: KeyPathValue<T, N>) => KeyPathValue<T, N>;
+      onFocus?: () => void;
     } = {}
   ): { field: FieldClass<T, N>; register: () => void } {
     const { immediate = true } = args;
@@ -192,7 +220,7 @@ export class FormClass<
     if (fieldsKeys.value.includes(name)) {
       console.warn(`Duplicate field <${name}>.`);
       return {
-        field: this.fields.get(name) as FieldClass<T, N>,
+        field: this.fields.get(name)! as unknown as FieldClass<T, N>,
         register: () => {}
       };
     }
@@ -200,7 +228,7 @@ export class FormClass<
       if (k.startsWith(`${name}.`) || name.startsWith(`${k}.`)) {
         console.warn(`Fields can not be nested together: <${name}> <${k}>.`);
         return {
-          field: this.fields.get(name) as FieldClass<T, N>,
+          field: this.fields.get(name)! as unknown as FieldClass<T, N>,
           register: () => {}
         };
       }
@@ -327,6 +355,12 @@ export class FormClass<
     field.onChange(value);
   }
 
+  getValue<N extends string>(name: N): ComputedRef<KeyPathValue<T, N>> {
+    return computed(() => {
+      return getKeyValue(this.state.values, name);
+    });
+  }
+
   setTouched(name: string, touched = true) {
     const field = this.fields.get(name);
     if (!field) {
@@ -336,9 +370,18 @@ export class FormClass<
     field.onTouched(touched);
   }
 
+  setFocus(name: string) {
+    const field = this.fields.get(name);
+    if (!field) {
+      console.warn(`Field not exists <${name}>.`);
+      return;
+    }
+    field.onFocus();
+  }
+
   submit(
     onSuccess: (data: FieldValues<T>) => void,
-    onError: (errors: FormErrors) => void
+    onError: (errors: FormErrors<T>) => void
   ) {
     const callback = () => {
       this.runInAction(() => {
@@ -371,7 +414,7 @@ export class FormClass<
     this.waiters = [];
     this.runInAction(() => {
       this.state.values = values === undefined ? this.defaultValues : values;
-      this.state.errors = {};
+      this.state.errors = {} as FormErrors<T>;
       this.state.virtualErrors = {} as Record<VFK, FieldError | null>;
       this.state.error = null;
       this.state.isError = false;
@@ -396,6 +439,7 @@ export const createForm = <
 >(args: {
   defaultValues?: FieldValues<T>;
   virtualFields?: Record<string, VirtualFieldClass<FormClass<T, VFK>>>;
+  touchType?: 'FOCUS' | 'BLUR';
 }) => {
   return new FormClass<T, VFK>(args);
 };

@@ -1,5 +1,6 @@
 import { Validator } from '../types';
 
+// mac 地址
 export const macAddress: Validator = (value: any) => {
   const msg = '{{name}} is not a valid MAC Address';
   if (typeof value !== 'string') return msg;

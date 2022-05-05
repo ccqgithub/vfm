@@ -1,5 +1,4 @@
 import { reactive, watchEffect, WatchStopHandle } from 'vue';
-import { FormClass } from './form';
 import {
   FieldError,
   ValidateFunc,
@@ -9,64 +8,79 @@ import {
   KeyPathValue,
   FieldRule
 } from './types';
+import { FormClass } from './form';
 import { validators } from './validators';
+import { makeCancellablePromise } from './untils';
 
-const validateRule = async (rule: FieldRule, v: any, f: FormState) => {
-  // required
-  if (rule.required) {
-    if (!v) return '{{name}} is required';
-  }
-  // requiredLength
-  if (rule.requiredLength) {
-    if (typeof v?.length !== 'number' || v.length <= 0) {
-      return '{{name}} is required';
+const validateRule = (rule: FieldRule, v: any, f: FormState) => {
+  return makeCancellablePromise(async (onCancel) => {
+    // required
+    if (rule.required) {
+      if (!v) return '{{name}} is required';
     }
-  }
-  // minLength
-  if (rule.minLength !== undefined) {
-    if (typeof v?.length !== 'number' || v.length < rule.minLength) {
-      return `{{name}}'s length cannot be less than ${rule.minLength}`;
+    // requiredLength
+    if (rule.requiredLength) {
+      if (typeof v?.length !== 'number' || v.length <= 0) {
+        return '{{name}} is required';
+      }
     }
-  }
-  // maxLength
-  if (rule.maxLength !== undefined) {
-    if (typeof v?.length !== 'number' || v.length > rule.maxLength) {
-      return `{{name}}'s length cannot be greater than ${rule.maxLength}`;
+    // minLength
+    if (rule.minLength !== undefined) {
+      if (typeof v?.length !== 'number' || v.length < rule.minLength) {
+        return `{{name}}'s length cannot be less than ${rule.minLength}`;
+      }
     }
-  }
-  // min
-  if (rule.min !== undefined) {
-    if (typeof v !== 'number' || v < rule.min) {
-      return `{{name}} cannot be less than ${rule.min}`;
+    // maxLength
+    if (rule.maxLength !== undefined) {
+      if (typeof v?.length !== 'number' || v.length > rule.maxLength) {
+        return `{{name}}'s length cannot be greater than ${rule.maxLength}`;
+      }
     }
-  }
-  // max
-  if (rule.max !== undefined) {
-    if (typeof v !== 'number' || v > rule.max) {
-      return `{{name}} cannot be greater than ${rule.max}`;
+    // min
+    if (rule.min !== undefined) {
+      if (typeof v !== 'number' || v < rule.min) {
+        return `{{name}} cannot be less than ${rule.min}`;
+      }
     }
-  }
-  // pattern
-  if (rule.pattern) {
-    if (typeof v !== 'string' || !rule.pattern.test(v)) {
-      return `{{name}} not match ${rule.pattern.toString()}`;
+    // max
+    if (rule.max !== undefined) {
+      if (typeof v !== 'number' || v > rule.max) {
+        return `{{name}} cannot be greater than ${rule.max}`;
+      }
     }
-  }
-  // builtin validators
-  for (const str of Object.keys(validators) as (keyof typeof validators)[]) {
-    if (rule[str] === true) {
-      const vld = validators[str];
-      const msg = await vld(v, f);
+    // pattern
+    if (rule.pattern) {
+      if (
+        (typeof v !== 'string' && typeof v !== 'number') ||
+        !rule.pattern.test(`${v}`)
+      ) {
+        return `{{name}} not match ${rule.pattern.toString()}`;
+      }
+    }
+    // builtin validators
+    for (const str of Object.keys(validators) as (keyof typeof validators)[]) {
+      if (rule[str] === true) {
+        const vld = validators[str];
+        const p = vld(v, f);
+        if (typeof p === 'object' && typeof p.cancel === 'function') {
+          onCancel(() => p.cancel?.());
+        }
+        const msg = await p;
+        if (msg) return msg;
+      }
+    }
+    // validators
+    if (rule.validator) {
+      const p = rule.validator(v, f);
+      if (typeof p === 'object' && typeof p.cancel === 'function') {
+        onCancel(() => p.cancel?.());
+      }
+      const msg = await p;
       if (msg) return msg;
     }
-  }
-  // validators
-  if (rule.validator) {
-    const msg = await rule.validator(v, f);
-    if (msg) return msg;
-  }
-  // no error
-  return '';
+    // no error
+    return '';
+  });
 };
 
 export class FieldClass<
@@ -81,8 +95,11 @@ export class FieldClass<
   // 所属表单
   private form: FormClass<T>;
   // 验证函数
-  private validate: ValidateFunc<V, FormState<T>> | null = null;
+  private validate: ValidateFunc<V, FormState<T>>;
   private validateCount = 0;
+  private transform: ((v: KeyPathValue<T, N>) => KeyPathValue<T, N>) | null =
+    null;
+  private focusFn: (() => void) | null = null;
   // watcher
   private stopValidateWatcher: WatchStopHandle | null = null;
   private stopDirtyWatcher: WatchStopHandle | null = null;
@@ -97,9 +114,11 @@ export class FieldClass<
       defaultValue?: string;
       rules?: FieldRule<KeyPathValue<T, N>, FormState<T>>[];
       immediate?: boolean;
+      transform?: (v: KeyPathValue<T, N>) => KeyPathValue<T, N>;
+      onFocus?: () => void;
     }
   ) {
-    const { immediate = true, rules = [] } = args;
+    const { immediate = true, rules = [], transform = null } = args;
     this.form = form;
     this.name = args.name;
     this.state = reactive({
@@ -114,25 +133,37 @@ export class FieldClass<
       isChanged: false
     }) as FieldState<V>;
     // validate
-    const validate: ValidateFunc<KeyPathValue<T, N>, FormState<T>> = async (
+    this.transform = transform;
+    this.focusFn = args.onFocus || null;
+    const validate: ValidateFunc<KeyPathValue<T, N>, FormState<T>> = (
       v,
       fs
     ) => {
-      let error: FieldError | null = null;
-      for (const rule of rules) {
-        const errMsg = await validateRule(rule as FieldRule<T>, v, fs);
-        if (errMsg) {
-          error =
-            typeof errMsg === 'string'
-              ? {
-                  type: rule.type,
-                  message: errMsg
-                }
-              : errMsg;
-          return error;
+      return makeCancellablePromise(async (onCancel) => {
+        const _transform = this.transform;
+        for (const rule of rules) {
+          const promise = validateRule(
+            rule as FieldRule<T>,
+            _transform && v !== undefined ? _transform(v) : v,
+            fs
+          );
+          onCancel(() => promise.cancel?.());
+          const errMsg = await promise;
+          let error: FieldError | null = null;
+          if (errMsg) {
+            error =
+              typeof errMsg === 'string'
+                ? {
+                    type: rule.type,
+                    message: errMsg
+                  }
+                : errMsg;
+            error.message = error.message.replace(/\{\{name\}\}/g, this.name);
+            return error;
+          }
         }
-      }
-      return null;
+        return null;
+      });
     };
     this.validate = validate;
     // if immediate register
@@ -146,27 +177,20 @@ export class FieldClass<
   };
 
   initWatcher() {
-    let canCelLastValidate: (() => void) | null = null;
     // auto validate
-    this.stopValidateWatcher = watchEffect(async () => {
+    this.stopValidateWatcher = watchEffect(async (onCleanup) => {
       this.validateCount++;
       const value = this.state.value;
       const formState = this.form.state;
       const count = this.validateCount;
       const validate = this.validate;
-      // cancel last validate
-      canCelLastValidate?.();
-      canCelLastValidate = null;
       // start validate
       this.runInAction(() => {
         this.state.isValidating = true;
       });
-      let err: FieldError | null = null;
-      if (validate) {
-        const promise = validate(value, formState);
-        canCelLastValidate = (promise as any)?.cancel || null;
-        err = (await promise) || null;
-      }
+      const promise = validate(value, formState);
+      onCleanup(() => promise.cancel?.());
+      const err = await promise;
       // has other validate start after this
       if (count !== this.validateCount) return;
       // update validate status
@@ -217,6 +241,10 @@ export class FieldClass<
     this.runInAction(() => {
       this.state.isTouched = touched;
     });
+  }
+
+  onFocus() {
+    this.focusFn?.();
   }
 
   reset(resetValue?: V) {

@@ -24,19 +24,21 @@ export declare type FormType = Record<string, any>;
 export declare type FieldValues<T extends FormType = FormType> = UnpackNestedValue<DeepPartial<T>>;
 export declare type FieldStates<T extends FormType = FormType> = UnpackFieldState<DeepPartial<T>>;
 export declare type VirtualFieldStates<T extends FormType = FormType> = UnpackVirtualFieldState<DeepPartial<T>>;
-export interface CancellablePromise<T> extends Promise<T> {
+export interface CancellablePromise<T = any> extends Promise<T> {
     cancel?: () => void;
 }
 export declare type FieldError = {
     type?: string;
     message: string;
 };
-export declare type FormErrors = Record<string, FieldError | null>;
+export declare type FormErrors<T> = T extends Array<infer U> ? FormErrors<U>[] : T extends NestedValue<T> ? FieldError | null : T extends Record<string, any> ? {
+    [K in keyof T]?: FormErrors<T[K]>;
+} : FieldError | null;
 export declare type FormState<T extends FormType = FormType, VFK extends string = string> = {
     values: FieldValues<T>;
     error: FieldError | null;
-    errors: FormErrors;
-    virtualErrors: Record<VFK, FieldError | null>;
+    errors: FormErrors<T>;
+    virtualErrors: Partial<Record<VFK, FieldError | null>>;
     isError: boolean;
     isValidating: boolean;
     isDirty: boolean;
@@ -63,8 +65,8 @@ export declare type VirtualFieldState<VFK extends string = string> = {
     isError: boolean;
     isValidating: boolean;
 };
-export declare type ValidateFunc<V, F extends FormState> = (value: V | undefined, data: F) => (FieldError | null) | CancellablePromise<FieldError | null>;
-export declare type VirtualValidateFunc<F extends FormState> = (data: F) => (FieldError | null) | CancellablePromise<FieldError | null>;
+export declare type ValidateFunc<V, F extends FormState> = (value: V | undefined, data: F) => CancellablePromise<FieldError | null>;
+export declare type VirtualValidateFunc<F extends FormState> = (data: F) => CancellablePromise<FieldError | null>;
 export declare type Validator<V = any, F extends Record<string, any> = Record<string, any>> = (value: V, form: F) => string | CancellablePromise<string>;
 export declare type VirtualFieldValidator<F extends Record<string, any> = Record<string, any>> = (form: F) => string | CancellablePromise<string>;
 export declare type FieldRule<V = any, F extends FormState = FormState> = {

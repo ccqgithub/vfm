@@ -1,3 +1,5 @@
+import { CancellablePromise } from './types';
+
 export const setKeyValue = (
   data: Record<string, any>,
   keyPath: string,
@@ -62,13 +64,6 @@ export const recursiveUpdateObject = (
   obj: Record<string, any>,
   newObj: Record<string, any>
 ) => {
-  if (typeof obj !== 'object' || obj === null) return;
-  if (typeof newObj !== 'object' || newObj === null) return;
-  if (Array.isArray(obj) && Array.isArray(newObj)) {
-    obj.splice(0, obj.length, [...newObj]);
-  } else if (Array.isArray(obj) || Array.isArray(newObj)) {
-    return;
-  }
   const oldKeys = Object.keys(obj);
   const newKeys = Object.keys(newObj);
   const delKeys = oldKeys.filter((k) => !newKeys.includes(k));
@@ -78,8 +73,10 @@ export const recursiveUpdateObject = (
   newKeys.forEach((k) => {
     if (
       typeof obj[k] === 'object' &&
+      !Array.isArray(obj[k]) &&
       obj[k] !== null &&
       typeof newObj[k] === 'object' &&
+      !Array.isArray(newObj[k]) &&
       newObj[k] !== null
     ) {
       recursiveUpdateObject(obj[k], newObj[k]);
@@ -87,4 +84,28 @@ export const recursiveUpdateObject = (
       obj[k] = newObj[k];
     }
   });
+};
+
+type OnCancel = (cancel: () => void) => void;
+export const makeCancellablePromise = <T = any>(
+  fn: (onCancel: OnCancel) => Promise<T>
+) => {
+  const cancelList: (() => void)[] = [];
+  let resolve: ((v: any) => void) | null = null;
+
+  const promise = fn((cancel) => {
+    cancelList.push(cancel);
+  });
+
+  const resPromise: CancellablePromise<T> = new Promise((r, j) => {
+    resolve = r;
+    promise.then(r, j);
+  });
+  // do cancel
+  resPromise.cancel = () => {
+    resolve?.('');
+    cancelList.forEach((cancel) => cancel());
+  };
+
+  return resPromise;
 };

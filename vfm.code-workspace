@@ -1,6 +1,6 @@
 {
   "extensions": {
-    "recommendations": ["johnsoncodehk.volar"]
+    "recommendations": ["Vue.volar"]
   },
   "folders": [
     {
@@ -9,9 +9,6 @@
     },
     {
       "path": "packages/vfm"
-    },
-    {
-      "path": "packages/example"
     },
     {
       "path": "packages/docs"

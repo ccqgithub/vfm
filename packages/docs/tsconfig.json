@@ -1,0 +1,24 @@
+{
+  "compilerOptions": {
+    "declaration": true,
+    "sourceMap": true,
+    "declarationMap": true,
+    "target": "es2017",
+    "module": "esnext",
+    "moduleResolution": "node",
+    "allowJs": false,
+    "checkJs": false,
+    "strict": true,
+    "resolveJsonModule": true,
+    "esModuleInterop": true,
+    "jsx": "preserve",
+    "lib": ["esnext", "dom", "dom.iterable"],
+    "types": ["jest", "puppeteer", "node"],
+    "typeRoots": ["./types", "node_modules/@types"],
+    "isolatedModules": true,
+    "paths": {
+      "react": ["types/react/index.d.ts"]
+    }
+  },
+  "include": ["src/**/*", "src/.vuepress/**/*", "*.ts"]
+}

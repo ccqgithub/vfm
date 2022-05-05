@@ -1,5 +1,6 @@
 import { Validator } from '../types';
 
+// ip 地址
 export const ipAddress: Validator = (value: any) => {
   const msg = '{{name}} is not a valid IP address';
   if (typeof value !== 'string') return msg;

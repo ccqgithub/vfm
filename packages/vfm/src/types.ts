@@ -78,7 +78,7 @@ export type FieldStates<T extends FormType = FormType> = UnpackFieldState<
 export type VirtualFieldStates<T extends FormType = FormType> =
   UnpackVirtualFieldState<DeepPartial<T>>;
 
-export interface CancellablePromise<T> extends Promise<T> {
+export interface CancellablePromise<T = any> extends Promise<T> {
   cancel?: () => void;
 }
 
@@ -88,7 +88,15 @@ export type FieldError = {
   message: string;
 };
 
-export type FormErrors = Record<string, FieldError | null>;
+export type FormErrors<T> = T extends Array<infer U>
+  ? FormErrors<U>[]
+  : T extends NestedValue<T>
+  ? FieldError | null
+  : T extends Record<string, any>
+  ? {
+      [K in keyof T]?: FormErrors<T[K]>;
+    }
+  : FieldError | null;
 
 export type FormState<
   T extends FormType = FormType,
@@ -98,8 +106,8 @@ export type FormState<
   values: FieldValues<T>;
   // 错误信息
   error: FieldError | null;
-  errors: FormErrors;
-  virtualErrors: Record<VFK, FieldError | null>;
+  errors: FormErrors<T>;
+  virtualErrors: Partial<Record<VFK, FieldError | null>>;
   // 是否有错误
   isError: boolean;
   // 正在验证
@@ -151,11 +159,11 @@ export type VirtualFieldState<VFK extends string = string> = {
 export type ValidateFunc<V, F extends FormState> = (
   value: V | undefined,
   data: F
-) => (FieldError | null) | CancellablePromise<FieldError | null>;
+) => CancellablePromise<FieldError | null>;
 
 export type VirtualValidateFunc<F extends FormState> = (
   data: F
-) => (FieldError | null) | CancellablePromise<FieldError | null>;
+) => CancellablePromise<FieldError | null>;
 
 export type Validator<
   V = any,
