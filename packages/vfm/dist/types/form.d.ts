@@ -48,7 +48,8 @@ export declare class FormClass<T extends FormType = FormType, VFK extends string
     };
     unregisterField(name: string): void;
     unregisterVirtualField(name: string): void;
-    setValue(name: string, value: any): void;
+    setValue<N extends string>(name: N, value: KeyPathValue<T, N>): void;
+    deleteValue<N extends string>(name: N): void;
     getValue<N extends string>(name: N): ComputedRef<KeyPathValue<T, N>>;
     setTouched(name: string, touched?: boolean): void;
     setFocus(name: string): void;

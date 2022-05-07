@@ -1,4 +1,4 @@
-import { reactive, watchEffect, WatchStopHandle } from 'vue';
+import { reactive, watchEffect, WatchStopHandle, ref } from 'vue';
 import { FormClass } from './form';
 import {
   FieldError,
@@ -34,6 +34,7 @@ export class VirtualFieldClass<T extends FormType = FormType> {
   // 所属表单
   private form: FormClass<T>;
   // 验证函数
+  private rules = ref<VirtualFieldRule<FormState<T>>[]>([]);
   private validate: VirtualValidateFunc<FormState<T>>;
   private validateCount = 0;
   // watcher
@@ -49,17 +50,22 @@ export class VirtualFieldClass<T extends FormType = FormType> {
       immediate?: boolean;
     }
   ) {
-    const { immediate = true, rules = [] } = args;
+    const { immediate = true } = args;
+
+    // init
     this.form = form;
     this.name = args.name;
+    this.rules.value = args.rules || [];
     this.state = reactive({
       name: this.name,
       error: null,
       isError: false,
       isValidating: false
     });
+
     // validate
     const validate: VirtualValidateFunc<FormState<T>> = (fs) => {
+      const rules = this.rules.value;
       return makeCancellablePromise(async (onCancel) => {
         let error: FieldError | null = null;
         for (const rule of rules) {
@@ -75,6 +81,8 @@ export class VirtualFieldClass<T extends FormType = FormType> {
                   }
                 : errMsg;
             error.message = error.message.replace(/\{\{name\}\}/g, this.name);
+            if (rule.message !== undefined)
+              error.message = rule.message.replace(/\{\{name\}\}/g, this.name);
             return error;
           }
         }
@@ -82,6 +90,7 @@ export class VirtualFieldClass<T extends FormType = FormType> {
       });
     };
     this.validate = validate;
+
     // if immediate register
     if (immediate) {
       this.initWatcher();
@@ -91,6 +100,12 @@ export class VirtualFieldClass<T extends FormType = FormType> {
   private runInAction = (fn: (...args: any[]) => void) => {
     fn();
   };
+
+  update(args: { rules?: VirtualFieldRule<FormState<T>>[] }) {
+    if (args.rules) {
+      this.rules.value = args.rules;
+    }
+  }
 
   public initWatcher() {
     // auto validate

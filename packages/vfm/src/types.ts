@@ -2,7 +2,13 @@ declare const $NestedValue: unique symbol;
 
 export type ObjectType = Record<string, any>;
 
-export type NativeObjectType = Date | Blob | File | FileList;
+export type NativeObjectType =
+  | Date
+  | Blob
+  | File
+  | FileList
+  | Function
+  | RegExp;
 
 export type NestedValue<T extends ObjectType> = {
   [$NestedValue]: never;
@@ -12,91 +18,81 @@ export type NestedValueType = {
   [$NestedValue]: never;
 };
 
-export type UnpackNestedValue<T> = T extends ObjectType
-  ? T extends NativeObjectType
-    ? T
-    : T extends NestedValue<infer U>
-    ? U
-    : { [K in keyof T]: UnpackNestedValue<T[K]> }
+export type UnpackNestedValue<T> = T extends NestedValue<infer U>
+  ? U
+  : T extends NativeObjectType
+  ? T
+  : T extends Array<infer A>
+  ? UnpackNestedValue<A>[]
+  : T extends ObjectType
+  ? { [K in keyof T]: UnpackNestedValue<T[K]> }
   : T;
 
-export type UnpackFieldState<T> = T extends ObjectType
-  ? T extends NativeObjectType
-    ? FieldState<T>
-    : T extends NestedValue<infer U>
-    ? FieldState<U>
-    : { [K in keyof T]: UnpackFieldState<T[K]> }
+export type UnpackFieldState<T> = T extends NestedValue<infer U>
+  ? FieldState<U>
+  : T extends NativeObjectType
+  ? FieldState<T>
+  : T extends Array<infer A>
+  ? UnpackFieldState<A>[]
+  : T extends ObjectType
+  ? { [K in keyof T]: UnpackFieldState<T[K]> }
   : FieldState<T>;
 
-export type UnpackVirtualFieldState<T> = T extends ObjectType
-  ? T extends NativeObjectType | NestedValueType
-    ? VirtualFieldState
-    : { [K in keyof T]: UnpackVirtualFieldState<T[K]> }
-  : VirtualFieldState;
+// `${number}` => 0
+export type ArrayPathToString<T> = T extends `${number}` ? 0 : T;
+
+// all ${number}` => 0
+export type NormalizePath<T extends string> = T extends `${infer A}.${infer B}`
+  ? `${ArrayPathToString<A>}.${NormalizePath<B>}`
+  : ArrayPathToString<T>;
 
 // get value of object by key path
 // key path: a.b.0.c
+export type InternalKeyPathValue<V, Path extends string> = Path extends ''
+  ? V
+  : V extends ObjectType
+  ? V extends NestedValueType | NativeObjectType
+    ? never
+    : Path extends `${infer Key}.${infer Rest}`
+    ? KeyPathValue<V[Key], Rest>
+    : V[Path] extends NestedValue<infer U>
+    ? U
+    : V[Path]
+  : never;
+
 export type KeyPathValue<
   V extends ObjectType,
   Path extends string
-> = Path extends `${infer Key}.${infer Rest}`
-  ? // path: 'x.y'
-    Key extends keyof V
-    ? // Key in v
-      V[Key] extends NestedValueType | NativeObjectType
-      ? // Nested value or Native object
-        V extends NestedValue<infer U>
-        ? U
-        : V
-      : // Other object
-      Rest extends string
-      ? KeyPathValue<V[Key], Rest>
-      : V[Key]
-    : // Key not in v
-      undefined
-  : // path: 'x'
-  Path extends keyof V
-  ? V[Path]
-  : undefined;
-
-export type DeepPartial<T extends ObjectType> = T extends
-  | NativeObjectType
-  | NestedValueType
-  ? T
-  : { [K in keyof T]?: DeepPartial<T[K]> };
+> = InternalKeyPathValue<V, NormalizePath<Path>>;
 
 export type FormType = Record<string, any>;
 
-export type FieldValues<T extends FormType = FormType> = UnpackNestedValue<
-  DeepPartial<T>
->;
+export type FieldValues<T extends FormType = FormType> = UnpackNestedValue<T>;
 
-export type FieldStates<T extends FormType = FormType> = UnpackFieldState<
-  DeepPartial<T>
->;
+export type FieldStates<T extends FormType = FormType> = UnpackFieldState<T>;
 
-export type VirtualFieldStates<T extends FormType = FormType> =
-  UnpackVirtualFieldState<DeepPartial<T>>;
+export type VirtualFieldStates<VFK extends string = string> = {
+  [K in VFK]: VirtualFieldState<K>;
+};
 
 export interface CancellablePromise<T = any> extends Promise<T> {
   cancel?: () => void;
 }
 
 export type FieldError = {
-  // default: 'default'
   type?: string;
   message: string;
 };
 
-export type FormErrors<T> = T extends Array<infer U>
+export type FormErrors<T> = T extends NestedValueType | NativeObjectType
+  ? FieldError | null | undefined
+  : T extends Array<infer U>
   ? FormErrors<U>[]
-  : T extends NestedValue<T>
-  ? FieldError | null
-  : T extends Record<string, any>
+  : T extends ObjectType
   ? {
       [K in keyof T]?: FormErrors<T[K]>;
     }
-  : FieldError | null;
+  : FieldError | null | undefined;
 
 export type FormState<
   T extends FormType = FormType,
@@ -168,7 +164,7 @@ export type VirtualValidateFunc<F extends FormState> = (
 export type Validator<
   V = any,
   F extends Record<string, any> = Record<string, any>
-> = (value: V, form: F) => string | CancellablePromise<string>;
+> = (value: V | undefined, form: F) => string | CancellablePromise<string>;
 
 export type VirtualFieldValidator<
   F extends Record<string, any> = Record<string, any>
@@ -176,6 +172,7 @@ export type VirtualFieldValidator<
 
 export type FieldRule<V = any, F extends FormState = FormState> = {
   type?: string;
+  // short flags
   required?: boolean;
   requiredLength?: boolean;
   minLength?: number;
@@ -183,6 +180,7 @@ export type FieldRule<V = any, F extends FormState = FormState> = {
   min?: number;
   max?: number;
   pattern?: RegExp;
+  // builtin validators
   alpha?: boolean;
   alphaNum?: boolean;
   decimal?: boolean;
@@ -191,15 +189,54 @@ export type FieldRule<V = any, F extends FormState = FormState> = {
   integer?: boolean;
   ipAddress?: boolean;
   macAddress?: boolean;
+  // custon validator
   validator?: Validator<V, F>;
-  messate?: string;
+  // message
+  message?: string;
 };
 
 export type VirtualFieldRule<F extends FormState = FormState> = {
   type?: string;
   validator?: VirtualFieldValidator<F>;
+  message?: string;
 };
 
 export type InputLikeRef = {
   focus?: () => void;
 };
+
+// Join<'a.b', 'c.d'> => 'a.b.c.d'
+export type Join<K, P> = K extends string | number
+  ? P extends string | number
+    ? '' extends K
+      ? P
+      : `${K}${'' extends P ? '' : '.'}${P}`
+    : never
+  : K extends never
+  ? P
+  : never;
+
+// list all paths
+export type AutoPath<T extends ObjectType, L = ''> = T extends
+  | NestedValueType
+  | NativeObjectType
+  ? L
+  : T extends Array<infer U>
+  ? Join<L, `${number}`> | Join<Join<L, `${number}`>, AutoPath<U>>
+  : T extends ObjectType
+  ? {
+      [K in keyof T]: Join<L, K> | Join<Join<L, K>, AutoPath<T[K]>>;
+    }[keyof T]
+  : L;
+
+export type FieldPath<T extends ObjectType, L = ''> = T extends
+  | NestedValueType
+  | NativeObjectType
+  ? L
+  : T extends Array<infer U>
+  ? Join<Join<L, `${number}`>, AutoPath<U>>
+  : T extends ObjectType
+  ? {
+      [K in keyof T]: Join<Join<L, K>, AutoPath<T[K]>>;
+    }[keyof T]
+  : L;

@@ -1,4 +1,4 @@
-import { reactive, watchEffect, WatchStopHandle } from 'vue';
+import { reactive, watchEffect, WatchStopHandle, ref, toRaw } from 'vue';
 import {
   FieldError,
   ValidateFunc,
@@ -16,7 +16,7 @@ const validateRule = (rule: FieldRule, v: any, f: FormState) => {
   return makeCancellablePromise(async (onCancel) => {
     // required
     if (rule.required) {
-      if (!v) return '{{name}} is required';
+      if (!v && v !== 0) return '{{name}} is required';
     }
     // requiredLength
     if (rule.requiredLength) {
@@ -95,6 +95,7 @@ export class FieldClass<
   // 所属表单
   private form: FormClass<T>;
   // 验证函数
+  private rules = ref<FieldRule<KeyPathValue<T, N>, FormState<T>>[]>([]);
   private validate: ValidateFunc<V, FormState<T>>;
   private validateCount = 0;
   private transform: ((v: KeyPathValue<T, N>) => KeyPathValue<T, N>) | null =
@@ -110,17 +111,22 @@ export class FieldClass<
     form: FormClass<T>,
     args: {
       name: N;
-      value?: string;
-      defaultValue?: string;
+      value?: KeyPathValue<T, N>;
+      defaultValue?: KeyPathValue<T, N>;
       rules?: FieldRule<KeyPathValue<T, N>, FormState<T>>[];
       immediate?: boolean;
       transform?: (v: KeyPathValue<T, N>) => KeyPathValue<T, N>;
       onFocus?: () => void;
     }
   ) {
-    const { immediate = true, rules = [], transform = null } = args;
+    const { immediate = true } = args;
+
+    // init state
     this.form = form;
     this.name = args.name;
+    this.rules.value = args.rules || [];
+    this.transform = args.transform || null;
+    this.focusFn = args.onFocus || null;
     this.state = reactive({
       name: this.name,
       value: args.value === undefined ? args.defaultValue : args.value,
@@ -132,19 +138,19 @@ export class FieldClass<
       isTouched: false,
       isChanged: false
     }) as FieldState<V>;
+
     // validate
-    this.transform = transform;
-    this.focusFn = args.onFocus || null;
     const validate: ValidateFunc<KeyPathValue<T, N>, FormState<T>> = (
       v,
       fs
     ) => {
+      const transform = this.transform;
+      const rules = this.rules.value;
       return makeCancellablePromise(async (onCancel) => {
-        const _transform = this.transform;
         for (const rule of rules) {
           const promise = validateRule(
             rule as FieldRule<T>,
-            _transform && v !== undefined ? _transform(v) : v,
+            transform && v !== undefined ? transform(v) : v,
             fs
           );
           onCancel(() => promise.cancel?.());
@@ -159,6 +165,8 @@ export class FieldClass<
                   }
                 : errMsg;
             error.message = error.message.replace(/\{\{name\}\}/g, this.name);
+            if (rule.message !== undefined)
+              error.message = rule.message.replace(/\{\{name\}\}/g, this.name);
             return error;
           }
         }
@@ -166,6 +174,7 @@ export class FieldClass<
       });
     };
     this.validate = validate;
+
     // if immediate register
     if (immediate) {
       this.onRegister();
@@ -175,6 +184,21 @@ export class FieldClass<
   private runInAction = (fn: (...args: any[]) => void) => {
     fn();
   };
+
+  update(
+    args: {
+      defaultValue?: KeyPathValue<T, N>;
+      rules?: FieldRule<KeyPathValue<T, N>, FormState<T>>[];
+    } = {}
+  ) {
+    // defaultValue can set to undefined
+    if ('defaultValue' in args) {
+      this.state.defaultValue = args.defaultValue;
+    }
+    if (args.rules) {
+      this.rules.value = args.rules;
+    }
+  }
 
   initWatcher() {
     // auto validate
@@ -211,7 +235,7 @@ export class FieldClass<
     this.stopDirtyWatcher = watchEffect(() => {
       const { value, defaultValue } = this.state;
       this.runInAction(() => {
-        this.state.isDirty = value !== defaultValue;
+        this.state.isDirty = toRaw(value) !== toRaw(defaultValue);
       });
     });
   }
@@ -230,7 +254,7 @@ export class FieldClass<
 
   onChange(value: V) {
     if (value === undefined) return;
-    const isChanged = this.state.value !== value;
+    const isChanged = toRaw(this.state.value) !== value;
     this.runInAction(() => {
       this.state.value = value;
       this.state.isChanged = this.state.isChanged || isChanged;

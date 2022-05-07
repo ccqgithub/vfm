@@ -1,25 +1,24 @@
 <script lang="ts" setup>
-import { PropType } from 'vue';
+import { PropType, Ref } from 'vue';
 import { FormClass } from '../form';
+import { useVirtualField } from '../uses';
 import { VirtualFieldRule } from '../types';
-import { UseVirtualFieldProps, useVirtualField } from '../uses';
 
 const props = defineProps({
   form: {
     type: Object as PropType<FormClass>,
-    default: undefined
+    required: true
   },
   name: {
-    type: String,
-    default: undefined,
-    required: true as const
+    type: [String, Object] as PropType<string | Ref<string>>,
+    required: true
   },
   rules: {
-    type: Array as PropType<VirtualFieldRule[]>,
+    type: Array as PropType<VirtualFieldRule[] | Ref<VirtualFieldRule[]>>,
     default: () => []
   }
 });
-const [state, { mounted }] = useVirtualField(props as UseVirtualFieldProps);
+const { state, mounted } = useVirtualField(props);
 </script>
 
 <template>

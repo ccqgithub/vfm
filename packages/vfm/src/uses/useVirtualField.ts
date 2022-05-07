@@ -1,6 +1,5 @@
-import { onUnmounted, onMounted, inject, Ref, ref } from 'vue';
+import { onUnmounted, onMounted, Ref, ref, unref, watch } from 'vue';
 import { FormClass } from '../form';
-import { vfmInjectionKey } from '../context';
 import { VirtualFieldRule } from './../types';
 import { FormType, VirtualFieldState } from '../types';
 
@@ -8,34 +7,38 @@ export type UseVirtualFieldProps<
   T extends FormType = FormType,
   N extends string = string
 > = {
-  form?: FormClass<T>;
-  name: N;
-  rules?: VirtualFieldRule[];
+  form: FormClass<T>;
+  name: Ref<N> | N;
+  rules?: Ref<VirtualFieldRule[]> | VirtualFieldRule[];
 };
 
 export const useVirtualField = <T extends FormType, N extends string>(
   props: UseVirtualFieldProps<T, N>
-): [
-  VirtualFieldState,
-  {
-    mounted: Ref<Boolean>;
-    form: FormClass<T>;
-  }
-] => {
-  const injectedForm = inject(vfmInjectionKey, null) as FormClass<T> | null;
-  const { form = injectedForm, name } = props;
+): {
+  state: Ref<VirtualFieldState>;
+  mounted: Ref<Boolean>;
+} => {
+  const { form, name } = props;
   const mounted = ref(false);
 
-  if (!form) {
-    throw new Error(
-      `No form in the injected context or props, can not use Field <${props.name}>`
-    );
-  }
-
-  const { register, field } = form.registerVirtualField(name, {
-    rules: props.rules,
+  let { register, field } = form.registerVirtualField(unref(name), {
+    rules: unref(props.rules),
     immediate: false
   });
+  const fieldState = ref(field.state);
+  const stopWatch = watch(
+    () => unref(props.name),
+    (n, ln) => {
+      form.unregisterVirtualField(ln);
+      const fs = form.registerVirtualField(unref(name), {
+        rules: unref(props.rules),
+        immediate: mounted.value
+      });
+      register = fs.register;
+      field = fs.field;
+      fieldState.value = fs.field.state;
+    }
+  );
 
   onMounted(() => {
     register();
@@ -43,14 +46,12 @@ export const useVirtualField = <T extends FormType, N extends string>(
   });
 
   onUnmounted(() => {
-    form.unregisterField(name);
+    form.unregisterField(unref(name));
+    stopWatch();
   });
 
-  return [
-    field.state,
-    {
-      mounted,
-      form
-    }
-  ];
+  return {
+    state: fieldState,
+    mounted
+  };
 };

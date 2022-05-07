@@ -109,3 +109,5 @@ export const makeCancellablePromise = <T = any>(
 
   return resPromise;
 };
+
+export const AllPropType = [String, Number, Boolean, Symbol, Array, Object];

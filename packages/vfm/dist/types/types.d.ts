@@ -16,8 +16,11 @@ export declare type UnpackFieldState<T> = T extends ObjectType ? T extends Nativ
 export declare type UnpackVirtualFieldState<T> = T extends ObjectType ? T extends NativeObjectType | NestedValueType ? VirtualFieldState : {
     [K in keyof T]: UnpackVirtualFieldState<T[K]>;
 } : VirtualFieldState;
-export declare type KeyPathValue<V extends ObjectType, Path extends string> = Path extends `${infer Key}.${infer Rest}` ? Key extends keyof V ? V[Key] extends NestedValueType | NativeObjectType ? V extends NestedValue<infer U> ? U : V : Rest extends string ? KeyPathValue<V[Key], Rest> : V[Key] : undefined : Path extends keyof V ? V[Path] : undefined;
-export declare type DeepPartial<T extends ObjectType> = T extends NativeObjectType | NestedValueType ? T : {
+export declare type ArrayPathToString<T> = T extends `${number}` ? 0 : T;
+export declare type NormalizePath<T extends string> = T extends `${infer A}.${infer B}` ? `${ArrayPathToString<A>}.${NormalizePath<B>}` : ArrayPathToString<T>;
+export declare type InternalKeyPathValue<V extends ObjectType, Path extends string> = V extends NestedValueType | NativeObjectType ? undefined : Path extends `${infer Key}.${infer Rest}` ? V[Key] extends ObjectType ? KeyPathValue<V[Key], Rest> : undefined : V[Path] extends NestedValue<infer U> ? U : V[Path];
+export declare type KeyPathValue<V extends ObjectType, Path extends string> = InternalKeyPathValue<V, NormalizePath<Path>>;
+export declare type DeepPartial<T extends ObjectType> = T extends NativeObjectType | NestedValueType ? T : T extends Array<infer U> ? U extends ObjectType ? DeepPartial<U>[] : U[] : {
     [K in keyof T]?: DeepPartial<T[K]>;
 };
 export declare type FormType = Record<string, any>;
@@ -67,7 +70,7 @@ export declare type VirtualFieldState<VFK extends string = string> = {
 };
 export declare type ValidateFunc<V, F extends FormState> = (value: V | undefined, data: F) => CancellablePromise<FieldError | null>;
 export declare type VirtualValidateFunc<F extends FormState> = (data: F) => CancellablePromise<FieldError | null>;
-export declare type Validator<V = any, F extends Record<string, any> = Record<string, any>> = (value: V, form: F) => string | CancellablePromise<string>;
+export declare type Validator<V = any, F extends Record<string, any> = Record<string, any>> = (value: V | undefined, form: F) => string | CancellablePromise<string>;
 export declare type VirtualFieldValidator<F extends Record<string, any> = Record<string, any>> = (form: F) => string | CancellablePromise<string>;
 export declare type FieldRule<V = any, F extends FormState = FormState> = {
     type?: string;

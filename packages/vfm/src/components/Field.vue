@@ -1,29 +1,30 @@
 <script lang="ts" setup>
-import { PropType } from 'vue';
+import { PropType, Ref } from 'vue';
 import { FormClass } from '../form';
 import { FieldRule } from '../types';
 import { useField } from '../uses';
+import { AllPropType } from '../untils';
 
 const props = defineProps({
   form: {
     type: Object as PropType<FormClass>,
-    default: undefined
+    required: true
   },
   name: {
-    type: String,
+    type: [String, Object] as PropType<string | Ref<string>>,
     required: true as const,
     default: ''
   },
   rules: {
-    type: Array as PropType<FieldRule[]>,
+    type: Array as PropType<FieldRule[] | Ref<FieldRule[]>>,
     default: () => []
   },
   value: {
-    type: [String, Number, Boolean, Array, Object, Symbol],
+    type: AllPropType as PropType<any | Ref<any>>,
     default: undefined
   },
   defaultValue: {
-    type: [String, Number, Boolean, Array, Object, Symbol],
+    type: AllPropType as PropType<any | Ref<any>>,
     default: undefined
   },
   transform: {
@@ -31,7 +32,7 @@ const props = defineProps({
     default: undefined
   },
   touchType: {
-    type: String as PropType<'FOCUS' | 'BLUR'>,
+    type: String as PropType<'FOCUS' | 'BLUR' | Ref<'FOCUS' | 'BLUR'>>,
     default: 'BLUR'
   }
 });

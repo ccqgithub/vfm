@@ -76,6 +76,11 @@
   padding: 16px;
   color: rgb(78, 110, 142);
   font-size: 14px;
+  box-sizing: border-box;
+
+  * {
+    box-sizing: border-box;
+  }
 }
 
 .vfm-p {
@@ -118,4 +123,32 @@
 .vfm-error {
   line-height: 20px;
   color: rgb(240, 59, 59);
+}
+
+.vfm-block-title {
+  background: rgba(43, 35, 35, 0.66);
+  color: #fff;
+  padding: 5px 10px;
+  margin-bottom: 10px;
+}
+
+.vfm-actions {
+  display: flex;
+  align-items: center;
+  margin-top: 10px;
+}
+
+.vfm-action {
+  height: 30px;
+  line-height: 30px;
+  text-align: center;
+  padding: 0 12px;
+  outline: none;
+  border: none;
+  background: rgb(62, 175, 124);
+  color: #fff;
+  border-radius: 6px;
+  cursor: pointer;
+  display: block;
+  margin-right: 20px;
 }

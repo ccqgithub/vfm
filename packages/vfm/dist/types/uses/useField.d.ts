@@ -19,7 +19,7 @@ export declare type FieldElementProps<T extends FormType = FormType, N extends s
     ref: (el: InputLikeRef | null) => void;
 };
 export declare const useField: <T extends FormType, N extends string>(props: UseFieldProps<T, N>) => [FieldElementProps<T, N>, {
-    state: FieldState<KeyPathValue<T, N>>;
+    state: FieldState<import("./../types").InternalKeyPathValue<T, import("./../types").NormalizePath<N>>>;
     form: FormClass<T, string>;
     mounted: Ref<Boolean>;
 }];

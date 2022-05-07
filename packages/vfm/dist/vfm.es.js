@@ -710,10 +710,8 @@ class FormClass {
   unregisterField(name) {
     const { fields } = this;
     const field = fields.get(name);
-    if (!field) {
-      console.warn(`Field not exists <${name}>.`);
+    if (!field)
       return;
-    }
     field.onUnregister();
     if (this.isMounted) {
       const findIndex = this.fieldsKeys.value.indexOf(name);
@@ -732,10 +730,8 @@ class FormClass {
   unregisterVirtualField(name) {
     const { virtualFields } = this;
     const field = virtualFields.get(name);
-    if (!field) {
-      console.warn(`Virtual field not exists <${name}>.`);
+    if (!field)
       return;
-    }
     field.onUnregister();
     if (this.isMounted) {
       const findIndex = this.virtualFieldsKeys.value.indexOf(name);
@@ -759,6 +755,14 @@ class FormClass {
       return;
     }
     field.onChange(value);
+  }
+  deleteValue(name) {
+    const field = this.fields.get(name);
+    if (!field) {
+      console.warn(`Field not exists <${name}>.`);
+      return;
+    }
+    delKey(this.state.values, name);
   }
   getValue(name) {
     return computed(() => {

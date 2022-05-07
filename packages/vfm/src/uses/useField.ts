@@ -1,35 +1,44 @@
 import {
-  onUnmounted,
-  onMounted,
-  inject,
+  ref,
   Ref,
+  unref,
+  watch,
+  toRaw,
   computed,
   reactive,
-  ref
+  onMounted,
+  onUnmounted
 } from 'vue';
+import {
+  FormType,
+  FormState,
+  FieldRule,
+  FieldState,
+  InputLikeRef,
+  KeyPathValue
+} from './../types';
 import { FormClass } from '../form';
-import { vfmInjectionKey } from '../context';
-import { FieldState, FormState } from './../types';
-import { FieldRule, KeyPathValue, FormType, InputLikeRef } from '../types';
 
 export type UseFieldProps<
   T extends FormType = FormType,
   N extends string = string
 > = {
-  form?: FormClass<T>;
-  name: N;
-  rules?: FieldRule<KeyPathValue<T, N>, FormState<T>>[];
-  value?: KeyPathValue<T, N>;
-  defaultValue?: KeyPathValue<T, N>;
+  form: FormClass<T>;
+  name: Ref<N> | N;
+  rules?:
+    | Ref<FieldRule<KeyPathValue<T, N>, FormState<T>>[]>
+    | FieldRule<KeyPathValue<T, N>, FormState<T>>[];
+  value?: Ref<KeyPathValue<T, N>> | KeyPathValue<T, N>;
+  defaultValue?: Ref<KeyPathValue<T, N>> | KeyPathValue<T, N>;
+  touchType?: Ref<'FOCUS' | 'BLUR'> | ('FOCUS' | 'BLUR');
   transform?: (v: KeyPathValue<T, N>) => KeyPathValue<T, N>;
-  touchType?: 'FOCUS' | 'BLUR';
 };
 
 export type FieldElementProps<
   T extends FormType = FormType,
   N extends string = string
 > = {
-  value?: Ref<KeyPathValue<T, N>>;
+  value: KeyPathValue<T, N>;
   onChange: (v: KeyPathValue<T, N>) => void;
   onBlur: () => void;
   onFocus: () => void;
@@ -41,21 +50,17 @@ export const useField = <T extends FormType, N extends string>(
 ): [
   FieldElementProps<T, N>,
   {
-    state: FieldState<KeyPathValue<T, N>>;
-    form: FormClass<T>;
+    model: Ref<KeyPathValue<T, N>>;
+    state: Ref<FieldState<KeyPathValue<T, N>>>;
     mounted: Ref<Boolean>;
   }
 ] => {
-  const injectedForm = inject(vfmInjectionKey, null) as FormClass<T> | null;
-  const { form = injectedForm, name } = props;
-  const { touchType = form?.touchType } = props;
+  const { form, name } = props;
+  const touchType = computed(() => {
+    if (props.touchType) return unref(props.touchType);
+    return form.touchType || 'BLUR';
+  });
   const mounted = ref(false);
-
-  if (!form) {
-    throw new Error(
-      `No form in the injected context or props, can not use Field <${props.name}>`
-    );
-  }
 
   const elemRef = ref<InputLikeRef | null>(null);
   const setRef = (el: InputLikeRef | null) => (elemRef.value = el);
@@ -68,52 +73,94 @@ export const useField = <T extends FormType, N extends string>(
           ((v as any).currentTarget as HTMLInputElement)?.value
         : // component event
           v;
-    form.setValue(name, value);
+    form.setValue(unref(name), value as KeyPathValue<T, N>);
   };
   const onBlur = () => {
-    touchType === 'BLUR' && form.setTouched(name, true);
+    touchType.value === 'BLUR' && form.setTouched(unref(name), true);
   };
   const onFocus = () => {
-    touchType === 'FOCUS' && form.setTouched(name, true);
+    touchType.value === 'FOCUS' && form.setTouched(unref(name), true);
   };
 
-  const { register, field } = form.registerField(name, {
-    value: props.value,
-    defaultValue: props.defaultValue,
-    rules: props.rules,
+  let { register, field } = form.registerField(unref(name), {
+    value: unref(props.value),
+    defaultValue: unref(props.defaultValue),
+    rules: unref(props.rules),
     transform: props.transform,
     immediate: false,
     onFocus: () => {
       elemRef.value?.focus?.();
     }
   });
-  const value = computed(() => {
-    return field.state.value;
-  });
+  const fieldState = ref(field.state);
+  const stopWatch = watch(
+    () => {
+      return [unref(props.name), unref(props.rules)] as const;
+    },
+    ([n, rules], [ln]) => {
+      form.unregisterField(ln);
+      const fs = form.registerField(n, {
+        value: unref(props.value),
+        defaultValue: unref(props.defaultValue),
+        rules,
+        transform: props.transform,
+        immediate: mounted.value,
+        onFocus: () => {
+          elemRef.value?.focus?.();
+        }
+      });
+      register = fs.register;
+      field = fs.field;
+      fieldState.value = fs.field.state;
+    }
+  );
+
+  // value ref for v-model
+  const model = ref(fieldState.value.value) as Ref<KeyPathValue<T, N>>;
+  // fieldState.value => model.value
+  const stopWatchValue = watch(
+    () => fieldState.value.value as KeyPathValue<T, N>,
+    (v) => (model.value = v)
+  );
+  // model.value to fieldState.value
+  const stopWatchModel = watch(
+    () => model.value,
+    (v) => {
+      const value = fieldState.value.value;
+      if (toRaw(value) !== toRaw(v)) {
+        model.value = v;
+      }
+    }
+  );
 
   onMounted(() => {
-    register();
+    register?.();
     mounted.value = true;
   });
 
   onUnmounted(() => {
-    form.unregisterField(name);
+    form.unregisterField(unref(name));
+    stopWatch();
+    stopWatchValue();
+    stopWatchModel();
     elemRef.value = null;
   });
 
   const res = reactive({
-    value,
+    get value() {
+      return model.value;
+    },
     onChange,
     onBlur,
     onFocus,
     ref: setRef
-  });
+  }) as FieldElementProps<T, N>;
 
   return [
     res,
     {
-      state: field.state,
-      form,
+      model,
+      state: fieldState,
       mounted
     }
   ];

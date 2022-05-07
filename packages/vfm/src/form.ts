@@ -25,7 +25,9 @@ import {
   FieldStates,
   VirtualFieldStates,
   FieldRule,
-  VirtualFieldRule
+  VirtualFieldRule,
+  AutoPath,
+  FieldPath
 } from './types';
 
 export type GetFormType<T> = T extends FormClass<infer U> ? U : never;
@@ -37,8 +39,8 @@ export class FormClass<
   // data
   public state: FormState<T, VFK>;
   public fieldStates = reactive<FieldStates<T>>({} as FieldStates<T>);
-  public virtualFieldStates = reactive<VirtualFieldStates<T>>(
-    {} as VirtualFieldStates<T>
+  public virtualFieldStates = reactive<VirtualFieldStates<VFK>>(
+    {} as VirtualFieldStates<VFK>
   );
   public touchType: 'FOCUS' | 'BLUR' = 'BLUR';
   private cacheFields: string[] = [];
@@ -303,10 +305,7 @@ export class FormClass<
   unregisterField(name: string) {
     const { fields } = this;
     const field = fields.get(name);
-    if (!field) {
-      console.warn(`Field not exists <${name}>.`);
-      return;
-    }
+    if (!field) return;
     field.onUnregister();
     if (this.isMounted) {
       const findIndex = this.fieldsKeys.value.indexOf(name);
@@ -326,10 +325,7 @@ export class FormClass<
   unregisterVirtualField(name: string) {
     const { virtualFields } = this;
     const field = virtualFields.get(name);
-    if (!field) {
-      console.warn(`Virtual field not exists <${name}>.`);
-      return;
-    }
+    if (!field) return;
     field.onUnregister();
     if (this.isMounted) {
       const findIndex = this.virtualFieldsKeys.value.indexOf(name);
@@ -345,7 +341,7 @@ export class FormClass<
     virtualFields.delete(name);
   }
 
-  setValue(name: string, value: any) {
+  setValue<N extends string>(name: N, value: KeyPathValue<T, N>) {
     if (value === undefined) return;
     const field = this.fields.get(name);
     if (!field) {
@@ -353,6 +349,15 @@ export class FormClass<
       return;
     }
     field.onChange(value);
+  }
+
+  deleteValue<N extends string>(name: N) {
+    const field = this.fields.get(name);
+    if (!field) {
+      console.warn(`Field not exists <${name}>.`);
+      return;
+    }
+    delKey(this.state.values, name);
   }
 
   getValue<N extends string>(name: N): ComputedRef<KeyPathValue<T, N>> {

@@ -19,7 +19,8 @@
     "lint:ts": "vue-ts --noEmit",
     "lint": "eslint --ext .ts 'src/**' && npm run lint:ts",
     "changelog": "conventional-changelog -p angular -i CHANGELOG.md -s",
-    "serve": "serve"
+    "test": "vitest",
+    "coverage": "vitest run --coverage"
   },
   "repository": {
     "type": "git",
@@ -42,5 +43,8 @@
       "import": "./dist/vfm.es.js",
       "require": "./dist/vfm.umd.js"
     }
-  }
+  },
+  "tsd": {
+		"directory": "test/tsc"
+	}
 }
