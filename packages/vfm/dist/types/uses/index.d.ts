@@ -1,4 +1,4 @@
 export * from './useField';
 export * from './useVirtualField';
-export * from './useForm';
+export * from './useFieldArray';
 //# sourceMappingURL=index.d.ts.map

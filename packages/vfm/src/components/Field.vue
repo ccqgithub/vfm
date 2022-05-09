@@ -1,8 +1,8 @@
 <script lang="ts" setup>
-import { PropType, Ref } from 'vue';
+import { PropType, toRefs } from 'vue';
+import { useField } from '../uses';
 import { FormClass } from '../form';
 import { FieldRule } from '../types';
-import { useField } from '../uses';
 import { AllPropType } from '../untils';
 
 const props = defineProps({
@@ -11,20 +11,19 @@ const props = defineProps({
     required: true
   },
   name: {
-    type: [String, Object] as PropType<string | Ref<string>>,
-    required: true as const,
-    default: ''
+    type: String as PropType<string>,
+    required: true
   },
   rules: {
-    type: Array as PropType<FieldRule[] | Ref<FieldRule[]>>,
+    type: Array as PropType<FieldRule[]>,
     default: () => []
   },
   value: {
-    type: AllPropType as PropType<any | Ref<any>>,
+    type: AllPropType as PropType<any>,
     default: undefined
   },
   defaultValue: {
-    type: AllPropType as PropType<any | Ref<any>>,
+    type: AllPropType as PropType<any>,
     default: undefined
   },
   transform: {
@@ -32,15 +31,23 @@ const props = defineProps({
     default: undefined
   },
   touchType: {
-    type: String as PropType<'FOCUS' | 'BLUR' | Ref<'FOCUS' | 'BLUR'>>,
+    type: String as PropType<'FOCUS' | 'BLUR'>,
     default: 'BLUR'
   }
 });
-const [slotProps, { mounted, state }] = useField(props);
+
+const { form, rules, transform, name, ...rest } = toRefs(props);
+const [slotProps, , { mounted }] = useField({
+  form: form.value,
+  rules: rules.value,
+  transform: transform?.value,
+  name: name as any,
+  ...rest
+});
 </script>
 
 <template>
   <template v-if="mounted">
-    <slot :field="slotProps" :state="state!"></slot>
+    <slot :field="slotProps"></slot>
   </template>
 </template>

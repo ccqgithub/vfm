@@ -34,7 +34,7 @@ const formState = form.state;
         :value="formState.values.baseInfo?.birthDay" 
         @input="(e) => form.setValue('baseInfo.birthDay', (e.target as HTMLInputElement).value)">
         <div class="vfm-error">
-          {{ formState.errors.baseInfo?.birthDay?.message }}
+          {{ formState.fieldErrors.baseInfo?.birthDay?.message }}
         </div>
     </div>
   </div>
@@ -49,7 +49,7 @@ const formState = form.state;
         :value="formState.values.baseInfo?.age" 
         @input="(e) => form.setValue('baseInfo.age', (e.target as HTMLInputElement).value as any)">
         <div class="vfm-error">
-          {{ formState.errors.baseInfo?.age?.message }}
+          {{ formState.fieldErrors.baseInfo?.age?.message }}
         </div>
     </div>
   </div>

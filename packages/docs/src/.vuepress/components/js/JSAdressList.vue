@@ -1,21 +1,17 @@
 <script setup lang="ts">
+import { useFieldArray } from 'vfm';
 import { form } from '../form';
 import AddressItem from './JSAdress.vue';
 
-const add = () => {
-  const length = (form.state.values.address || []).length;
-  form.setValue(`address.${length}`, {
-    phone: '',
-    detail: ''
-  })
-}
-const remove = (index: number) => {
-  form.deleteValue(`address.${length}`);
-}
+const { fields } = useFieldArray(form, '')
 
 const formState = form.state;
 </script>
 
 <template>
-
+  <div class="vfm-block-title">Base Info</div>
+  <div>
+    <AddressItem v-for="(item, index) in fields" :key="item.id" :index="index">
+    </AddressItem>
+  </div>
 </template>

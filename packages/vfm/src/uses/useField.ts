@@ -13,45 +13,34 @@ import {
   FormType,
   FormState,
   FieldRule,
-  FieldState,
   InputLikeRef,
-  KeyPathValue
+  KeyPathValue,
+  FieldPath,
+  FieldProps
 } from './../types';
 import { FormClass } from '../form';
+import { getKeyValue } from './../untils';
 
 export type UseFieldProps<
   T extends FormType = FormType,
-  N extends string = string
+  N extends FieldPath<T> = FieldPath<T>
 > = {
   form: FormClass<T>;
   name: Ref<N> | N;
   rules?:
     | Ref<FieldRule<KeyPathValue<T, N>, FormState<T>>[]>
     | FieldRule<KeyPathValue<T, N>, FormState<T>>[];
-  value?: Ref<KeyPathValue<T, N>> | KeyPathValue<T, N>;
-  defaultValue?: Ref<KeyPathValue<T, N>> | KeyPathValue<T, N>;
   touchType?: Ref<'FOCUS' | 'BLUR'> | ('FOCUS' | 'BLUR');
   transform?: (v: KeyPathValue<T, N>) => KeyPathValue<T, N>;
+  isEqual?: (v: KeyPathValue<T, N>, d: KeyPathValue<T, N>) => boolean;
 };
 
-export type FieldElementProps<
-  T extends FormType = FormType,
-  N extends string = string
-> = {
-  value: KeyPathValue<T, N>;
-  onChange: (v: KeyPathValue<T, N>) => void;
-  onBlur: () => void;
-  onFocus: () => void;
-  ref: (el: InputLikeRef | null) => void;
-};
-
-export const useField = <T extends FormType, N extends string>(
+export const useField = <T extends FormType, N extends FieldPath<T>>(
   props: UseFieldProps<T, N>
 ): [
-  FieldElementProps<T, N>,
+  FieldProps<T, N>,
+  Ref<KeyPathValue<T, N>>,
   {
-    model: Ref<KeyPathValue<T, N>>;
-    state: Ref<FieldState<KeyPathValue<T, N>>>;
     mounted: Ref<Boolean>;
   }
 ] => {
@@ -73,60 +62,65 @@ export const useField = <T extends FormType, N extends string>(
           ((v as any).currentTarget as HTMLInputElement)?.value
         : // component event
           v;
-    form.setValue(unref(name), value as KeyPathValue<T, N>);
+    form.setValue(unref(name) as any, value as KeyPathValue<T, N>);
   };
   const onBlur = () => {
-    touchType.value === 'BLUR' && form.setTouched(unref(name), true);
+    touchType.value === 'BLUR' && form.setTouched(unref(name) as any, true);
   };
   const onFocus = () => {
-    touchType.value === 'FOCUS' && form.setTouched(unref(name), true);
+    touchType.value === 'FOCUS' && form.setTouched(unref(name) as any, true);
   };
 
-  let { register, field } = form.registerField(unref(name), {
-    value: unref(props.value),
-    defaultValue: unref(props.defaultValue),
+  let { register, field } = form.registerField(unref(name) as any, {
     rules: unref(props.rules),
     transform: props.transform,
     immediate: false,
     onFocus: () => {
-      elemRef.value?.focus?.();
+      (elemRef.value as any)?.focus?.();
     }
   });
+  // value ref for v-model
+  const model = ref(getKeyValue(form.state.values, unref(props.name))) as Ref<
+    KeyPathValue<T, N>
+  >;
   const fieldState = ref(field.state);
   const stopWatch = watch(
     () => {
       return [unref(props.name), unref(props.rules)] as const;
     },
     ([n, rules], [ln]) => {
+      console.log('watch a', n, rules);
       form.unregisterField(ln);
       const fs = form.registerField(n, {
-        value: unref(props.value),
-        defaultValue: unref(props.defaultValue),
         rules,
         transform: props.transform,
+        isEqual: props.isEqual,
         immediate: mounted.value,
         onFocus: () => {
-          elemRef.value?.focus?.();
+          (elemRef.value as any)?.focus?.();
         }
       });
       register = fs.register;
       field = fs.field;
-      fieldState.value = fs.field.state;
+      fieldState.value = fs.field.state as any;
+      model.value = getKeyValue(form.state.values, unref(props.name));
     }
   );
 
-  // value ref for v-model
-  const model = ref(fieldState.value.value) as Ref<KeyPathValue<T, N>>;
   // fieldState.value => model.value
   const stopWatchValue = watch(
-    () => fieldState.value.value as KeyPathValue<T, N>,
-    (v) => (model.value = v)
+    () => getKeyValue(form.state.values, unref(props.name)),
+    (v) => {
+      model.value = v;
+      console.log('watch b', v);
+    }
   );
   // model.value to fieldState.value
   const stopWatchModel = watch(
     () => model.value,
     (v) => {
-      const value = fieldState.value.value;
+      console.log('watch m', v);
+      const value = getKeyValue(form.state.values, unref(props.name));
       if (toRaw(value) !== toRaw(v)) {
         model.value = v;
       }
@@ -154,13 +148,12 @@ export const useField = <T extends FormType, N extends string>(
     onBlur,
     onFocus,
     ref: setRef
-  }) as FieldElementProps<T, N>;
+  }) as FieldProps<T, N>;
 
   return [
     res,
+    model,
     {
-      model,
-      state: fieldState,
       mounted
     }
   ];

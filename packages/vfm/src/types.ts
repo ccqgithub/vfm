@@ -1,3 +1,5 @@
+import { Component } from 'vue';
+
 declare const $NestedValue: unique symbol;
 
 export type ObjectType = Record<string, any>;
@@ -28,15 +30,15 @@ export type UnpackNestedValue<T> = T extends NestedValue<infer U>
   ? { [K in keyof T]: UnpackNestedValue<T[K]> }
   : T;
 
-export type UnpackFieldState<T> = T extends NestedValue<infer U>
-  ? FieldState<U>
+export type UnpackFieldState<T> = T extends NestedValueType
+  ? FieldState
   : T extends NativeObjectType
-  ? FieldState<T>
+  ? FieldState
   : T extends Array<infer A>
   ? UnpackFieldState<A>[]
   : T extends ObjectType
   ? { [K in keyof T]: UnpackFieldState<T[K]> }
-  : FieldState<T>;
+  : FieldState;
 
 // `${number}` => 0
 export type ArrayPathToString<T> = T extends `${number}` ? 0 : T;
@@ -63,16 +65,31 @@ export type InternalKeyPathValue<V, Path extends string> = Path extends ''
 export type KeyPathValue<
   V extends ObjectType,
   Path extends string
-> = InternalKeyPathValue<V, NormalizePath<Path>>;
+> = string extends Path ? any : InternalKeyPathValue<V, NormalizePath<Path>>;
 
 export type FormType = Record<string, any>;
 
-export type FieldValues<T extends FormType = FormType> = UnpackNestedValue<T>;
+export declare type DeepPartial<T extends ObjectType> = T extends
+  | NativeObjectType
+  | NestedValueType
+  ? T
+  : T extends Array<infer U>
+  ? U extends ObjectType
+    ? DeepPartial<U>[]
+    : U[]
+  : {
+      [K in keyof T]?: DeepPartial<T[K]>;
+    };
+
+export type FieldValues<
+  T extends FormType = FormType,
+  P extends boolean = false
+> = P extends true ? UnpackNestedValue<DeepPartial<T>> : UnpackNestedValue<T>;
 
 export type FieldStates<T extends FormType = FormType> = UnpackFieldState<T>;
 
 export type VirtualFieldStates<VFK extends string = string> = {
-  [K in VFK]: VirtualFieldState<K>;
+  [K in VFK]: VirtualFieldState;
 };
 
 export interface CancellablePromise<T = any> extends Promise<T> {
@@ -100,14 +117,30 @@ export type FormState<
 > = {
   // 当前值 { a: { b: { c: 222 }, d: [{ e: 2}] } }
   values: FieldValues<T>;
-  // 错误信息
+  // 默认值
+  defaultValues: FieldValues<T, true>;
+  // field error or virtualField error
   error: FieldError | null;
-  errors: FormErrors<T>;
+  // only field error
+  fieldError: FieldError | null;
+  // only virtual error
+  virtualError: FieldError | null;
+  // all field errors
+  fieldErrors: FormErrors<T>;
+  // all virtual field errors
   virtualErrors: Partial<Record<VFK, FieldError | null>>;
   // 是否有错误
   isError: boolean;
+  // field Error
+  isFieldError: boolean;
+  // virtual error
+  isVirtualError: boolean;
   // 正在验证
   isValidating: boolean;
+  // field validating
+  isFieldValidating: boolean;
+  // virtual validating
+  isVirtualValidating: boolean;
   // 值被更改过, 当前值和默认值不相等
   isDirty: boolean;
   // 字段有过交互，比如 input focus
@@ -122,12 +155,7 @@ export type FormState<
   submitCount: number;
 };
 
-export type FieldState<V> = {
-  name: string;
-  // 当前值
-  value?: V;
-  // 默认值
-  defaultValue?: V;
+export type FieldState = {
   // 错误信息
   error: FieldError | null;
   // 是否有错误
@@ -142,8 +170,9 @@ export type FieldState<V> = {
   isChanged: boolean;
 };
 
-export type VirtualFieldState<VFK extends string = string> = {
-  name: VFK;
+export type ValidatorState = Omit<FieldState, 'error' | 'isError'>;
+
+export type VirtualFieldState = {
   // 错误信息
   error: FieldError | null;
   // 是否有错误
@@ -152,19 +181,18 @@ export type VirtualFieldState<VFK extends string = string> = {
   isValidating: boolean;
 };
 
-export type ValidateFunc<V, F extends FormState> = (
-  value: V | undefined,
-  data: F
-) => CancellablePromise<FieldError | null>;
+export type ValidateFunc = () => CancellablePromise<FieldError | null>;
 
-export type VirtualValidateFunc<F extends FormState> = (
-  data: F
-) => CancellablePromise<FieldError | null>;
+export type VirtualValidateFunc = () => CancellablePromise<FieldError | null>;
 
 export type Validator<
   V = any,
   F extends Record<string, any> = Record<string, any>
-> = (value: V | undefined, form: F) => string | CancellablePromise<string>;
+> = (
+  value: V | undefined,
+  state: ValidatorState,
+  form: F
+) => string | CancellablePromise<string>;
 
 export type VirtualFieldValidator<
   F extends Record<string, any> = Record<string, any>
@@ -201,9 +229,12 @@ export type VirtualFieldRule<F extends FormState = FormState> = {
   message?: string;
 };
 
-export type InputLikeRef = {
-  focus?: () => void;
-};
+export type InputLikeRef =
+  | Element
+  | Component
+  | {
+      focus?: () => void;
+    };
 
 // Join<'a.b', 'c.d'> => 'a.b.c.d'
 export type Join<K, P> = K extends string | number
@@ -211,13 +242,11 @@ export type Join<K, P> = K extends string | number
     ? '' extends K
       ? P
       : `${K}${'' extends P ? '' : '.'}${P}`
-    : never
-  : K extends never
-  ? P
-  : never;
+    : ''
+  : '';
 
 // list all paths
-export type AutoPath<T extends ObjectType, L = ''> = T extends
+export type AutoPath<T extends ObjectType, L extends string = ''> = T extends
   | NestedValueType
   | NativeObjectType
   ? L
@@ -229,14 +258,40 @@ export type AutoPath<T extends ObjectType, L = ''> = T extends
     }[keyof T]
   : L;
 
-export type FieldPath<T extends ObjectType, L = ''> = T extends
+export type FieldPath<T extends ObjectType, L extends string = ''> = T extends
   | NestedValueType
   | NativeObjectType
   ? L
   : T extends Array<infer U>
-  ? Join<Join<L, `${number}`>, AutoPath<U>>
+  ? Join<Join<L, `${number}`>, FieldPath<U>>
   : T extends ObjectType
   ? {
-      [K in keyof T]: Join<Join<L, K>, AutoPath<T[K]>>;
+      [K in keyof T]: Join<Join<L, K>, FieldPath<T[K]>>;
     }[keyof T]
   : L;
+
+export type ArrayFieldPath<
+  T extends ObjectType,
+  L extends string = ''
+> = T extends NestedValueType | NativeObjectType
+  ? never
+  : T extends Array<infer U>
+  ? L | Join<Join<L, `${number}`>, ArrayFieldPath<U>>
+  : T extends ObjectType
+  ? {
+      [K in keyof T]: Join<Join<L, K>, ArrayFieldPath<T[K]>>;
+    }[keyof T]
+  : never;
+
+export type ArrayItem<T> = T extends Array<infer U> ? U : never;
+
+export type FieldProps<
+  T extends FormType = FormType,
+  N extends string = string
+> = {
+  value: KeyPathValue<T, N>;
+  onChange: (v: KeyPathValue<T, N>) => void;
+  onBlur: () => void;
+  onFocus: () => void;
+  ref: (el: InputLikeRef | null) => void;
+};

@@ -1,13 +1,14 @@
 import { onUnmounted, onMounted, Ref, ref, unref, watch } from 'vue';
 import { FormClass } from '../form';
 import { VirtualFieldRule } from './../types';
-import { FormType, VirtualFieldState } from '../types';
+import { FormType } from '../types';
 
 export type UseVirtualFieldProps<
   T extends FormType = FormType,
-  N extends string = string
+  VFK extends string = string,
+  N extends VFK = VFK
 > = {
-  form: FormClass<T>;
+  form: FormClass<T, VFK>;
   name: Ref<N> | N;
   rules?: Ref<VirtualFieldRule[]> | VirtualFieldRule[];
 };
@@ -15,7 +16,6 @@ export type UseVirtualFieldProps<
 export const useVirtualField = <T extends FormType, N extends string>(
   props: UseVirtualFieldProps<T, N>
 ): {
-  state: Ref<VirtualFieldState>;
   mounted: Ref<Boolean>;
 } => {
   const { form, name } = props;
@@ -46,12 +46,11 @@ export const useVirtualField = <T extends FormType, N extends string>(
   });
 
   onUnmounted(() => {
-    form.unregisterField(unref(name));
+    form.unregisterVirtualField(unref(name));
     stopWatch();
   });
 
   return {
-    state: fieldState,
     mounted
   };
 };

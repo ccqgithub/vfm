@@ -1,26 +1,17 @@
 import { Ref } from 'vue';
+import { FormType, FormState, FieldRule, FieldState, KeyPathValue, FieldPath, FieldProps } from './../types';
 import { FormClass } from '../form';
-import { FieldState, FormState } from './../types';
-import { FieldRule, KeyPathValue, FormType, InputLikeRef } from '../types';
-export declare type UseFieldProps<T extends FormType = FormType, N extends string = string> = {
-    form?: FormClass<T>;
-    name: N;
-    rules?: FieldRule<KeyPathValue<T, N>, FormState<T>>[];
-    value?: KeyPathValue<T, N>;
-    defaultValue?: KeyPathValue<T, N>;
+export declare type UseFieldProps<T extends FormType = FormType, N extends FieldPath<T> = FieldPath<T>> = {
+    form: FormClass<T>;
+    name: Ref<N> | N;
+    rules?: Ref<FieldRule<KeyPathValue<T, N>, FormState<T>>[]> | FieldRule<KeyPathValue<T, N>, FormState<T>>[];
+    touchType?: Ref<'FOCUS' | 'BLUR'> | ('FOCUS' | 'BLUR');
     transform?: (v: KeyPathValue<T, N>) => KeyPathValue<T, N>;
-    touchType?: 'FOCUS' | 'BLUR';
+    isEqual?: (v: KeyPathValue<T, N>, d: KeyPathValue<T, N>) => boolean;
 };
-export declare type FieldElementProps<T extends FormType = FormType, N extends string = string> = {
-    value?: Ref<KeyPathValue<T, N>>;
-    onChange: (v: KeyPathValue<T, N>) => void;
-    onBlur: () => void;
-    onFocus: () => void;
-    ref: (el: InputLikeRef | null) => void;
-};
-export declare const useField: <T extends FormType, N extends string>(props: UseFieldProps<T, N>) => [FieldElementProps<T, N>, {
-    state: FieldState<import("./../types").InternalKeyPathValue<T, import("./../types").NormalizePath<N>>>;
-    form: FormClass<T, string>;
+export declare const useField: <T extends FormType, N extends FieldPath<T, "">>(props: UseFieldProps<T, N>) => [FieldProps<T, N>, {
+    model: Ref<KeyPathValue<T, N>>;
+    state: Ref<FieldState>;
     mounted: Ref<Boolean>;
 }];
 //# sourceMappingURL=useField.d.ts.map

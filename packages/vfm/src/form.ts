@@ -1,33 +1,34 @@
 import {
+  ref,
   toRaw,
   reactive,
-  ref,
-  watchEffect,
-  WatchStopHandle,
+  readonly,
   computed,
-  ComputedRef
+  ComputedRef,
+  watchEffect,
+  WatchStopHandle
 } from 'vue';
 import { FieldClass } from './field';
 import { VirtualFieldClass } from './virtualField';
 import {
+  delKey,
   getKeyValue,
   setKeyValue,
-  delKey,
   recursiveUpdateObject
 } from './untils';
 import {
+  AutoPath,
   FormType,
-  FieldValues,
-  KeyPathValue,
-  FieldError,
+  FieldRule,
+  FieldPath,
   FormState,
+  FieldError,
   FormErrors,
   FieldStates,
-  VirtualFieldStates,
-  FieldRule,
+  FieldValues,
+  KeyPathValue,
   VirtualFieldRule,
-  AutoPath,
-  FieldPath
+  VirtualFieldStates
 } from './types';
 
 export type GetFormType<T> = T extends FormClass<infer U> ? U : never;
@@ -36,43 +37,64 @@ export class FormClass<
   T extends FormType = FormType,
   VFK extends string = string
 > {
-  // data
-  public state: FormState<T, VFK>;
-  public fieldStates = reactive<FieldStates<T>>({} as FieldStates<T>);
-  public virtualFieldStates = reactive<VirtualFieldStates<VFK>>(
-    {} as VirtualFieldStates<VFK>
-  );
   public touchType: 'FOCUS' | 'BLUR' = 'BLUR';
-  private cacheFields: string[] = [];
-  private cacheVirtualFields: string[] = [];
-  private isMounted = false;
+  // states
+  private _state: FormState<T, VFK>;
+  private _publicState: FormState<T, VFK> | null = null;
+  private _fieldStates = reactive({}) as FieldStates<T>;
+  private _publicFieldStates: FieldStates<T> | null = null;
+  private _virtualFieldStates = reactive({}) as VirtualFieldStates<VFK>;
+  private _publicVirtualFieldStates: VirtualFieldStates<VFK> | null = null;
   // fields
   private fieldsKeys = ref<string[]>([]);
   private fields: Map<string, FieldClass> = new Map();
   private virtualFieldsKeys = ref<string[]>([]);
   private virtualFields: Map<string, VirtualFieldClass> = new Map();
+  private cacheFields: string[] = [];
+  private cacheVirtualFields: string[] = [];
   // watcher
   private stopStateWatcher: WatchStopHandle | null = null;
   private stopStatusWatcher: WatchStopHandle | null = null;
   private stopValidatingWatcher: WatchStopHandle | null = null;
   // waiter
   private waiters: (() => void)[] = [];
-  // default values
-  private defaultValues: FieldValues<T> = {} as FieldValues<T>;
+  // subscribers
+  private subscribers: ((
+    type: 'UPDATE' | 'DELETE' | 'RESET',
+    name?: string
+  ) => void)[] = [];
+  // mounted
+  private isMounted = false;
+  private readonly = false;
+  private submitFlag = 0;
+  private initValues: FieldValues<T>;
+  private defaultValues?: FieldValues<T, true>;
 
   constructor(args: {
-    defaultValues?: FieldValues<T>;
-    virtualFields?: Record<string, VirtualFieldClass<FormClass<T, VFK>>>;
+    initValues: FieldValues<T>;
+    defaultValues?: FieldValues<T, true>;
+    // when to setTouched
     touchType?: 'FOCUS' | 'BLUR';
+    // state readonly
+    readonly?: boolean;
   }) {
-    this.defaultValues = toRaw(args.defaultValues || {}) as FieldValues<T>;
-    this.state = reactive({
-      values: toRaw(this.defaultValues) || {},
-      errors: {} as FormErrors<T>,
+    const { initValues = {} as FieldValues<T> } = args;
+    this.initValues = toRaw(initValues);
+    this.defaultValues = toRaw(args.defaultValues);
+    this._state = reactive({
+      values: initValues,
+      defaultValues: args.defaultValues || initValues,
+      fieldErrors: {} as FormErrors<T>,
       virtualErrors: {} as Record<VFK, FieldError | null>,
       error: null,
+      fieldError: null,
+      virtualError: null,
       isError: false,
+      isFieldError: false,
+      isVirtualError: false,
       isValidating: false,
+      isFieldValidating: false,
+      isVirtualValidating: false,
       isDirty: false,
       isTouched: false,
       isChanged: false,
@@ -81,9 +103,36 @@ export class FormClass<
       submitCount: 0
     }) as FormState<T, VFK>;
     this.touchType = args.touchType || 'BLUR';
+    this.readonly = args.readonly || false;
   }
 
-  private runInAction = (fn: (...args: any[]) => void) => {
+  get state(): FormState<T, VFK> {
+    if (!this.readonly) return this._state;
+    if (!this._publicState) {
+      this._publicState = readonly(this._state) as FormState<T, VFK>;
+    }
+    return this._publicState;
+  }
+
+  get fieldStates(): FieldStates<T> {
+    if (!this.readonly) return this._fieldStates;
+    if (!this._publicFieldStates) {
+      this._publicFieldStates = readonly(this._fieldStates) as FieldStates<T>;
+    }
+    return this._publicFieldStates;
+  }
+
+  get virtualFieldStates(): VirtualFieldStates<VFK> {
+    if (!this.readonly) return this._virtualFieldStates;
+    if (!this._publicVirtualFieldStates) {
+      this._publicVirtualFieldStates = readonly(
+        this._virtualFieldStates as any
+      ) as VirtualFieldStates<VFK>;
+    }
+    return this._publicVirtualFieldStates;
+  }
+
+  runInAction = (fn: (...args: any[]) => void) => {
     fn();
   };
 
@@ -94,22 +143,33 @@ export class FormClass<
     const { cacheFields, cacheVirtualFields } = this;
     this.fieldsKeys.value.push(...cacheFields);
     this.virtualFieldsKeys.value.push(...cacheVirtualFields);
+    for (const k of cacheFields) {
+      const filed = this.fields.get(k);
+      filed?.initWatcher();
+    }
+    for (const k of cacheVirtualFields) {
+      const filed = this.virtualFields.get(k);
+      filed?.initWatcher();
+    }
     this.cacheFields = [];
     this.cacheVirtualFields = [];
 
     // init watchers
+    // keys change, or fields state change
     this.stopStateWatcher = watchEffect(() => {
       const keys = this.fieldsKeys.value;
       const virtualKeys = this.virtualFieldsKeys.value;
 
-      let isError = false;
-      let isValidating = false;
+      let isFieldError = false;
+      let isVirtualError = false;
+      let isFieldValidating = false;
+      let isVirtualValidating = false;
       let isDirty = false;
       let isTouched = false;
       let isChanged = false;
-      let error: FieldError | null = null;
-      const updateValues: Record<string, any> = {};
-      const updateErrors: Record<string, any> = {};
+      let fieldError: FieldError | null = null;
+      let virtualError: FieldError | null = null;
+      const updateFieldErrors: Record<string, any> = {};
       const updateFieldStates: Record<string, any> = {};
       const updateVirtualErrors: Record<string, any> = {};
       const updateVirtualFieldStates: Record<string, any> = {};
@@ -119,24 +179,22 @@ export class FormClass<
         const field = this.fields.get(k);
         if (!field) return;
         // get propeties here sync, so vue can track
-        const fieldState = field.state;
-        const fieldValue = field.state.value;
-        const fieldError = field.state.error;
-        const fieldStateIsError = field.state.isError;
-        const fieldIsValidating = field.state.isValidating;
-        const fieldIsDirty = field.state.isDirty;
-        const fieldIsTouched = field.state.isTouched;
-        const fieldIsChanged = field.state.isChanged;
-        setKeyValue(updateValues, k, fieldValue);
-        setKeyValue(updateErrors, k, fieldError);
-        setKeyValue(updateFieldStates, k, fieldState);
-        if (fieldStateIsError) isError = true;
-        if (fieldIsValidating) isValidating = true;
-        if (fieldIsDirty) isDirty = true;
-        if (fieldIsTouched) isTouched = true;
-        if (!fieldIsChanged) isChanged = true;
-        if (fieldError && !error) {
-          error = fieldError;
+        const fdState = field.state;
+        const fdError = field.state.error;
+        const fdStateIsError = field.state.isError;
+        const fdIsValidating = field.state.isValidating;
+        const fdIsDirty = field.state.isDirty;
+        const fdIsTouched = field.state.isTouched;
+        const fdIsChanged = field.state.isChanged;
+        setKeyValue(updateFieldErrors, k, fdError);
+        setKeyValue(updateFieldStates, k, fdState);
+        if (fdStateIsError) isFieldError = true;
+        if (fdIsValidating) isFieldValidating = true;
+        if (fdIsDirty) isDirty = true;
+        if (fdIsTouched) isTouched = true;
+        if (fdIsChanged) isChanged = true;
+        if (fdError && !fieldError) {
+          fieldError = fdError;
         }
       });
 
@@ -144,38 +202,43 @@ export class FormClass<
       virtualKeys.forEach((k) => {
         const field = this.virtualFields.get(k);
         if (!field) return;
-        const fieldState = field.state;
-        const fieldError = field.state.error;
-        const fieldIsError = field.state.isError;
-        const fieldIsValidating = field.state.isValidating;
-        setKeyValue(updateVirtualErrors, k, fieldError);
-        setKeyValue(updateVirtualFieldStates, k, fieldState);
-        if (fieldIsError) isError = true;
-        if (fieldIsValidating) isValidating = true;
-        if (fieldError && !error) {
-          error = fieldError;
+        const fdState = field.state;
+        const fdError = field.state.error;
+        const fdIsError = field.state.isError;
+        const fdIsValidating = field.state.isValidating;
+        setKeyValue(updateVirtualErrors, k, fdError);
+        setKeyValue(updateVirtualFieldStates, k, fdState);
+        if (fdIsError) isVirtualError = true;
+        if (fdIsValidating) isVirtualValidating = true;
+        if (fdError && !virtualError) {
+          virtualError = fdError;
         }
       });
 
       this.runInAction(() => {
-        recursiveUpdateObject(this.state.values, updateValues);
-        recursiveUpdateObject(this.state.errors, updateErrors);
-        recursiveUpdateObject(this.state.virtualErrors, updateVirtualErrors);
-        recursiveUpdateObject(this.fieldStates, updateFieldStates);
+        recursiveUpdateObject(this._state.fieldErrors, updateFieldErrors);
+        recursiveUpdateObject(this._state.virtualErrors, updateVirtualErrors);
+        recursiveUpdateObject(this._fieldStates, updateFieldStates);
         recursiveUpdateObject(
-          this.virtualFieldStates,
+          this._virtualFieldStates,
           updateVirtualFieldStates
         );
-        this.state.isError = isError;
-        this.state.error = error;
-        this.state.isValidating = isValidating;
-        this.state.isDirty = isDirty;
-        this.state.isTouched = isTouched;
-        this.state.isChanged = isChanged;
+        this._state.isFieldError = isFieldError;
+        this._state.isVirtualError = isVirtualError;
+        this._state.isError = isFieldError || isVirtualError;
+        this._state.fieldError = fieldError;
+        this._state.virtualError = virtualError;
+        this._state.error = fieldError || virtualError;
+        this._state.isFieldValidating = isFieldValidating;
+        this._state.isVirtualValidating = isVirtualValidating;
+        this._state.isValidating = isFieldValidating || isVirtualValidating;
+        this._state.isDirty = isDirty;
+        this._state.isTouched = isTouched;
+        this._state.isChanged = isChanged;
       });
     });
     this.stopValidatingWatcher = watchEffect(() => {
-      const isValidating = this.state.isValidating;
+      const isValidating = this._state.isValidating;
       // validate end
       if (!isValidating) {
         this.waiters.forEach((fn) => {
@@ -192,73 +255,68 @@ export class FormClass<
     this.stopStatusWatcher?.();
     this.stopValidatingWatcher?.();
     for (const name of this.fieldsKeys.value) {
-      this.unregisterField(name);
+      this.unregisterField(name as any);
     }
     for (const name of this.virtualFieldsKeys.value) {
-      this.unregisterVirtualField(name);
+      this.unregisterVirtualField(name as any);
     }
     for (const name of this.cacheFields) {
-      this.unregisterField(name);
+      this.unregisterField(name as any);
     }
     for (const name of this.cacheVirtualFields) {
-      this.unregisterVirtualField(name);
+      this.unregisterVirtualField(name as any);
     }
     this.isMounted = false;
   }
 
-  registerField<N extends string>(
+  registerField<
+    N extends FieldPath<T>,
+    V extends KeyPathValue<T, N> = KeyPathValue<T, N>
+  >(
     name: N,
     args: {
-      value?: KeyPathValue<T, N>;
-      defaultValue?: KeyPathValue<T, N>;
-      rules?: FieldRule<KeyPathValue<T, N>, FormState<T>>[];
+      rules?: FieldRule<V, FormState<T>>[];
       immediate?: boolean;
-      transform?: (v: KeyPathValue<T, N>) => KeyPathValue<T, N>;
+      transform?: (v: V) => V;
+      isEqual?: (v: V, d: V) => boolean;
       onFocus?: () => void;
     } = {}
-  ): { field: FieldClass<T, N>; register: () => void } {
+  ): { field: FieldClass<T, N, V>; register: () => void } {
     const { immediate = true } = args;
     const { fieldsKeys, fields } = this;
     if (fieldsKeys.value.includes(name)) {
       console.warn(`Duplicate field <${name}>.`);
       return {
-        field: this.fields.get(name)! as unknown as FieldClass<T, N>,
+        field: this.fields.get(name)! as unknown as FieldClass<T, N, V>,
         register: () => {}
       };
     }
     for (const k of fieldsKeys.value) {
       if (k.startsWith(`${name}.`) || name.startsWith(`${k}.`)) {
-        console.warn(`Fields can not be nested together: <${name}> <${k}>.`);
+        console.warn(
+          `Fields can not be nested together: <${name}> <${k}>. If you want do this, please use [registerVirtualField]`
+        );
         return {
-          field: this.fields.get(name)! as unknown as FieldClass<T, N>,
+          field: this.fields.get(name)! as unknown as FieldClass<T, N, V>,
           register: () => {}
         };
       }
     }
     // field value
-    const formValue = getKeyValue(this.state.values, name);
-    let value: any = args.value;
-    if (value === undefined) value = formValue;
-    if (value === undefined) value = args.defaultValue;
-    // field default value
-    const defaultValue =
-      formValue === undefined ? args.defaultValue : formValue;
-    const field: FieldClass<T, N> = new FieldClass(this, {
+    const field: FieldClass<T, N, V> = new FieldClass(this as FormClass<T>, {
       ...args,
-      name,
-      value,
-      defaultValue
+      name
     });
     const register = () => {
       fields.set(name, field as any);
       this.runInAction(() => {
         if (this.isMounted) {
           this.fieldsKeys.value.push(name);
+          field.initWatcher();
         } else {
           this.cacheFields.push(name);
         }
       });
-      field.initWatcher();
     };
     if (immediate) {
       register();
@@ -267,10 +325,10 @@ export class FormClass<
     return { register, field };
   }
 
-  registerVirtualField(
-    name: string,
+  registerVirtualField<N extends VFK = VFK>(
+    name: N,
     args: {
-      rules?: VirtualFieldRule<FormState<T>>[];
+      rules?: VirtualFieldRule<FormState<T, VFK>>[];
       immediate?: boolean;
     } = {}
   ): { field: VirtualFieldClass<T>; register: () => void } {
@@ -283,17 +341,20 @@ export class FormClass<
         register: () => {}
       };
     }
-    const field = new VirtualFieldClass(this, { ...args, name });
+    const field = new VirtualFieldClass(this as FormClass<T>, {
+      ...args,
+      name
+    });
     const register = () => {
       virtualFields.set(name, field as any);
       this.runInAction(() => {
         if (this.isMounted) {
           this.virtualFieldsKeys.value.push(name);
+          field.initWatcher();
         } else {
           this.cacheVirtualFields.push(name);
         }
       });
-      field.initWatcher();
     };
     if (immediate) {
       register();
@@ -302,7 +363,13 @@ export class FormClass<
     return { register, field };
   }
 
-  unregisterField(name: string) {
+  unregisterField<N extends FieldPath<T>>(
+    name: N,
+    args: {
+      removeValue?: boolean;
+    } = {}
+  ) {
+    const { removeValue = false } = args;
     const { fields } = this;
     const field = fields.get(name);
     if (!field) return;
@@ -315,14 +382,15 @@ export class FormClass<
       findIndex !== -1 && this.cacheFields.splice(findIndex, 1);
     }
     this.runInAction(() => {
-      delKey(this.state.values, name);
-      delKey(this.state.errors, name);
-      delKey(this.fieldStates, name);
+      removeValue && delKey(this._state.values, name);
+      removeValue && delKey(this._state.defaultValues, name);
+      delKey(this._state.fieldErrors, name);
+      delKey(this._fieldStates, name);
     });
     fields.delete(name);
   }
 
-  unregisterVirtualField(name: string) {
+  unregisterVirtualField<N extends VFK>(name: N) {
     const { virtualFields } = this;
     const field = virtualFields.get(name);
     if (!field) return;
@@ -335,38 +403,55 @@ export class FormClass<
       findIndex !== -1 && this.cacheVirtualFields.splice(findIndex, 1);
     }
     this.runInAction(() => {
-      delKey(this.state.virtualErrors, name);
-      delKey(this.virtualFieldStates, name);
+      delKey(this._state.virtualErrors, name);
+      delKey(this._virtualFieldStates, name);
     });
     virtualFields.delete(name);
   }
 
-  setValue<N extends string>(name: N, value: KeyPathValue<T, N>) {
+  setPathValue<N extends AutoPath<T>>(name: N, value: KeyPathValue<T, N>) {
     if (value === undefined) return;
     const field = this.fields.get(name);
     if (!field) {
       console.warn(`Field not exists <${name}>.`);
       return;
     }
-    field.onChange(value);
+    this.notify('UPDATE', name);
   }
 
-  deleteValue<N extends string>(name: N) {
+  setValue<N extends FieldPath<T>>(name: N, value: KeyPathValue<T, N>) {
     const field = this.fields.get(name);
     if (!field) {
       console.warn(`Field not exists <${name}>.`);
       return;
     }
-    delKey(this.state.values, name);
+    const lastValue = toRaw(getKeyValue(this._state.values, name));
+    const changed = lastValue !== toRaw(value);
+    this.setPathValue(name as any, value);
+    field.onChanged(field.state.isChanged || changed);
   }
 
-  getValue<N extends string>(name: N): ComputedRef<KeyPathValue<T, N>> {
+  deletePathValue<N extends AutoPath<T>>(name: N) {
+    const field = this.fields.get(name);
+    if (!field) {
+      console.warn(`Field not exists <${name}>.`);
+      return;
+    }
+    delKey(this._state.values, name);
+    this.notify('DELETE', name);
+  }
+
+  deleteValue<N extends FieldPath<T>>(name: N) {
+    this.deletePathValue(name as any);
+  }
+
+  getValue<N extends AutoPath<T>>(name: N): ComputedRef<KeyPathValue<T, N>> {
     return computed(() => {
-      return getKeyValue(this.state.values, name);
+      return getKeyValue(this._state.values, name);
     });
   }
 
-  setTouched(name: string, touched = true) {
+  setTouched<N extends FieldPath<T>>(name: N, touched = true) {
     const field = this.fields.get(name);
     if (!field) {
       console.warn(`Field not exists <${name}>.`);
@@ -375,7 +460,7 @@ export class FormClass<
     field.onTouched(touched);
   }
 
-  setFocus(name: string) {
+  setFocus<N extends FieldPath<T>>(name: N) {
     const field = this.fields.get(name);
     if (!field) {
       console.warn(`Field not exists <${name}>.`);
@@ -386,27 +471,29 @@ export class FormClass<
 
   submit(
     onSuccess: (data: FieldValues<T>) => void,
-    onError: (errors: FormErrors<T>) => void
+    onError: (error: FieldError | null) => void
   ) {
+    const flag = this.submitFlag;
     const callback = () => {
+      if (flag !== this.submitFlag) return;
       this.runInAction(() => {
-        this.state.isSubmitting = false;
+        this._state.isSubmitting = false;
       });
-      if (this.state.isError) {
-        onError(toRaw(this.state.errors));
+      if (this._state.isError) {
+        onError(toRaw(this._state.error));
         return;
       }
       this.runInAction(() => {
-        this.state.isSubmitted = true;
+        this._state.isSubmitted = true;
       });
-      onSuccess(toRaw(this.state.values));
+      onSuccess(toRaw(this._state.values));
     };
     this.runInAction(() => {
-      this.state.submitCount++;
-      this.state.isSubmitting = true;
+      this._state.submitCount++;
+      this._state.isSubmitting = true;
     });
     // check validdating status
-    if (this.state.isValidating) {
+    if (this._state.isValidating) {
       this.waiters.push(() => {
         callback();
       });
@@ -415,26 +502,99 @@ export class FormClass<
     }
   }
 
-  reset(values?: FieldValues<T>) {
+  reset(
+    args: {
+      values?: FieldValues<T>;
+      defaultValues?: FieldValues<T, true>;
+      keepValues?: boolean;
+      keepDefaultValues?: boolean;
+      keepTouched?: boolean;
+      keepChanged?: boolean;
+      keepIsSubmitted?: boolean;
+      keepSubmitCount?: boolean;
+    } = {}
+  ) {
     this.waiters = [];
     this.runInAction(() => {
-      this.state.values = values === undefined ? this.defaultValues : values;
-      this.state.errors = {} as FormErrors<T>;
-      this.state.virtualErrors = {} as Record<VFK, FieldError | null>;
-      this.state.error = null;
-      this.state.isError = false;
-      this.state.isValidating = false;
-      this.state.isDirty = false;
-      this.state.isTouched = false;
-      this.state.isChanged = false;
-      this.state.isSubmitted = false;
-      this.state.isSubmitting = false;
-      this.state.submitCount = 0;
+      // values
+      if (args.values) {
+        this._state.values = toRaw(args.values);
+        this.initValues = toRaw(args.values);
+      } else if (!args.keepValues) {
+        this._state.values = this.initValues;
+      }
+      // default values
+      if (args.defaultValues) {
+        this._state.defaultValues = toRaw(args.defaultValues);
+        this.defaultValues = args.defaultValues;
+      } else if (!args.keepDefaultValues) {
+        this._state.defaultValues =
+          (this.initValues as any) || this.defaultValues;
+      }
+      // other
+      this.submitFlag++;
+      this._state.isSubmitting = false;
+      this._state.submitCount = args.keepSubmitCount
+        ? this._state.submitCount
+        : 0;
+      this._state.isSubmitted = args.keepIsSubmitted
+        ? this._state.isSubmitted
+        : false;
     });
-    for (const [name, field] of this.fields) {
-      const formValue = getKeyValue(this.state.values, name);
-      field.reset(formValue);
+    for (const [, field] of this.fields) {
+      field.reset({
+        keepTouched: args.keepTouched,
+        keepChanged: args.keepChanged
+      });
     }
+    this.notify('RESET');
+  }
+
+  resetField<N extends FieldPath<T>>(
+    name: N,
+    args: {
+      keepTouched?: boolean;
+      keepChanged?: boolean;
+      keepValue?: boolean;
+      value?: KeyPathValue<T, N>;
+      defaultValue?: KeyPathValue<T, N>;
+    } = {}
+  ) {
+    const field = this.fields.get(name);
+    if (!field) {
+      console.warn(`Field not exists <${name}>.`);
+      return;
+    }
+    if ('defaultValue' in args) {
+      setKeyValue(this._state.defaultValues, name, toRaw(args.defaultValue));
+    }
+    if ('value' in args) {
+      setKeyValue(this._state.values, name, toRaw(args.value));
+    } else if (!args.keepValue) {
+      const v = getKeyValue(this._state.defaultValues, name);
+      setKeyValue(this._state.values, name, toRaw(v));
+    }
+    field.reset({
+      keepTouched: args.keepTouched,
+      keepChanged: args.keepChanged
+    });
+  }
+
+  subscribe(
+    subscriber: (type: 'UPDATE' | 'DELETE' | 'RESET', name?: string) => void
+  ) {
+    this.subscribers.push(subscriber);
+    const unsubscribe = () => {
+      const index = this.subscribers.indexOf(subscriber);
+      if (index !== -1) this.subscribers.splice(index, 1);
+    };
+    return unsubscribe;
+  }
+
+  notify(type: 'UPDATE' | 'DELETE' | 'RESET', name?: string) {
+    this.subscribers.forEach((subscriber) => {
+      subscriber(type, name);
+    });
   }
 }
 
@@ -442,9 +602,10 @@ export const createForm = <
   T extends FormType = FormType,
   VFK extends string = string
 >(args: {
-  defaultValues?: FieldValues<T>;
-  virtualFields?: Record<string, VirtualFieldClass<FormClass<T, VFK>>>;
+  initValues: FieldValues<T>;
+  defaultValues?: FieldValues<T, true>;
   touchType?: 'FOCUS' | 'BLUR';
+  readonly?: boolean;
 }) => {
   return new FormClass<T, VFK>(args);
 };

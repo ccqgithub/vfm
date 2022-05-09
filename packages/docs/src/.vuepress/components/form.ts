@@ -9,7 +9,7 @@ export const form = createForm<{
   // nested fields
   baseInfo: {
     birthDay: string;
-    age: number;
+    age: string;
   },
   // nested array fields
   address: {
@@ -23,10 +23,18 @@ export const form = createForm<{
     address: string;
   }[]>;
 }>({
-  // default values
-  defaultValues: {
+  initValues: {
     username: '',
+    password: '',
+    passwordConfirm: '',
+    baseInfo: {
+      birthDay: '',
+      age: ''
+    },
+    address: [],
+    schools: []
   },
   // when to set touched status, 'BLUR' or 'FOCUS'
-  touchType: 'BLUR'
+  touchType: 'BLUR',
+  readonly: process.env.NODE_ENV === 'development'
 });

@@ -16,7 +16,6 @@ const index = computed(() => props.index);
 // if index change, register again
 watchEffect(() => {
   form.registerField(`address.${index.value}.phone`, {
-    value: '',
     rules: [
       {
         required: true,
@@ -68,7 +67,7 @@ const isMounted = computed(() => {
           :value="formState.values.address?.[index]?.phone" 
           @input="(e) => form.setValue(`address.${index}.phone`, (e.target as HTMLInputElement).value)">
           <div class="vfm-error">
-            {{ formState.errors.address?.[index].phone?.message }}
+            {{ formState.fieldErrors.address?.[index].phone?.message }}
           </div>
       </div>
     </div>
@@ -83,7 +82,7 @@ const isMounted = computed(() => {
           :value="formState.values.address?.[index]?.detail"
           @input="(e) => form.setValue(`address.${index}.detail`, (e.target as HTMLInputElement).value)">
           <div class="vfm-error">
-            {{ formState.errors.address?.[index].detail?.message }}
+            {{ formState.fieldErrors.address?.[index].detail?.message }}
           </div>
       </div>
     </div>

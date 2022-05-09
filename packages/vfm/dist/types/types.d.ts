@@ -1,32 +1,32 @@
+import { Component } from 'vue';
 declare const $NestedValue: unique symbol;
 export declare type ObjectType = Record<string, any>;
-export declare type NativeObjectType = Date | Blob | File | FileList;
+export declare type NativeObjectType = Date | Blob | File | FileList | Function | RegExp;
 export declare type NestedValue<T extends ObjectType> = {
     [$NestedValue]: never;
 } & T;
 export declare type NestedValueType = {
     [$NestedValue]: never;
 };
-export declare type UnpackNestedValue<T> = T extends ObjectType ? T extends NativeObjectType ? T : T extends NestedValue<infer U> ? U : {
+export declare type UnpackNestedValue<T> = T extends NestedValue<infer U> ? U : T extends NativeObjectType ? T : T extends Array<infer A> ? UnpackNestedValue<A>[] : T extends ObjectType ? {
     [K in keyof T]: UnpackNestedValue<T[K]>;
 } : T;
-export declare type UnpackFieldState<T> = T extends ObjectType ? T extends NativeObjectType ? FieldState<T> : T extends NestedValue<infer U> ? FieldState<U> : {
+export declare type UnpackFieldState<T> = T extends NestedValueType ? FieldState : T extends NativeObjectType ? FieldState : T extends Array<infer A> ? UnpackFieldState<A>[] : T extends ObjectType ? {
     [K in keyof T]: UnpackFieldState<T[K]>;
-} : FieldState<T>;
-export declare type UnpackVirtualFieldState<T> = T extends ObjectType ? T extends NativeObjectType | NestedValueType ? VirtualFieldState : {
-    [K in keyof T]: UnpackVirtualFieldState<T[K]>;
-} : VirtualFieldState;
+} : FieldState;
 export declare type ArrayPathToString<T> = T extends `${number}` ? 0 : T;
 export declare type NormalizePath<T extends string> = T extends `${infer A}.${infer B}` ? `${ArrayPathToString<A>}.${NormalizePath<B>}` : ArrayPathToString<T>;
-export declare type InternalKeyPathValue<V extends ObjectType, Path extends string> = V extends NestedValueType | NativeObjectType ? undefined : Path extends `${infer Key}.${infer Rest}` ? V[Key] extends ObjectType ? KeyPathValue<V[Key], Rest> : undefined : V[Path] extends NestedValue<infer U> ? U : V[Path];
-export declare type KeyPathValue<V extends ObjectType, Path extends string> = InternalKeyPathValue<V, NormalizePath<Path>>;
+export declare type InternalKeyPathValue<V, Path extends string> = Path extends '' ? V : V extends ObjectType ? V extends NestedValueType | NativeObjectType ? never : Path extends `${infer Key}.${infer Rest}` ? KeyPathValue<V[Key], Rest> : V[Path] extends NestedValue<infer U> ? U : V[Path] : never;
+export declare type KeyPathValue<V extends ObjectType, Path extends string> = string extends Path ? any : InternalKeyPathValue<V, NormalizePath<Path>>;
+export declare type FormType = Record<string, any>;
 export declare type DeepPartial<T extends ObjectType> = T extends NativeObjectType | NestedValueType ? T : T extends Array<infer U> ? U extends ObjectType ? DeepPartial<U>[] : U[] : {
     [K in keyof T]?: DeepPartial<T[K]>;
 };
-export declare type FormType = Record<string, any>;
-export declare type FieldValues<T extends FormType = FormType> = UnpackNestedValue<DeepPartial<T>>;
-export declare type FieldStates<T extends FormType = FormType> = UnpackFieldState<DeepPartial<T>>;
-export declare type VirtualFieldStates<T extends FormType = FormType> = UnpackVirtualFieldState<DeepPartial<T>>;
+export declare type FieldValues<T extends FormType = FormType, P extends boolean = false> = P extends true ? UnpackNestedValue<DeepPartial<T>> : UnpackNestedValue<T>;
+export declare type FieldStates<T extends FormType = FormType> = UnpackFieldState<T>;
+export declare type VirtualFieldStates<VFK extends string = string> = {
+    [K in VFK]: VirtualFieldState;
+};
 export interface CancellablePromise<T = any> extends Promise<T> {
     cancel?: () => void;
 }
@@ -34,16 +34,23 @@ export declare type FieldError = {
     type?: string;
     message: string;
 };
-export declare type FormErrors<T> = T extends Array<infer U> ? FormErrors<U>[] : T extends NestedValue<T> ? FieldError | null : T extends Record<string, any> ? {
+export declare type FormErrors<T> = T extends NestedValueType | NativeObjectType ? FieldError | null | undefined : T extends Array<infer U> ? FormErrors<U>[] : T extends ObjectType ? {
     [K in keyof T]?: FormErrors<T[K]>;
-} : FieldError | null;
+} : FieldError | null | undefined;
 export declare type FormState<T extends FormType = FormType, VFK extends string = string> = {
     values: FieldValues<T>;
+    defaultValues: FieldValues<T, true>;
     error: FieldError | null;
-    errors: FormErrors<T>;
+    fieldError: FieldError | null;
+    virtualError: FieldError | null;
+    fieldErrors: FormErrors<T>;
     virtualErrors: Partial<Record<VFK, FieldError | null>>;
     isError: boolean;
+    isFieldError: boolean;
+    isVirtualError: boolean;
     isValidating: boolean;
+    isFieldValidating: boolean;
+    isVirtualValidating: boolean;
     isDirty: boolean;
     isTouched: boolean;
     isChanged: boolean;
@@ -51,10 +58,7 @@ export declare type FormState<T extends FormType = FormType, VFK extends string 
     isSubmitting: boolean;
     submitCount: number;
 };
-export declare type FieldState<V> = {
-    name: string;
-    value?: V;
-    defaultValue?: V;
+export declare type FieldState = {
     error: FieldError | null;
     isError: boolean;
     isValidating: boolean;
@@ -62,15 +66,15 @@ export declare type FieldState<V> = {
     isTouched: boolean;
     isChanged: boolean;
 };
-export declare type VirtualFieldState<VFK extends string = string> = {
-    name: VFK;
+export declare type ValidatorState = Omit<FieldState, 'error' | 'isError'>;
+export declare type VirtualFieldState = {
     error: FieldError | null;
     isError: boolean;
     isValidating: boolean;
 };
-export declare type ValidateFunc<V, F extends FormState> = (value: V | undefined, data: F) => CancellablePromise<FieldError | null>;
-export declare type VirtualValidateFunc<F extends FormState> = (data: F) => CancellablePromise<FieldError | null>;
-export declare type Validator<V = any, F extends Record<string, any> = Record<string, any>> = (value: V | undefined, form: F) => string | CancellablePromise<string>;
+export declare type ValidateFunc = () => CancellablePromise<FieldError | null>;
+export declare type VirtualValidateFunc = () => CancellablePromise<FieldError | null>;
+export declare type Validator<V = any, F extends Record<string, any> = Record<string, any>> = (value: V | undefined, state: ValidatorState, form: F) => string | CancellablePromise<string>;
 export declare type VirtualFieldValidator<F extends Record<string, any> = Record<string, any>> = (form: F) => string | CancellablePromise<string>;
 export declare type FieldRule<V = any, F extends FormState = FormState> = {
     type?: string;
@@ -90,14 +94,33 @@ export declare type FieldRule<V = any, F extends FormState = FormState> = {
     ipAddress?: boolean;
     macAddress?: boolean;
     validator?: Validator<V, F>;
-    messate?: string;
+    message?: string;
 };
 export declare type VirtualFieldRule<F extends FormState = FormState> = {
     type?: string;
     validator?: VirtualFieldValidator<F>;
+    message?: string;
 };
-export declare type InputLikeRef = {
+export declare type InputLikeRef = Element | Component | {
     focus?: () => void;
+};
+export declare type Join<K, P> = K extends string | number ? P extends string | number ? '' extends K ? P : `${K}${'' extends P ? '' : '.'}${P}` : '' : '';
+export declare type AutoPath<T extends ObjectType, L extends string = ''> = T extends NestedValueType | NativeObjectType ? L : T extends Array<infer U> ? Join<L, `${number}`> | Join<Join<L, `${number}`>, AutoPath<U>> : T extends ObjectType ? {
+    [K in keyof T]: Join<L, K> | Join<Join<L, K>, AutoPath<T[K]>>;
+}[keyof T] : L;
+export declare type FieldPath<T extends ObjectType, L extends string = ''> = T extends NestedValueType | NativeObjectType ? L : T extends Array<infer U> ? Join<Join<L, `${number}`>, FieldPath<U>> : T extends ObjectType ? {
+    [K in keyof T]: Join<Join<L, K>, FieldPath<T[K]>>;
+}[keyof T] : L;
+export declare type ArrayFieldPath<T extends ObjectType, L extends string = ''> = T extends NestedValueType | NativeObjectType ? never : T extends Array<infer U> ? L | Join<Join<L, `${number}`>, ArrayFieldPath<U>> : T extends ObjectType ? {
+    [K in keyof T]: Join<Join<L, K>, ArrayFieldPath<T[K]>>;
+}[keyof T] : never;
+export declare type ArrayItem<T> = T extends Array<infer U> ? U : never;
+export declare type FieldProps<T extends FormType = FormType, N extends string = string> = {
+    value: KeyPathValue<T, N>;
+    onChange: (v: KeyPathValue<T, N>) => void;
+    onBlur: () => void;
+    onFocus: () => void;
+    ref: (el: InputLikeRef | null) => void;
 };
 export {};
 //# sourceMappingURL=types.d.ts.map

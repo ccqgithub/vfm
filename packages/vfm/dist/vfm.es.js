@@ -17,7 +17,19 @@ var __spreadValues = (a, b) => {
   return a;
 };
 var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
-import { reactive, watchEffect, ref, toRaw, computed, inject, onMounted, onUnmounted, defineComponent, unref, renderSlot, createCommentVNode, provide } from "vue";
+var __objRest = (source, exclude) => {
+  var target = {};
+  for (var prop in source)
+    if (__hasOwnProp.call(source, prop) && exclude.indexOf(prop) < 0)
+      target[prop] = source[prop];
+  if (source != null && __getOwnPropSymbols)
+    for (var prop of __getOwnPropSymbols(source)) {
+      if (exclude.indexOf(prop) < 0 && __propIsEnum.call(source, prop))
+        target[prop] = source[prop];
+    }
+  return target;
+};
+import { ref, reactive, watchEffect, toRaw, readonly, computed, unref, watch, onMounted, onUnmounted, defineComponent, toRefs, renderSlot, createCommentVNode } from "vue";
 const alpha = (value) => {
   const msg = "{{name}} is not alphabetical";
   if (typeof value !== "string")
@@ -132,16 +144,18 @@ const delKey = (data, keyPath) => {
     }
   }
 };
-const recursiveUpdateObject = (obj, newObj) => {
+const recursiveUpdateObject = (obj, newObj, deleteOldKeys = true) => {
   const oldKeys = Object.keys(obj);
   const newKeys = Object.keys(newObj);
   const delKeys = oldKeys.filter((k) => !newKeys.includes(k));
-  delKeys.forEach((k) => {
-    delete obj[k];
-  });
+  if (deleteOldKeys) {
+    delKeys.forEach((k) => {
+      delete obj[k];
+    });
+  }
   newKeys.forEach((k) => {
     if (typeof obj[k] === "object" && !Array.isArray(obj[k]) && obj[k] !== null && typeof newObj[k] === "object" && !Array.isArray(newObj[k]) && newObj[k] !== null) {
-      recursiveUpdateObject(obj[k], newObj[k]);
+      recursiveUpdateObject(obj[k], newObj[k], deleteOldKeys);
     } else {
       obj[k] = newObj[k];
     }
@@ -163,10 +177,11 @@ const makeCancellablePromise = (fn) => {
   };
   return resPromise;
 };
-const validateRule$1 = (rule, v, f) => {
+const AllPropType = [String, Number, Boolean, Symbol, Array, Object];
+const validateRule$1 = (rule, v, s, f) => {
   return makeCancellablePromise(async (onCancel) => {
     if (rule.required) {
-      if (!v)
+      if (!v && v !== 0)
         return "{{name}} is required";
     }
     if (rule.requiredLength) {
@@ -202,7 +217,7 @@ const validateRule$1 = (rule, v, f) => {
     for (const str of Object.keys(validators)) {
       if (rule[str] === true) {
         const vld = validators[str];
-        const p = vld(v, f);
+        const p = vld(v, s, f);
         if (typeof p === "object" && typeof p.cancel === "function") {
           onCancel(() => {
             var _a;
@@ -215,7 +230,7 @@ const validateRule$1 = (rule, v, f) => {
       }
     }
     if (rule.validator) {
-      const p = rule.validator(v, f);
+      const p = rule.validator(v, s, f);
       if (typeof p === "object" && typeof p.cancel === "function") {
         onCancel(() => {
           var _a;
@@ -231,22 +246,26 @@ const validateRule$1 = (rule, v, f) => {
 };
 class FieldClass {
   constructor(form, args) {
+    this.rules = ref([]);
     this.validateCount = 0;
     this.transform = null;
+    this.isEqual = null;
     this.focusFn = null;
     this.stopValidateWatcher = null;
     this.stopDirtyWatcher = null;
     this.isRegistered = false;
+    this.isInited = false;
     this.runInAction = (fn) => {
       fn();
     };
-    const { immediate = true, rules = [], transform = null } = args;
+    const { immediate = true } = args;
     this.form = form;
     this.name = args.name;
+    this.rules.value = args.rules || [];
+    this.transform = args.transform || null;
+    this.isEqual = args.isEqual || null;
+    this.focusFn = args.onFocus || null;
     this.state = reactive({
-      name: this.name,
-      value: args.value === void 0 ? args.defaultValue : args.value,
-      defaultValue: args.defaultValue,
       error: null,
       isError: false,
       isValidating: false,
@@ -254,13 +273,21 @@ class FieldClass {
       isTouched: false,
       isChanged: false
     });
-    this.transform = transform;
-    this.focusFn = args.onFocus || null;
-    const validate = (v, fs) => {
+    const validate = () => {
+      const s = toRaw(this.state);
+      const value = this.value;
+      const state = {
+        isValidating: s.isValidating,
+        isDirty: this.state.isDirty,
+        isTouched: this.state.isTouched,
+        isChanged: this.state.isChanged
+      };
+      const formState = this.form.state;
+      const transform = this.transform;
+      const rules = this.rules.value;
       return makeCancellablePromise(async (onCancel) => {
-        const _transform = this.transform;
         for (const rule of rules) {
-          const promise = validateRule$1(rule, _transform && v !== void 0 ? _transform(v) : v, fs);
+          const promise = validateRule$1(rule, transform && value !== void 0 ? transform(value) : value, state, formState);
           onCancel(() => {
             var _a;
             return (_a = promise.cancel) == null ? void 0 : _a.call(promise);
@@ -273,6 +300,8 @@ class FieldClass {
               message: errMsg
             } : errMsg;
             error.message = error.message.replace(/\{\{name\}\}/g, this.name);
+            if (rule.message !== void 0)
+              error.message = rule.message.replace(/\{\{name\}\}/g, this.name);
             return error;
           }
         }
@@ -284,17 +313,28 @@ class FieldClass {
       this.onRegister();
     }
   }
+  get value() {
+    return getKeyValue(this.form.state.values, this.name);
+  }
+  get defaultValue() {
+    return getKeyValue(this.form.state.defaultValues, this.name);
+  }
+  update(args = {}) {
+    if (args.rules) {
+      this.rules.value = args.rules;
+    }
+  }
   initWatcher() {
+    if (this.isInited)
+      return;
     this.stopValidateWatcher = watchEffect(async (onCleanup) => {
       this.validateCount++;
-      const value = this.state.value;
-      const formState = this.form.state;
       const count = this.validateCount;
       const validate = this.validate;
       this.runInAction(() => {
         this.state.isValidating = true;
       });
-      const promise = validate(value, formState);
+      const promise = validate();
       onCleanup(() => {
         var _a;
         return (_a = promise.cancel) == null ? void 0 : _a.call(promise);
@@ -316,12 +356,7 @@ class FieldClass {
         this.state.isError = hasError;
       });
     });
-    this.stopDirtyWatcher = watchEffect(() => {
-      const { value, defaultValue } = this.state;
-      this.runInAction(() => {
-        this.state.isDirty = value !== defaultValue;
-      });
-    });
+    this.isInited = true;
   }
   onRegister() {
     if (this.isRegistered)
@@ -334,41 +369,35 @@ class FieldClass {
     (_a = this.stopValidateWatcher) == null ? void 0 : _a.call(this);
     (_b = this.stopDirtyWatcher) == null ? void 0 : _b.call(this);
     this.isRegistered = false;
-  }
-  onChange(value) {
-    if (value === void 0)
-      return;
-    const isChanged = this.state.value !== value;
-    this.runInAction(() => {
-      this.state.value = value;
-      this.state.isChanged = this.state.isChanged || isChanged;
-    });
+    this.isInited = false;
   }
   onTouched(touched = true) {
     this.runInAction(() => {
       this.state.isTouched = touched;
     });
   }
+  onChanged(changed = true) {
+    this.state.isChanged = changed;
+  }
   onFocus() {
     var _a;
     (_a = this.focusFn) == null ? void 0 : _a.call(this);
   }
-  reset(resetValue) {
+  reset(args = {}) {
     var _a, _b;
     this.validateCount++;
     (_a = this.stopValidateWatcher) == null ? void 0 : _a.call(this);
     (_b = this.stopDirtyWatcher) == null ? void 0 : _b.call(this);
     this.runInAction(() => {
-      if (resetValue !== void 0)
-        this.state.defaultValue = resetValue;
+      const { keepChanged = false, keepTouched = false } = args;
       this.state.error = null;
       this.state.isError = false;
       this.state.isValidating = false;
       this.state.isDirty = false;
-      this.state.isTouched = false;
-      this.state.isChanged = false;
-      this.state.value = this.state.defaultValue;
+      this.state.isTouched = keepTouched ? this.state.isTouched : false;
+      this.state.isChanged = keepChanged ? this.state.isChanged : false;
     });
+    this.isInited = false;
     this.initWatcher();
   }
 }
@@ -392,26 +421,32 @@ const validateRule = (rule, f) => {
 class VirtualFieldClass {
   constructor(form, args) {
     this.name = "";
+    this.rules = ref([]);
     this.validateCount = 0;
     this.stopValidateWatcher = null;
     this.isRegistered = false;
+    this.isInited = false;
     this.runInAction = (fn) => {
       fn();
     };
-    const { immediate = true, rules = [] } = args;
+    const { immediate = true } = args;
     this.form = form;
     this.name = args.name;
+    this.rules.value = args.rules || [];
     this.state = reactive({
       name: this.name,
       error: null,
       isError: false,
       isValidating: false
     });
-    const validate = (fs) => {
+    const validate = () => {
+      const formState = this.form.state;
+      const rules = this.rules.value;
+      console.log("validate");
       return makeCancellablePromise(async (onCancel) => {
         let error = null;
         for (const rule of rules) {
-          const promise = validateRule(rule, fs);
+          const promise = validateRule(rule, formState);
           onCancel(() => {
             var _a;
             return (_a = promise.cancel) == null ? void 0 : _a.call(promise);
@@ -423,6 +458,8 @@ class VirtualFieldClass {
               message: errMsg
             } : errMsg;
             error.message = error.message.replace(/\{\{name\}\}/g, this.name);
+            if (rule.message !== void 0)
+              error.message = rule.message.replace(/\{\{name\}\}/g, this.name);
             return error;
           }
         }
@@ -434,15 +471,21 @@ class VirtualFieldClass {
       this.initWatcher();
     }
   }
+  update(args) {
+    if (args.rules) {
+      this.rules.value = args.rules;
+    }
+  }
   initWatcher() {
+    if (this.isInited)
+      return;
     this.stopValidateWatcher = watchEffect(async (onCleanup) => {
       this.validateCount++;
-      const formState = this.form.state;
       const count = this.validateCount;
       this.runInAction(() => {
         this.state.isValidating = true;
       });
-      const promise = this.validate(formState);
+      const promise = this.validate();
       onCleanup(() => {
         var _a;
         return (_a = promise.cancel) == null ? void 0 : _a.call(promise);
@@ -464,6 +507,7 @@ class VirtualFieldClass {
         this.state.isError = hasError;
       });
     });
+    this.isInited = true;
   }
   onRegister() {
     if (this.isRegistered)
@@ -474,36 +518,52 @@ class VirtualFieldClass {
   onUnregister() {
     var _a;
     (_a = this.stopValidateWatcher) == null ? void 0 : _a.call(this);
+    this.isRegistered = false;
+    this.isInited = false;
   }
 }
 class FormClass {
   constructor(args) {
-    this.fieldStates = reactive({});
-    this.virtualFieldStates = reactive({});
     this.touchType = "BLUR";
-    this.cacheFields = [];
-    this.cacheVirtualFields = [];
-    this.isMounted = false;
+    this._publicState = null;
+    this._fieldStates = reactive({});
+    this._publicFieldStates = null;
+    this._virtualFieldStates = reactive({});
+    this._publicVirtualFieldStates = null;
     this.fieldsKeys = ref([]);
     this.fields = /* @__PURE__ */ new Map();
     this.virtualFieldsKeys = ref([]);
     this.virtualFields = /* @__PURE__ */ new Map();
+    this.cacheFields = [];
+    this.cacheVirtualFields = [];
     this.stopStateWatcher = null;
     this.stopStatusWatcher = null;
     this.stopValidatingWatcher = null;
     this.waiters = [];
-    this.defaultValues = {};
+    this.subscribers = [];
+    this.isMounted = false;
+    this.readonly = false;
+    this.submitFlag = 0;
     this.runInAction = (fn) => {
       fn();
     };
-    this.defaultValues = toRaw(args.defaultValues || {});
-    this.state = reactive({
-      values: toRaw(this.defaultValues) || {},
-      errors: {},
+    const { initValues = {} } = args;
+    this.initValues = toRaw(initValues);
+    this.defaultValues = toRaw(args.defaultValues);
+    this._state = reactive({
+      values: initValues,
+      defaultValues: args.defaultValues || initValues,
+      fieldErrors: {},
       virtualErrors: {},
       error: null,
+      fieldError: null,
+      virtualError: null,
       isError: false,
+      isFieldError: false,
+      isVirtualError: false,
       isValidating: false,
+      isFieldValidating: false,
+      isVirtualValidating: false,
       isDirty: false,
       isTouched: false,
       isChanged: false,
@@ -512,6 +572,31 @@ class FormClass {
       submitCount: 0
     });
     this.touchType = args.touchType || "BLUR";
+    this.readonly = args.readonly || false;
+  }
+  get state() {
+    if (!this.readonly)
+      return this._state;
+    if (!this._publicState) {
+      this._publicState = readonly(this._state);
+    }
+    return this._publicState;
+  }
+  get fieldStates() {
+    if (!this.readonly)
+      return this._fieldStates;
+    if (!this._publicFieldStates) {
+      this._publicFieldStates = readonly(this._fieldStates);
+    }
+    return this._publicFieldStates;
+  }
+  get virtualFieldStates() {
+    if (!this.readonly)
+      return this._virtualFieldStates;
+    if (!this._publicVirtualFieldStates) {
+      this._publicVirtualFieldStates = readonly(this._virtualFieldStates);
+    }
+    return this._publicVirtualFieldStates;
   }
   mount() {
     if (this.isMounted)
@@ -519,19 +604,29 @@ class FormClass {
     const { cacheFields, cacheVirtualFields } = this;
     this.fieldsKeys.value.push(...cacheFields);
     this.virtualFieldsKeys.value.push(...cacheVirtualFields);
+    for (const k of cacheFields) {
+      const filed = this.fields.get(k);
+      filed == null ? void 0 : filed.initWatcher();
+    }
+    for (const k of cacheVirtualFields) {
+      const filed = this.virtualFields.get(k);
+      filed == null ? void 0 : filed.initWatcher();
+    }
     this.cacheFields = [];
     this.cacheVirtualFields = [];
     this.stopStateWatcher = watchEffect(() => {
       const keys = this.fieldsKeys.value;
       const virtualKeys = this.virtualFieldsKeys.value;
-      let isError = false;
-      let isValidating = false;
+      let isFieldError = false;
+      let isVirtualError = false;
+      let isFieldValidating = false;
+      let isVirtualValidating = false;
       let isDirty = false;
       let isTouched = false;
       let isChanged = false;
-      let error = null;
-      const updateValues = {};
-      const updateErrors = {};
+      let fieldError = null;
+      let virtualError = null;
+      const updateFieldErrors = {};
       const updateFieldStates = {};
       const updateVirtualErrors = {};
       const updateVirtualFieldStates = {};
@@ -539,65 +634,68 @@ class FormClass {
         const field = this.fields.get(k);
         if (!field)
           return;
-        const fieldState = field.state;
-        const fieldValue = field.state.value;
-        const fieldError = field.state.error;
-        const fieldStateIsError = field.state.isError;
-        const fieldIsValidating = field.state.isValidating;
-        const fieldIsDirty = field.state.isDirty;
-        const fieldIsTouched = field.state.isTouched;
-        const fieldIsChanged = field.state.isChanged;
-        setKeyValue(updateValues, k, fieldValue);
-        setKeyValue(updateErrors, k, fieldError);
-        setKeyValue(updateFieldStates, k, fieldState);
-        if (fieldStateIsError)
-          isError = true;
-        if (fieldIsValidating)
-          isValidating = true;
-        if (fieldIsDirty)
+        const fdState = field.state;
+        const fdError = field.state.error;
+        const fdStateIsError = field.state.isError;
+        const fdIsValidating = field.state.isValidating;
+        const fdIsDirty = field.state.isDirty;
+        const fdIsTouched = field.state.isTouched;
+        const fdIsChanged = field.state.isChanged;
+        setKeyValue(updateFieldErrors, k, fdError);
+        setKeyValue(updateFieldStates, k, fdState);
+        if (fdStateIsError)
+          isFieldError = true;
+        if (fdIsValidating)
+          isFieldValidating = true;
+        if (fdIsDirty)
           isDirty = true;
-        if (fieldIsTouched)
+        if (fdIsTouched)
           isTouched = true;
-        if (!fieldIsChanged)
+        if (fdIsChanged)
           isChanged = true;
-        if (fieldError && !error) {
-          error = fieldError;
+        if (fdError && !fieldError) {
+          fieldError = fdError;
         }
       });
       virtualKeys.forEach((k) => {
         const field = this.virtualFields.get(k);
         if (!field)
           return;
-        const fieldState = field.state;
-        const fieldError = field.state.error;
-        const fieldIsError = field.state.isError;
-        const fieldIsValidating = field.state.isValidating;
-        setKeyValue(updateVirtualErrors, k, fieldError);
-        setKeyValue(updateVirtualFieldStates, k, fieldState);
-        if (fieldIsError)
-          isError = true;
-        if (fieldIsValidating)
-          isValidating = true;
-        if (fieldError && !error) {
-          error = fieldError;
+        const fdState = field.state;
+        const fdError = field.state.error;
+        const fdIsError = field.state.isError;
+        const fdIsValidating = field.state.isValidating;
+        setKeyValue(updateVirtualErrors, k, fdError);
+        setKeyValue(updateVirtualFieldStates, k, fdState);
+        if (fdIsError)
+          isVirtualError = true;
+        if (fdIsValidating)
+          isVirtualValidating = true;
+        if (fdError && !virtualError) {
+          virtualError = fdError;
         }
       });
       this.runInAction(() => {
-        recursiveUpdateObject(this.state.values, updateValues);
-        recursiveUpdateObject(this.state.errors, updateErrors);
-        recursiveUpdateObject(this.state.virtualErrors, updateVirtualErrors);
-        recursiveUpdateObject(this.fieldStates, updateFieldStates);
-        recursiveUpdateObject(this.virtualFieldStates, updateVirtualFieldStates);
-        this.state.isError = isError;
-        this.state.error = error;
-        this.state.isValidating = isValidating;
-        this.state.isDirty = isDirty;
-        this.state.isTouched = isTouched;
-        this.state.isChanged = isChanged;
+        recursiveUpdateObject(this._state.fieldErrors, updateFieldErrors);
+        recursiveUpdateObject(this._state.virtualErrors, updateVirtualErrors);
+        recursiveUpdateObject(this._fieldStates, updateFieldStates);
+        recursiveUpdateObject(this._virtualFieldStates, updateVirtualFieldStates);
+        this._state.isFieldError = isFieldError;
+        this._state.isVirtualError = isVirtualError;
+        this._state.isError = isFieldError || isVirtualError;
+        this._state.fieldError = fieldError;
+        this._state.virtualError = virtualError;
+        this._state.error = fieldError || virtualError;
+        this._state.isFieldValidating = isFieldValidating;
+        this._state.isVirtualValidating = isVirtualValidating;
+        this._state.isValidating = isFieldValidating || isVirtualValidating;
+        this._state.isDirty = isDirty;
+        this._state.isTouched = isTouched;
+        this._state.isChanged = isChanged;
       });
     });
     this.stopValidatingWatcher = watchEffect(() => {
-      const isValidating = this.state.isValidating;
+      const isValidating = this._state.isValidating;
       if (!isValidating) {
         this.waiters.forEach((fn) => {
           fn();
@@ -639,7 +737,7 @@ class FormClass {
     }
     for (const k of fieldsKeys.value) {
       if (k.startsWith(`${name}.`) || name.startsWith(`${k}.`)) {
-        console.warn(`Fields can not be nested together: <${name}> <${k}>.`);
+        console.warn(`Fields can not be nested together: <${name}> <${k}>. If you want do this, please use [registerVirtualField]`);
         return {
           field: this.fields.get(name),
           register: () => {
@@ -647,28 +745,19 @@ class FormClass {
         };
       }
     }
-    const formValue = getKeyValue(this.state.values, name);
-    let value = args.value;
-    if (value === void 0)
-      value = formValue;
-    if (value === void 0)
-      value = args.defaultValue;
-    const defaultValue = formValue === void 0 ? args.defaultValue : formValue;
     const field = new FieldClass(this, __spreadProps(__spreadValues({}, args), {
-      name,
-      value,
-      defaultValue
+      name
     }));
     const register = () => {
       fields.set(name, field);
       this.runInAction(() => {
         if (this.isMounted) {
           this.fieldsKeys.value.push(name);
+          field.initWatcher();
         } else {
           this.cacheFields.push(name);
         }
       });
-      field.initWatcher();
     };
     if (immediate) {
       register();
@@ -688,17 +777,19 @@ class FormClass {
         }
       };
     }
-    const field = new VirtualFieldClass(this, __spreadProps(__spreadValues({}, args), { name }));
+    const field = new VirtualFieldClass(this, __spreadProps(__spreadValues({}, args), {
+      name
+    }));
     const register = () => {
       virtualFields.set(name, field);
       this.runInAction(() => {
         if (this.isMounted) {
           this.virtualFieldsKeys.value.push(name);
+          field.initWatcher();
         } else {
           this.cacheVirtualFields.push(name);
         }
       });
-      field.initWatcher();
     };
     if (immediate) {
       register();
@@ -707,7 +798,8 @@ class FormClass {
     }
     return { register, field };
   }
-  unregisterField(name) {
+  unregisterField(name, args = {}) {
+    const { removeValue = false } = args;
     const { fields } = this;
     const field = fields.get(name);
     if (!field)
@@ -721,9 +813,10 @@ class FormClass {
       findIndex !== -1 && this.cacheFields.splice(findIndex, 1);
     }
     this.runInAction(() => {
-      delKey(this.state.values, name);
-      delKey(this.state.errors, name);
-      delKey(this.fieldStates, name);
+      removeValue && delKey(this._state.values, name);
+      removeValue && delKey(this._state.defaultValues, name);
+      delKey(this._state.fieldErrors, name);
+      delKey(this._fieldStates, name);
     });
     fields.delete(name);
   }
@@ -741,12 +834,12 @@ class FormClass {
       findIndex !== -1 && this.cacheVirtualFields.splice(findIndex, 1);
     }
     this.runInAction(() => {
-      delKey(this.state.virtualErrors, name);
-      delKey(this.virtualFieldStates, name);
+      delKey(this._state.virtualErrors, name);
+      delKey(this._virtualFieldStates, name);
     });
     virtualFields.delete(name);
   }
-  setValue(name, value) {
+  setPathValue(name, value) {
     if (value === void 0)
       return;
     const field = this.fields.get(name);
@@ -754,19 +847,34 @@ class FormClass {
       console.warn(`Field not exists <${name}>.`);
       return;
     }
-    field.onChange(value);
+    this.notify("UPDATE", name);
   }
-  deleteValue(name) {
+  setValue(name, value) {
     const field = this.fields.get(name);
     if (!field) {
       console.warn(`Field not exists <${name}>.`);
       return;
     }
-    delKey(this.state.values, name);
+    const lastValue = toRaw(getKeyValue(this._state.values, name));
+    const changed = lastValue !== toRaw(value);
+    this.setPathValue(name, value);
+    field.onChanged(field.state.isChanged || changed);
+  }
+  deletePathValue(name) {
+    const field = this.fields.get(name);
+    if (!field) {
+      console.warn(`Field not exists <${name}>.`);
+      return;
+    }
+    delKey(this._state.values, name);
+    this.notify("DELETE", name);
+  }
+  deleteValue(name) {
+    this.deletePathValue(name);
   }
   getValue(name) {
     return computed(() => {
-      return getKeyValue(this.state.values, name);
+      return getKeyValue(this._state.values, name);
     });
   }
   setTouched(name, touched = true) {
@@ -786,24 +894,27 @@ class FormClass {
     field.onFocus();
   }
   submit(onSuccess, onError) {
+    const flag = this.submitFlag;
     const callback = () => {
+      if (flag !== this.submitFlag)
+        return;
       this.runInAction(() => {
-        this.state.isSubmitting = false;
+        this._state.isSubmitting = false;
       });
-      if (this.state.isError) {
-        onError(toRaw(this.state.errors));
+      if (this._state.isError) {
+        onError(toRaw(this._state.error));
         return;
       }
       this.runInAction(() => {
-        this.state.isSubmitted = true;
+        this._state.isSubmitted = true;
       });
-      onSuccess(toRaw(this.state.values));
+      onSuccess(toRaw(this._state.values));
     };
     this.runInAction(() => {
-      this.state.submitCount++;
-      this.state.isSubmitting = true;
+      this._state.submitCount++;
+      this._state.isSubmitting = true;
     });
-    if (this.state.isValidating) {
+    if (this._state.isValidating) {
       this.waiters.push(() => {
         callback();
       });
@@ -811,57 +922,95 @@ class FormClass {
       callback();
     }
   }
-  reset(values) {
+  reset(args = {}) {
     this.waiters = [];
     this.runInAction(() => {
-      this.state.values = values === void 0 ? this.defaultValues : values;
-      this.state.errors = {};
-      this.state.virtualErrors = {};
-      this.state.error = null;
-      this.state.isError = false;
-      this.state.isValidating = false;
-      this.state.isDirty = false;
-      this.state.isTouched = false;
-      this.state.isChanged = false;
-      this.state.isSubmitted = false;
-      this.state.isSubmitting = false;
-      this.state.submitCount = 0;
+      if (args.values) {
+        this._state.values = toRaw(args.values);
+        this.initValues = toRaw(args.values);
+      } else if (!args.keepValues) {
+        this._state.values = this.initValues;
+      }
+      if (args.defaultValues) {
+        this._state.defaultValues = toRaw(args.defaultValues);
+        this.defaultValues = args.defaultValues;
+      } else if (!args.keepDefaultValues) {
+        this._state.defaultValues = this.initValues || this.defaultValues;
+      }
+      this.submitFlag++;
+      this._state.isSubmitting = false;
+      this._state.submitCount = args.keepSubmitCount ? this._state.submitCount : 0;
+      this._state.isSubmitted = args.keepIsSubmitted ? this._state.isSubmitted : false;
     });
-    for (const [name, field] of this.fields) {
-      const formValue = getKeyValue(this.state.values, name);
-      field.reset(formValue);
+    for (const [, field] of this.fields) {
+      field.reset({
+        keepTouched: args.keepTouched,
+        keepChanged: args.keepChanged
+      });
     }
+    this.notify("RESET");
+  }
+  resetField(name, args = {}) {
+    const field = this.fields.get(name);
+    if (!field) {
+      console.warn(`Field not exists <${name}>.`);
+      return;
+    }
+    if ("defaultValue" in args) {
+      setKeyValue(this._state.defaultValues, name, toRaw(args.defaultValue));
+    }
+    if ("value" in args) {
+      setKeyValue(this._state.values, name, toRaw(args.value));
+    } else if (!args.keepValue) {
+      const v = getKeyValue(this._state.defaultValues, name);
+      setKeyValue(this._state.values, name, toRaw(v));
+    }
+    field.reset({
+      keepTouched: args.keepTouched,
+      keepChanged: args.keepChanged
+    });
+  }
+  subscribe(subscriber) {
+    this.subscribers.push(subscriber);
+    const unsubscribe = () => {
+      const index = this.subscribers.indexOf(subscriber);
+      if (index !== -1)
+        this.subscribers.splice(index, 1);
+    };
+    return unsubscribe;
+  }
+  notify(type, name) {
+    this.subscribers.forEach((subscriber) => {
+      subscriber(type, name);
+    });
   }
 }
 const createForm = (args) => {
   return new FormClass(args);
 };
-const vfmInjectionKey = Symbol();
 const useField = (props) => {
-  const injectedForm = inject(vfmInjectionKey, null);
-  const { form = injectedForm, name } = props;
-  const { touchType = form == null ? void 0 : form.touchType } = props;
+  const { form, name } = props;
+  const touchType = computed(() => {
+    if (props.touchType)
+      return unref(props.touchType);
+    return form.touchType || "BLUR";
+  });
   const mounted = ref(false);
-  if (!form) {
-    throw new Error(`No form in the injected context or props, can not use Field <${props.name}>`);
-  }
   const elemRef = ref(null);
   const setRef = (el) => elemRef.value = el;
   const onChange = (v) => {
     var _a, _b;
-    const value2 = typeof v === "object" && typeof v.currentTarget === "object" && ((_a = v.currentTarget) == null ? void 0 : _a.value) !== void 0 ? (_b = v.currentTarget) == null ? void 0 : _b.value : v;
-    form.setValue(name, value2);
+    const value = typeof v === "object" && typeof v.currentTarget === "object" && ((_a = v.currentTarget) == null ? void 0 : _a.value) !== void 0 ? (_b = v.currentTarget) == null ? void 0 : _b.value : v;
+    form.setValue(unref(name), value);
   };
   const onBlur = () => {
-    touchType === "BLUR" && form.setTouched(name, true);
+    touchType.value === "BLUR" && form.setTouched(unref(name), true);
   };
   const onFocus = () => {
-    touchType === "FOCUS" && form.setTouched(name, true);
+    touchType.value === "FOCUS" && form.setTouched(unref(name), true);
   };
-  const { register, field } = form.registerField(name, {
-    value: props.value,
-    defaultValue: props.defaultValue,
-    rules: props.rules,
+  let { register, field } = form.registerField(unref(name), {
+    rules: unref(props.rules),
     transform: props.transform,
     immediate: false,
     onFocus: () => {
@@ -869,19 +1018,54 @@ const useField = (props) => {
       (_b = (_a = elemRef.value) == null ? void 0 : _a.focus) == null ? void 0 : _b.call(_a);
     }
   });
-  const value = computed(() => {
-    return field.state.value;
+  const model = ref(getKeyValue(form.state.values, unref(props.name)));
+  const fieldState = ref(field.state);
+  const stopWatch = watch(() => {
+    return [unref(props.name), unref(props.rules)];
+  }, ([n, rules], [ln]) => {
+    console.log("watch a", n, rules);
+    form.unregisterField(ln);
+    const fs = form.registerField(n, {
+      rules,
+      transform: props.transform,
+      isEqual: props.isEqual,
+      immediate: mounted.value,
+      onFocus: () => {
+        var _a, _b;
+        (_b = (_a = elemRef.value) == null ? void 0 : _a.focus) == null ? void 0 : _b.call(_a);
+      }
+    });
+    register = fs.register;
+    field = fs.field;
+    fieldState.value = fs.field.state;
+    model.value = getKeyValue(form.state.values, unref(props.name));
+  });
+  const stopWatchValue = watch(() => getKeyValue(form.state.values, unref(props.name)), (v) => {
+    model.value = v;
+    console.log("watch b", v);
+  });
+  const stopWatchModel = watch(() => model.value, (v) => {
+    console.log("watch m", v);
+    const value = getKeyValue(form.state.values, unref(props.name));
+    if (toRaw(value) !== toRaw(v)) {
+      model.value = v;
+    }
   });
   onMounted(() => {
-    register();
+    register == null ? void 0 : register();
     mounted.value = true;
   });
   onUnmounted(() => {
-    form.unregisterField(name);
+    form.unregisterField(unref(name));
+    stopWatch();
+    stopWatchValue();
+    stopWatchModel();
     elemRef.value = null;
   });
   const res = reactive({
-    value,
+    get value() {
+      return model.value;
+    },
     onChange,
     onBlur,
     onFocus,
@@ -890,63 +1074,188 @@ const useField = (props) => {
   return [
     res,
     {
-      state: field.state,
-      form,
+      model,
+      state: fieldState,
       mounted
     }
   ];
 };
 const useVirtualField = (props) => {
-  const injectedForm = inject(vfmInjectionKey, null);
-  const { form = injectedForm, name } = props;
+  const { form, name } = props;
   const mounted = ref(false);
-  if (!form) {
-    throw new Error(`No form in the injected context or props, can not use Field <${props.name}>`);
-  }
-  const { register, field } = form.registerVirtualField(name, {
-    rules: props.rules,
+  let { register, field } = form.registerVirtualField(unref(name), {
+    rules: unref(props.rules),
     immediate: false
+  });
+  const fieldState = ref(field.state);
+  const stopWatch = watch(() => unref(props.name), (n, ln) => {
+    form.unregisterVirtualField(ln);
+    const fs = form.registerVirtualField(unref(name), {
+      rules: unref(props.rules),
+      immediate: mounted.value
+    });
+    register = fs.register;
+    field = fs.field;
+    fieldState.value = fs.field.state;
   });
   onMounted(() => {
     register();
     mounted.value = true;
   });
   onUnmounted(() => {
-    form.unregisterField(name);
+    form.unregisterVirtualField(unref(name));
+    stopWatch();
   });
-  return [
-    field.state,
-    {
-      mounted,
-      form
-    }
-  ];
+  return {
+    state: fieldState,
+    mounted
+  };
 };
-const useForm = () => {
-  const form = inject(vfmInjectionKey);
-  return form;
+const createFieldArray = (form, path) => {
+  let fieldId = 0;
+  const p = form.getValue(path);
+  if (!Array.isArray(p.value)) {
+    form.setPathValue(path, []);
+  }
+  const initArr = p.value;
+  const initFields = initArr.map(() => {
+    const id = `${fieldId++}`;
+    return {
+      id
+    };
+  });
+  let lastIds = initFields.map((v) => v.id);
+  const fields = ref(initFields);
+  const usedFlag = {};
+  const stopWatch = watch(() => {
+    const newArr = getKeyValue(form.state.values, path);
+    return [...newArr];
+  }, (newArr, oldArr) => {
+    const arr = [...oldArr];
+    const newFields = newArr.map((item) => {
+      const v = toRaw(item);
+      const oIndex = arr.findIndex((o) => toRaw(o) === v);
+      let id = "";
+      if (oIndex === -1) {
+        id = `${fieldId++}`;
+      } else {
+        id = lastIds[oIndex];
+        arr[oIndex] = usedFlag;
+      }
+      return { id: `${id}` };
+    });
+    fields.value = newFields;
+    lastIds = newFields.map((v) => v.id);
+  });
+  const append = (v) => {
+    const arr = getKeyValue(form.state.values, path);
+    if (!Array.isArray(arr))
+      return;
+    arr.push(v);
+  };
+  const prepend = (v) => {
+    const arr = getKeyValue(form.state.values, path);
+    if (!Array.isArray(arr))
+      return;
+    arr.unshift(v);
+  };
+  const insert = (id, v) => {
+    const index = fields.value.findIndex((item) => item.id === id);
+    if (index === -1)
+      return;
+    const arr = getKeyValue(form.state.values, path);
+    if (!Array.isArray(arr))
+      return;
+    arr.splice(index, 0, v);
+  };
+  const swap = (from, to) => {
+    const fromIndex = fields.value.findIndex((item) => item.id === from);
+    const toIndex = fields.value.findIndex((item) => item.id === to);
+    if (fromIndex === -1 || toIndex === -1)
+      return;
+    const arr = getKeyValue(form.state.values, path);
+    if (!Array.isArray(arr))
+      return;
+    const tmp = arr[toIndex];
+    arr[toIndex] = arr[fromIndex];
+    arr[fromIndex] = tmp;
+  };
+  const move = (from, to) => {
+    const fromIndex = fields.value.findIndex((item) => item.id === from);
+    const toIndex = fields.value.findIndex((item) => item.id === to);
+    if (fromIndex === -1 || toIndex === -1 || fromIndex === toIndex)
+      return;
+    const arr = getKeyValue(form.state.values, path);
+    if (!Array.isArray(arr))
+      return;
+    arr.splice(toIndex, 0, arr[fromIndex]);
+    arr.splice(toIndex > fromIndex ? fromIndex : fromIndex + 1);
+  };
+  const update = (id, v) => {
+    const index = fields.value.findIndex((item) => item.id === id);
+    if (index === -1)
+      return;
+    const arr = getKeyValue(form.state.values, path);
+    if (!Array.isArray(arr))
+      return;
+    arr.splice(index, 0, v);
+  };
+  const replace = (values) => {
+    lastIds = [];
+    form.setPathValue(path, values);
+  };
+  const remove = (id) => {
+    const index = fields.value.findIndex((item) => item.id === id);
+    if (index === -1)
+      return;
+    const arr = getKeyValue(form.state.values, path);
+    if (!Array.isArray(arr))
+      return;
+    arr.splice(index, 0);
+  };
+  return {
+    onCleanup: () => {
+      stopWatch();
+    },
+    get fieldsValue() {
+      return fields.value;
+    },
+    fields,
+    prepend,
+    append,
+    insert,
+    swap,
+    move,
+    replace,
+    remove,
+    update
+  };
 };
-const _sfc_main$2 = /* @__PURE__ */ defineComponent({
+const useFieldArray = (form, path) => {
+  const _a = createFieldArray(form, path), { onCleanup } = _a, rest = __objRest(_a, ["onCleanup"]);
+  onUnmounted(() => onCleanup());
+  return rest;
+};
+const _sfc_main$1 = /* @__PURE__ */ defineComponent({
   props: {
     form: {
       type: Object,
-      default: void 0
+      required: true
     },
     name: {
       type: String,
-      required: true,
-      default: ""
+      required: true
     },
     rules: {
       type: Array,
       default: () => []
     },
     value: {
-      type: [String, Number, Boolean, Array, Object, Symbol],
+      type: AllPropType,
       default: void 0
     },
     defaultValue: {
-      type: [String, Number, Boolean, Array, Object, Symbol],
+      type: AllPropType,
       default: void 0
     },
     transform: {
@@ -960,7 +1269,13 @@ const _sfc_main$2 = /* @__PURE__ */ defineComponent({
   },
   setup(__props) {
     const props = __props;
-    const [slotProps, { mounted, state }] = useField(props);
+    const _a = toRefs(props), { form, rules, transform, name } = _a, rest = __objRest(_a, ["form", "rules", "transform", "name"]);
+    const [slotProps, { mounted, state }] = useField(__spreadValues({
+      form: form.value,
+      rules: rules.value,
+      transform: transform == null ? void 0 : transform.value,
+      name
+    }, rest));
     return (_ctx, _cache) => {
       return unref(mounted) ? renderSlot(_ctx.$slots, "default", {
         key: 0,
@@ -970,15 +1285,14 @@ const _sfc_main$2 = /* @__PURE__ */ defineComponent({
     };
   }
 });
-const _sfc_main$1 = /* @__PURE__ */ defineComponent({
+const _sfc_main = /* @__PURE__ */ defineComponent({
   props: {
     form: {
       type: Object,
-      default: void 0
+      required: true
     },
     name: {
       type: String,
-      default: void 0,
       required: true
     },
     rules: {
@@ -988,7 +1302,12 @@ const _sfc_main$1 = /* @__PURE__ */ defineComponent({
   },
   setup(__props) {
     const props = __props;
-    const [state, { mounted }] = useVirtualField(props);
+    const { name, form, rules } = toRefs(props);
+    const { state, mounted } = useVirtualField({
+      form: form.value,
+      rules: rules.value,
+      name
+    });
     return (_ctx, _cache) => {
       return unref(mounted) ? renderSlot(_ctx.$slots, "default", {
         key: 0,
@@ -997,16 +1316,4 @@ const _sfc_main$1 = /* @__PURE__ */ defineComponent({
     };
   }
 });
-const _sfc_main = /* @__PURE__ */ defineComponent({
-  props: {
-    form: null
-  },
-  setup(__props) {
-    const props = __props;
-    provide(vfmInjectionKey, props.form);
-    return (_ctx, _cache) => {
-      return renderSlot(_ctx.$slots, "default");
-    };
-  }
-});
-export { _sfc_main$2 as Field, FieldClass, FormClass, _sfc_main as FormProvider, _sfc_main$1 as VirtualField, VirtualFieldClass, createForm, useField, useForm, useVirtualField, validators, vfmInjectionKey };
+export { _sfc_main$1 as Field, FieldClass, FormClass, _sfc_main as VirtualField, VirtualFieldClass, createFieldArray, createForm, useField, useFieldArray, useVirtualField, validators };

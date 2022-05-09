@@ -62,14 +62,17 @@ export const updateObject = (
 
 export const recursiveUpdateObject = (
   obj: Record<string, any>,
-  newObj: Record<string, any>
+  newObj: Record<string, any>,
+  deleteOldKeys = true
 ) => {
   const oldKeys = Object.keys(obj);
   const newKeys = Object.keys(newObj);
   const delKeys = oldKeys.filter((k) => !newKeys.includes(k));
-  delKeys.forEach((k) => {
-    delete obj[k];
-  });
+  if (deleteOldKeys) {
+    delKeys.forEach((k) => {
+      delete obj[k];
+    });
+  }
   newKeys.forEach((k) => {
     if (
       typeof obj[k] === 'object' &&
@@ -79,7 +82,7 @@ export const recursiveUpdateObject = (
       !Array.isArray(newObj[k]) &&
       newObj[k] !== null
     ) {
-      recursiveUpdateObject(obj[k], newObj[k]);
+      recursiveUpdateObject(obj[k], newObj[k], deleteOldKeys);
     } else {
       obj[k] = newObj[k];
     }

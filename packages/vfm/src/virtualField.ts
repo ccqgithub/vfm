@@ -1,12 +1,12 @@
 import { reactive, watchEffect, WatchStopHandle, ref } from 'vue';
 import { FormClass } from './form';
 import {
-  FieldError,
-  VirtualValidateFunc,
-  VirtualFieldState,
   FormType,
   FormState,
-  VirtualFieldRule
+  FieldError,
+  VirtualFieldRule,
+  VirtualFieldState,
+  VirtualValidateFunc
 } from './types';
 import { makeCancellablePromise } from './untils';
 
@@ -35,12 +35,13 @@ export class VirtualFieldClass<T extends FormType = FormType> {
   private form: FormClass<T>;
   // 验证函数
   private rules = ref<VirtualFieldRule<FormState<T>>[]>([]);
-  private validate: VirtualValidateFunc<FormState<T>>;
+  private validate: VirtualValidateFunc;
   private validateCount = 0;
   // watcher
   private stopValidateWatcher: WatchStopHandle | null = null;
   // if registered
-  isRegistered = false;
+  private isRegistered = false;
+  private isInited = false;
 
   constructor(
     form: FormClass<T>,
@@ -64,12 +65,16 @@ export class VirtualFieldClass<T extends FormType = FormType> {
     });
 
     // validate
-    const validate: VirtualValidateFunc<FormState<T>> = (fs) => {
+    const validate: VirtualValidateFunc = () => {
+      const formState = this.form.state;
       const rules = this.rules.value;
       return makeCancellablePromise(async (onCancel) => {
         let error: FieldError | null = null;
         for (const rule of rules) {
-          const promise = validateRule(rule as VirtualFieldRule<FormState>, fs);
+          const promise = validateRule(
+            rule as VirtualFieldRule<FormState>,
+            formState
+          );
           onCancel(() => promise.cancel?.());
           const errMsg = await promise;
           if (errMsg) {
@@ -108,16 +113,16 @@ export class VirtualFieldClass<T extends FormType = FormType> {
   }
 
   public initWatcher() {
+    if (this.isInited) return;
     // auto validate
     this.stopValidateWatcher = watchEffect(async (onCleanup) => {
       this.validateCount++;
-      const formState = this.form.state;
       const count = this.validateCount;
       this.runInAction(() => {
         this.state.isValidating = true;
       });
       // validate
-      const promise = this.validate(formState);
+      const promise = this.validate();
       onCleanup(() => promise.cancel?.());
       const err = await promise;
       if (count !== this.validateCount) return;
@@ -135,6 +140,7 @@ export class VirtualFieldClass<T extends FormType = FormType> {
         this.state.isError = hasError;
       });
     });
+    this.isInited = true;
   }
 
   onRegister() {
@@ -145,5 +151,7 @@ export class VirtualFieldClass<T extends FormType = FormType> {
 
   onUnregister() {
     this.stopValidateWatcher?.();
+    this.isRegistered = false;
+    this.isInited = false;
   }
 }
