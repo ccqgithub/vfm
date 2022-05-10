@@ -1,6 +1,5 @@
 import { toRaw, ref, watch } from 'vue';
 import { FormClass } from './form';
-import { getKeyValue } from './untils';
 import { FormType, KeyPathValue, ArrayFieldPath, ArrayItem } from './types';
 
 export const createFieldArray = <
@@ -11,11 +10,12 @@ export const createFieldArray = <
   path: N
 ) => {
   let fieldId = 0;
-  const p = form.getValue(path as any);
-  if (!Array.isArray(p.value)) {
-    form.setPathValue(path as any, [] as any);
+  let p = form.getPathValue(path as any);
+  if (!Array.isArray(p)) {
+    form.setPathValue(path as any, []);
+    p = form.getPathValue(path as any);
   }
-  const initArr = p.value as any[];
+  const initArr = p as any[];
   const initFields = initArr.map(() => {
     const id = `${fieldId++}`;
     return {
@@ -27,8 +27,8 @@ export const createFieldArray = <
   const usedFlag = {};
   const stopWatch = watch(
     () => {
-      const newArr = getKeyValue(form.state.values, path);
-      return [...newArr] as const;
+      const newArr = form.getPathValue(path as any);
+      return newArr.map((item: any) => toRaw(item)) as any[];
     },
     (newArr, oldArr) => {
       const arr = [...oldArr];
@@ -51,58 +51,48 @@ export const createFieldArray = <
   );
 
   const append = (v: ArrayItem<KeyPathValue<T, N>>) => {
-    const arr = getKeyValue(form.state.values, path);
-    if (!Array.isArray(arr)) return;
-    arr.push(v);
+    form.arrayAppend(path, v);
   };
+
   const prepend = (v: ArrayItem<KeyPathValue<T, N>>) => {
-    const arr = getKeyValue(form.state.values, path);
-    if (!Array.isArray(arr)) return;
-    arr.unshift(v);
+    form.arrayPrepend(path, v);
   };
+
   const insert = (id: string, v: ArrayItem<KeyPathValue<T, N>>) => {
     const index = fields.value.findIndex((item) => item.id === id);
     if (index === -1) return;
-    const arr = getKeyValue(form.state.values, path);
-    if (!Array.isArray(arr)) return;
-    arr.splice(index, 0, v);
+    form.arrayInsert(path, index, v);
   };
+
   const swap = (from: string, to: string) => {
     const fromIndex = fields.value.findIndex((item) => item.id === from);
     const toIndex = fields.value.findIndex((item) => item.id === to);
     if (fromIndex === -1 || toIndex === -1) return;
-    const arr = getKeyValue(form.state.values, path);
-    if (!Array.isArray(arr)) return;
-    const tmp = arr[toIndex];
-    arr[toIndex] = arr[fromIndex];
-    arr[fromIndex] = tmp;
+    form.arraySwap(path, fromIndex, toIndex);
   };
+
   const move = (from: string, to: string) => {
     const fromIndex = fields.value.findIndex((item) => item.id === from);
     const toIndex = fields.value.findIndex((item) => item.id === to);
     if (fromIndex === -1 || toIndex === -1 || fromIndex === toIndex) return;
-    const arr = getKeyValue(form.state.values, path);
-    if (!Array.isArray(arr)) return;
-    arr.splice(toIndex, 0, arr[fromIndex]);
-    arr.splice(toIndex > fromIndex ? fromIndex : fromIndex + 1);
+    form.arrayMove(path, fromIndex, toIndex);
   };
+
   const update = (id: string, v: ArrayItem<KeyPathValue<T, N>>) => {
     const index = fields.value.findIndex((item) => item.id === id);
     if (index === -1) return;
-    const arr = getKeyValue(form.state.values, path);
-    if (!Array.isArray(arr)) return;
-    arr.splice(index, 0, v);
+    form.arrayUpdate(path, index, v);
   };
+
   const replace = (values: KeyPathValue<T, N>) => {
     lastIds = [];
-    form.setPathValue(path as any, values);
+    form.arrayReplace(path, values);
   };
+
   const remove = (id: string) => {
     const index = fields.value.findIndex((item) => item.id === id);
     if (index === -1) return;
-    const arr = getKeyValue(form.state.values, path);
-    if (!Array.isArray(arr)) return;
-    arr.splice(index, 0);
+    form.arrayRemove(path, index);
   };
 
   return {

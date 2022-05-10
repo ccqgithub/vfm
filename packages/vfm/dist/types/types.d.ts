@@ -16,17 +16,13 @@ export declare type UnpackFieldState<T> = T extends NestedValueType ? FieldState
 } : FieldState;
 export declare type ArrayPathToString<T> = T extends `${number}` ? 0 : T;
 export declare type NormalizePath<T extends string> = T extends `${infer A}.${infer B}` ? `${ArrayPathToString<A>}.${NormalizePath<B>}` : ArrayPathToString<T>;
-export declare type InternalKeyPathValue<V, Path extends string> = Path extends '' ? V : V extends ObjectType ? V extends NestedValueType | NativeObjectType ? never : Path extends `${infer Key}.${infer Rest}` ? KeyPathValue<V[Key], Rest> : V[Path] extends NestedValue<infer U> ? U : V[Path] : never;
+export declare type InternalKeyPathValue<V, Path extends string> = Path extends '' ? V : V extends ObjectType ? V extends NestedValueType | NativeObjectType ? never : Path extends `${infer Key}.${infer Rest}` ? KeyPathValue<V[Key], Rest> : V[Path] extends NestedValue<infer U> ? U : V extends Array<infer U> ? U | undefined : V[Path] : never;
 export declare type KeyPathValue<V extends ObjectType, Path extends string> = string extends Path ? any : InternalKeyPathValue<V, NormalizePath<Path>>;
 export declare type FormType = Record<string, any>;
 export declare type DeepPartial<T extends ObjectType> = T extends NativeObjectType | NestedValueType ? T : T extends Array<infer U> ? U extends ObjectType ? DeepPartial<U>[] : U[] : {
     [K in keyof T]?: DeepPartial<T[K]>;
 };
 export declare type FieldValues<T extends FormType = FormType, P extends boolean = false> = P extends true ? UnpackNestedValue<DeepPartial<T>> : UnpackNestedValue<T>;
-export declare type FieldStates<T extends FormType = FormType> = UnpackFieldState<T>;
-export declare type VirtualFieldStates<VFK extends string = string> = {
-    [K in VFK]: VirtualFieldState;
-};
 export interface CancellablePromise<T = any> extends Promise<T> {
     cancel?: () => void;
 }
@@ -66,17 +62,16 @@ export declare type FieldState = {
     isTouched: boolean;
     isChanged: boolean;
 };
-export declare type ValidatorState = Omit<FieldState, 'error' | 'isError'>;
 export declare type VirtualFieldState = {
     error: FieldError | null;
     isError: boolean;
     isValidating: boolean;
 };
-export declare type ValidateFunc = () => CancellablePromise<FieldError | null>;
-export declare type VirtualValidateFunc = () => CancellablePromise<FieldError | null>;
-export declare type Validator<V = any, F extends Record<string, any> = Record<string, any>> = (value: V | undefined, state: ValidatorState, form: F) => string | CancellablePromise<string>;
-export declare type VirtualFieldValidator<F extends Record<string, any> = Record<string, any>> = (form: F) => string | CancellablePromise<string>;
-export declare type FieldRule<V = any, F extends FormState = FormState> = {
+export declare type ValidateFunc<V, Deps, Rules = FieldRule<V, Deps>[]> = (v: V, deps: Deps | undefined, rules: Rules) => CancellablePromise<FieldError | null>;
+export declare type VirtualValidateFunc<V, Rules = VirtualFieldRule<V>[]> = (v: V, rules: Rules) => CancellablePromise<FieldError | null>;
+export declare type Validator<V = any, Deps = any> = (value: V | undefined, deps?: Deps) => string | CancellablePromise<string>;
+export declare type VirtualFieldValidator<V = any> = (value: V) => string | CancellablePromise<string>;
+export declare type FieldRule<V = any, Deps = any> = {
     type?: string;
     required?: boolean;
     requiredLength?: boolean;
@@ -93,12 +88,27 @@ export declare type FieldRule<V = any, F extends FormState = FormState> = {
     integer?: boolean;
     ipAddress?: boolean;
     macAddress?: boolean;
-    validator?: Validator<V, F>;
+    validator?: Validator<V, Deps>;
     message?: string;
 };
-export declare type VirtualFieldRule<F extends FormState = FormState> = {
+export declare type VirtualFieldRule<V = any> = {
     type?: string;
-    validator?: VirtualFieldValidator<F>;
+    required?: boolean;
+    requiredLength?: boolean;
+    minLength?: number;
+    maxLength?: number;
+    min?: number;
+    max?: number;
+    pattern?: RegExp;
+    alpha?: boolean;
+    alphaNum?: boolean;
+    decimal?: boolean;
+    numeric?: boolean;
+    email?: boolean;
+    integer?: boolean;
+    ipAddress?: boolean;
+    macAddress?: boolean;
+    validator?: VirtualFieldValidator<V>;
     message?: string;
 };
 export declare type InputLikeRef = Element | Component | {

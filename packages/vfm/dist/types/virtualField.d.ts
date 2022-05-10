@@ -1,10 +1,11 @@
 import { FormClass } from './form';
-import { FormType, FormState, VirtualFieldRule, VirtualFieldState } from './types';
-export declare class VirtualFieldClass<T extends FormType = FormType> {
+import { FormType, VirtualFieldRule, VirtualFieldState } from './types';
+export declare class VirtualFieldClass<T extends FormType = FormType, V = any> {
     name: string;
     state: VirtualFieldState;
     private form;
     private rules;
+    private value;
     private validate;
     private validateCount;
     private stopValidateWatcher;
@@ -12,12 +13,14 @@ export declare class VirtualFieldClass<T extends FormType = FormType> {
     private isInited;
     constructor(form: FormClass<T>, args: {
         name: string;
-        rules?: VirtualFieldRule<FormState<T>>[];
+        value: () => V;
+        rules?: VirtualFieldRule<V>[];
         immediate?: boolean;
     });
     private runInAction;
     update(args: {
-        rules?: VirtualFieldRule<FormState<T>>[];
+        rules?: VirtualFieldRule<V>[];
+        value?: () => V;
     }): void;
     initWatcher(): void;
     onRegister(): void;

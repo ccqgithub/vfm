@@ -1,10 +1,11 @@
-import { FormType, FormState, FieldRule, FieldState, KeyPathValue } from './types';
+import { FormType, FieldRule, FieldState, KeyPathValue } from './types';
 import { FormClass } from './form';
-export declare class FieldClass<T extends FormType = FormType, N extends string = string, V extends KeyPathValue<T, N> = KeyPathValue<T, N>> {
+export declare class FieldClass<T extends FormType = FormType, N extends string = string, Deps = any> {
     name: N;
     state: FieldState;
     private form;
     private rules;
+    private deps;
     private validate;
     private validateCount;
     private transform;
@@ -16,17 +17,18 @@ export declare class FieldClass<T extends FormType = FormType, N extends string 
     private isInited;
     constructor(form: FormClass<T>, args: {
         name: N;
-        rules?: FieldRule<V, FormState<T>>[];
+        rules?: FieldRule<KeyPathValue<T, N>, Deps>[];
+        deps?: () => Deps;
         immediate?: boolean;
-        transform?: (v: V) => V;
-        isEqual?: (v: V, d: V) => boolean;
+        transform?: (v: KeyPathValue<T, N>) => KeyPathValue<T, N>;
+        isEqual?: (v: KeyPathValue<T, N>, d: KeyPathValue<T, N>) => boolean;
         onFocus?: () => void;
     });
-    get value(): any;
-    get defaultValue(): any;
+    getValue(): any;
+    getDefaultValue(): any;
     runInAction: (fn: (...args: any[]) => void) => void;
     update(args?: {
-        rules?: FieldRule<V, FormState<T>>[];
+        rules?: FieldRule<KeyPathValue<T, N>, Deps>[];
     }): void;
     initWatcher(): void;
     onRegister(): void;

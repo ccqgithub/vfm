@@ -1,16 +1,12 @@
 import { readonly, ComputedRef } from 'vue';
 import { FieldClass } from './field';
 import { VirtualFieldClass } from './virtualField';
-import { AutoPath, FormType, FieldRule, FieldPath, FormState, FieldError, FieldStates, FieldValues, KeyPathValue, VirtualFieldRule, VirtualFieldStates } from './types';
+import { AutoPath, FormType, FieldRule, FieldPath, ArrayItem, FormState, FieldError, FieldValues, KeyPathValue, ArrayFieldPath, VirtualFieldRule } from './types';
 export declare type GetFormType<T> = T extends FormClass<infer U> ? U : never;
 export declare class FormClass<T extends FormType = FormType, VFK extends string = string> {
     touchType: 'FOCUS' | 'BLUR';
     private _state;
     private _publicState;
-    private _fieldStates;
-    private _publicFieldStates;
-    private _virtualFieldStates;
-    private _publicVirtualFieldStates;
     private fieldsKeys;
     private fields;
     private virtualFieldsKeys;
@@ -34,26 +30,26 @@ export declare class FormClass<T extends FormType = FormType, VFK extends string
         readonly?: boolean;
     });
     get state(): FormState<T, VFK>;
-    get fieldStates(): FieldStates<T>;
-    get virtualFieldStates(): VirtualFieldStates<VFK>;
     runInAction: (fn: (...args: any[]) => void) => void;
     mount(): void;
     unmount(): void;
-    registerField<N extends FieldPath<T>, V extends KeyPathValue<T, N> = KeyPathValue<T, N>>(name: N, args?: {
-        rules?: FieldRule<V, FormState<T>>[];
+    registerField<N extends FieldPath<T>, Deps = any>(name: N, args?: {
+        rules?: FieldRule<KeyPathValue<T, N>, Deps>[];
         immediate?: boolean;
-        transform?: (v: V) => V;
-        isEqual?: (v: V, d: V) => boolean;
+        transform?: (v: KeyPathValue<T, N>) => KeyPathValue<T, N>;
+        isEqual?: (v: KeyPathValue<T, N>, d: KeyPathValue<T, N>) => boolean;
         onFocus?: () => void;
+        deps?: () => Deps;
     }): {
-        field: FieldClass<T, N, V>;
+        field: FieldClass<T, N, Deps>;
         register: () => void;
     };
-    registerVirtualField<N extends VFK = VFK>(name: N, args?: {
-        rules?: VirtualFieldRule<FormState<T, VFK>>[];
+    registerVirtualField<N extends VFK = VFK, V = any>(name: N, args: {
+        rules?: VirtualFieldRule<V>[];
+        value: () => V;
         immediate?: boolean;
     }): {
-        field: VirtualFieldClass<T>;
+        field: VirtualFieldClass<T, V>;
         register: () => void;
     };
     unregisterField<N extends FieldPath<T>>(name: N, args?: {
@@ -64,7 +60,10 @@ export declare class FormClass<T extends FormType = FormType, VFK extends string
     setValue<N extends FieldPath<T>>(name: N, value: KeyPathValue<T, N>): void;
     deletePathValue<N extends AutoPath<T>>(name: N): void;
     deleteValue<N extends FieldPath<T>>(name: N): void;
-    getValue<N extends AutoPath<T>>(name: N): ComputedRef<KeyPathValue<T, N>>;
+    getPathValueRef<N extends AutoPath<T>>(name: N): ComputedRef<KeyPathValue<T, N>>;
+    getValueRef<N extends FieldPath<T>>(name: N): ComputedRef<KeyPathValue<T, N>>;
+    getPathValue<N extends AutoPath<T>>(name: N): KeyPathValue<T, N>;
+    getValue<N extends FieldPath<T>>(name: N): KeyPathValue<T, N>;
     setTouched<N extends FieldPath<T>>(name: N, touched?: boolean): void;
     setFocus<N extends FieldPath<T>>(name: N): void;
     submit(onSuccess: (data: FieldValues<T>) => void, onError: (error: FieldError | null) => void): void;
@@ -87,6 +86,23 @@ export declare class FormClass<T extends FormType = FormType, VFK extends string
     }): void;
     subscribe(subscriber: (type: 'UPDATE' | 'DELETE' | 'RESET', name?: string) => void): () => void;
     notify(type: 'UPDATE' | 'DELETE' | 'RESET', name?: string): void;
+    fieldState<N extends FieldPath<T>>(name: N): import("./types").FieldState | null;
+    virtualFieldState<N extends VFK>(name: N): import("./types").VirtualFieldState | null;
+    isDirty<N extends FieldPath<T>>(name: N): boolean;
+    isTouched<N extends FieldPath<T>>(name: N): boolean;
+    isChanged<N extends FieldPath<T>>(name: N): boolean;
+    isError<N extends FieldPath<T>>(name: N): boolean;
+    fieldError<N extends FieldPath<T>>(name: N): FieldError | null;
+    isVirtualError<N extends VFK>(name: N): boolean;
+    virtualFieldError<N extends VFK>(name: N): FieldError | null;
+    arrayAppend<N extends ArrayFieldPath<T>>(name: N, v: ArrayItem<KeyPathValue<T, N>>): void;
+    arrayPrepend<N extends ArrayFieldPath<T>>(name: N, v: ArrayItem<KeyPathValue<T, N>>): void;
+    arrayInsert<N extends ArrayFieldPath<T>>(name: N, index: number, v: ArrayItem<KeyPathValue<T, N>>): void;
+    arraySwap<N extends ArrayFieldPath<T>>(name: N, fromIndex: number, toIndex: number): void;
+    arrayMove<N extends ArrayFieldPath<T>>(name: N, fromIndex: number, toIndex: number): void;
+    arrayUpdate<N extends ArrayFieldPath<T>>(name: N, index: number, v: ArrayItem<KeyPathValue<T, N>>): void;
+    arrayRemove<N extends ArrayFieldPath<T>>(name: N, index: number): void;
+    arrayReplace<N extends ArrayFieldPath<T>>(name: N, v: KeyPathValue<T, N>): void;
 }
 export declare const createForm: <T extends FormType = FormType, VFK extends string = string>(args: {
     initValues: import("./types").UnpackNestedValue<T>;

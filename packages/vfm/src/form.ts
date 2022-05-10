@@ -21,14 +21,14 @@ import {
   FormType,
   FieldRule,
   FieldPath,
+  ArrayItem,
   FormState,
   FieldError,
   FormErrors,
-  FieldStates,
   FieldValues,
   KeyPathValue,
-  VirtualFieldRule,
-  VirtualFieldStates
+  ArrayFieldPath,
+  VirtualFieldRule
 } from './types';
 
 export type GetFormType<T> = T extends FormClass<infer U> ? U : never;
@@ -41,10 +41,6 @@ export class FormClass<
   // states
   private _state: FormState<T, VFK>;
   private _publicState: FormState<T, VFK> | null = null;
-  private _fieldStates = reactive({}) as FieldStates<T>;
-  private _publicFieldStates: FieldStates<T> | null = null;
-  private _virtualFieldStates = reactive({}) as VirtualFieldStates<VFK>;
-  private _publicVirtualFieldStates: VirtualFieldStates<VFK> | null = null;
   // fields
   private fieldsKeys = ref<string[]>([]);
   private fields: Map<string, FieldClass> = new Map();
@@ -114,24 +110,6 @@ export class FormClass<
     return this._publicState;
   }
 
-  get fieldStates(): FieldStates<T> {
-    if (!this.readonly) return this._fieldStates;
-    if (!this._publicFieldStates) {
-      this._publicFieldStates = readonly(this._fieldStates) as FieldStates<T>;
-    }
-    return this._publicFieldStates;
-  }
-
-  get virtualFieldStates(): VirtualFieldStates<VFK> {
-    if (!this.readonly) return this._virtualFieldStates;
-    if (!this._publicVirtualFieldStates) {
-      this._publicVirtualFieldStates = readonly(
-        this._virtualFieldStates as any
-      ) as VirtualFieldStates<VFK>;
-    }
-    return this._publicVirtualFieldStates;
-  }
-
   runInAction = (fn: (...args: any[]) => void) => {
     fn();
   };
@@ -170,16 +148,13 @@ export class FormClass<
       let fieldError: FieldError | null = null;
       let virtualError: FieldError | null = null;
       const updateFieldErrors: Record<string, any> = {};
-      const updateFieldStates: Record<string, any> = {};
       const updateVirtualErrors: Record<string, any> = {};
-      const updateVirtualFieldStates: Record<string, any> = {};
 
       // fields
       keys.forEach((k) => {
         const field = this.fields.get(k);
         if (!field) return;
         // get propeties here sync, so vue can track
-        const fdState = field.state;
         const fdError = field.state.error;
         const fdStateIsError = field.state.isError;
         const fdIsValidating = field.state.isValidating;
@@ -187,7 +162,6 @@ export class FormClass<
         const fdIsTouched = field.state.isTouched;
         const fdIsChanged = field.state.isChanged;
         setKeyValue(updateFieldErrors, k, fdError);
-        setKeyValue(updateFieldStates, k, fdState);
         if (fdStateIsError) isFieldError = true;
         if (fdIsValidating) isFieldValidating = true;
         if (fdIsDirty) isDirty = true;
@@ -202,12 +176,10 @@ export class FormClass<
       virtualKeys.forEach((k) => {
         const field = this.virtualFields.get(k);
         if (!field) return;
-        const fdState = field.state;
         const fdError = field.state.error;
         const fdIsError = field.state.isError;
         const fdIsValidating = field.state.isValidating;
         setKeyValue(updateVirtualErrors, k, fdError);
-        setKeyValue(updateVirtualFieldStates, k, fdState);
         if (fdIsError) isVirtualError = true;
         if (fdIsValidating) isVirtualValidating = true;
         if (fdError && !virtualError) {
@@ -218,11 +190,6 @@ export class FormClass<
       this.runInAction(() => {
         recursiveUpdateObject(this._state.fieldErrors, updateFieldErrors);
         recursiveUpdateObject(this._state.virtualErrors, updateVirtualErrors);
-        recursiveUpdateObject(this._fieldStates, updateFieldStates);
-        recursiveUpdateObject(
-          this._virtualFieldStates,
-          updateVirtualFieldStates
-        );
         this._state.isFieldError = isFieldError;
         this._state.isVirtualError = isVirtualError;
         this._state.isError = isFieldError || isVirtualError;
@@ -269,25 +236,23 @@ export class FormClass<
     this.isMounted = false;
   }
 
-  registerField<
-    N extends FieldPath<T>,
-    V extends KeyPathValue<T, N> = KeyPathValue<T, N>
-  >(
+  registerField<N extends FieldPath<T>, Deps = any>(
     name: N,
     args: {
-      rules?: FieldRule<V, FormState<T>>[];
+      rules?: FieldRule<KeyPathValue<T, N>, Deps>[];
       immediate?: boolean;
-      transform?: (v: V) => V;
-      isEqual?: (v: V, d: V) => boolean;
+      transform?: (v: KeyPathValue<T, N>) => KeyPathValue<T, N>;
+      isEqual?: (v: KeyPathValue<T, N>, d: KeyPathValue<T, N>) => boolean;
       onFocus?: () => void;
+      deps?: () => Deps;
     } = {}
-  ): { field: FieldClass<T, N, V>; register: () => void } {
+  ): { field: FieldClass<T, N, Deps>; register: () => void } {
     const { immediate = true } = args;
     const { fieldsKeys, fields } = this;
     if (fieldsKeys.value.includes(name)) {
       console.warn(`Duplicate field <${name}>.`);
       return {
-        field: this.fields.get(name)! as unknown as FieldClass<T, N, V>,
+        field: this.fields.get(name)! as unknown as FieldClass<T, N, Deps>,
         register: () => {}
       };
     }
@@ -297,13 +262,13 @@ export class FormClass<
           `Fields can not be nested together: <${name}> <${k}>. If you want do this, please use [registerVirtualField]`
         );
         return {
-          field: this.fields.get(name)! as unknown as FieldClass<T, N, V>,
+          field: this.fields.get(name)! as unknown as FieldClass<T, N, Deps>,
           register: () => {}
         };
       }
     }
     // field value
-    const field: FieldClass<T, N, V> = new FieldClass(this as FormClass<T>, {
+    const field: FieldClass<T, N, Deps> = new FieldClass(this as FormClass<T>, {
       ...args,
       name
     });
@@ -325,19 +290,20 @@ export class FormClass<
     return { register, field };
   }
 
-  registerVirtualField<N extends VFK = VFK>(
+  registerVirtualField<N extends VFK = VFK, V = any>(
     name: N,
     args: {
-      rules?: VirtualFieldRule<FormState<T, VFK>>[];
+      rules?: VirtualFieldRule<V>[];
+      value: () => V;
       immediate?: boolean;
-    } = {}
-  ): { field: VirtualFieldClass<T>; register: () => void } {
+    }
+  ): { field: VirtualFieldClass<T, V>; register: () => void } {
     const { immediate = true } = args;
     const { virtualFieldsKeys, virtualFields } = this;
     if (virtualFieldsKeys.value.includes(name)) {
       console.warn(`Duplicate virtual field <${name}>.`);
       return {
-        field: this.virtualFields.get(name) as VirtualFieldClass<T>,
+        field: this.virtualFields.get(name) as VirtualFieldClass<T, V>,
         register: () => {}
       };
     }
@@ -385,7 +351,6 @@ export class FormClass<
       removeValue && delKey(this._state.values, name);
       removeValue && delKey(this._state.defaultValues, name);
       delKey(this._state.fieldErrors, name);
-      delKey(this._fieldStates, name);
     });
     fields.delete(name);
   }
@@ -404,18 +369,12 @@ export class FormClass<
     }
     this.runInAction(() => {
       delKey(this._state.virtualErrors, name);
-      delKey(this._virtualFieldStates, name);
     });
     virtualFields.delete(name);
   }
 
   setPathValue<N extends AutoPath<T>>(name: N, value: KeyPathValue<T, N>) {
-    if (value === undefined) return;
-    const field = this.fields.get(name);
-    if (!field) {
-      console.warn(`Field not exists <${name}>.`);
-      return;
-    }
+    setKeyValue(this._state.values, name, value);
     this.notify('UPDATE', name);
   }
 
@@ -432,23 +391,49 @@ export class FormClass<
   }
 
   deletePathValue<N extends AutoPath<T>>(name: N) {
-    const field = this.fields.get(name);
-    if (!field) {
-      console.warn(`Field not exists <${name}>.`);
-      return;
-    }
     delKey(this._state.values, name);
     this.notify('DELETE', name);
   }
 
   deleteValue<N extends FieldPath<T>>(name: N) {
+    const field = this.fields.get(name);
+    if (!field) {
+      console.warn(`Field not exists <${name}>.`);
+      return;
+    }
     this.deletePathValue(name as any);
   }
 
-  getValue<N extends AutoPath<T>>(name: N): ComputedRef<KeyPathValue<T, N>> {
+  getPathValueRef<N extends AutoPath<T>>(
+    name: N
+  ): ComputedRef<KeyPathValue<T, N>> {
     return computed(() => {
-      return getKeyValue(this._state.values, name);
+      return getKeyValue(this.state.values, name);
     });
+  }
+
+  getValueRef<N extends FieldPath<T>>(
+    name: N
+  ): ComputedRef<KeyPathValue<T, N>> {
+    return computed(() => {
+      if (!this.fieldsKeys.value.includes(name)) {
+        console.warn(`Field not exists <${name}>.`);
+        return undefined;
+      }
+      return getKeyValue(this.state.values, name);
+    });
+  }
+
+  getPathValue<N extends AutoPath<T>>(name: N): KeyPathValue<T, N> {
+    return getKeyValue(this.state.values, name);
+  }
+
+  getValue<N extends FieldPath<T>>(name: N): KeyPathValue<T, N> {
+    if (!this.fieldsKeys.value.includes(name)) {
+      console.warn(`Field not exists <${name}>.`);
+      return undefined as any;
+    }
+    return getKeyValue(this.state.values, name);
   }
 
   setTouched<N extends FieldPath<T>>(name: N, touched = true) {
@@ -595,6 +580,129 @@ export class FormClass<
     this.subscribers.forEach((subscriber) => {
       subscriber(type, name);
     });
+  }
+
+  fieldState<N extends FieldPath<T>>(name: N) {
+    if (!this.fieldsKeys.value.includes(name)) return null;
+    const field = this.fields.get(name);
+    if (!field) return null;
+    return field.state;
+  }
+
+  virtualFieldState<N extends VFK>(name: N) {
+    if (!this.virtualFieldsKeys.value.includes(name)) return null;
+    const field = this.virtualFields.get(name);
+    if (!field) return null;
+    return field.state;
+  }
+
+  isDirty<N extends FieldPath<T>>(name: N) {
+    return this.fieldState(name)?.isDirty || false;
+  }
+
+  isTouched<N extends FieldPath<T>>(name: N) {
+    return this.fieldState(name)?.isTouched || false;
+  }
+
+  isChanged<N extends FieldPath<T>>(name: N) {
+    return this.fieldState(name)?.isChanged || false;
+  }
+
+  isError<N extends FieldPath<T>>(name: N) {
+    return this.fieldState(name)?.isError || false;
+  }
+
+  fieldError<N extends FieldPath<T>>(name: N) {
+    return this.fieldState(name)?.error || null;
+  }
+
+  isVirtualError<N extends VFK>(name: N) {
+    return this.virtualFieldState(name)?.isError || false;
+  }
+
+  virtualFieldError<N extends VFK>(name: N) {
+    return this.virtualFieldState(name)?.error || null;
+  }
+
+  arrayAppend<N extends ArrayFieldPath<T>>(
+    name: N,
+    v: ArrayItem<KeyPathValue<T, N>>
+  ) {
+    const arr = getKeyValue(this._state.values, name);
+    if (!Array.isArray(arr)) return;
+    arr.push(v);
+    this.notify('UPDATE', name);
+  }
+
+  arrayPrepend<N extends ArrayFieldPath<T>>(
+    name: N,
+    v: ArrayItem<KeyPathValue<T, N>>
+  ) {
+    const arr = getKeyValue(this._state.values, name);
+    if (!Array.isArray(arr)) return;
+    arr.unshift(v);
+    this.notify('UPDATE', name);
+  }
+
+  arrayInsert<N extends ArrayFieldPath<T>>(
+    name: N,
+    index: number,
+    v: ArrayItem<KeyPathValue<T, N>>
+  ) {
+    const arr = getKeyValue(this._state.values, name);
+    if (!Array.isArray(arr)) return;
+    arr.splice(index, 0, v);
+    this.notify('UPDATE', name);
+  }
+
+  arraySwap<N extends ArrayFieldPath<T>>(
+    name: N,
+    fromIndex: number,
+    toIndex: number
+  ) {
+    const arr = getKeyValue(this._state.values, name);
+    if (!Array.isArray(arr)) return;
+    const tmp = arr[toIndex];
+    arr[toIndex] = arr[fromIndex];
+    arr[fromIndex] = tmp;
+    this.notify('UPDATE', name);
+  }
+
+  arrayMove<N extends ArrayFieldPath<T>>(
+    name: N,
+    fromIndex: number,
+    toIndex: number
+  ) {
+    const arr = getKeyValue(this._state.values, name);
+    if (!Array.isArray(arr)) return;
+    arr.splice(toIndex, 0, arr[fromIndex]);
+    arr.splice(toIndex > fromIndex ? fromIndex : fromIndex + 1);
+    this.notify('UPDATE', name);
+  }
+
+  arrayUpdate<N extends ArrayFieldPath<T>>(
+    name: N,
+    index: number,
+    v: ArrayItem<KeyPathValue<T, N>>
+  ) {
+    const arr = getKeyValue(this._state.values, name);
+    if (!Array.isArray(arr)) return;
+    arr.splice(index, 1, v);
+    this.notify('UPDATE', name);
+  }
+
+  arrayRemove<N extends ArrayFieldPath<T>>(name: N, index: number) {
+    const arr = getKeyValue(this._state.values, name);
+    if (!Array.isArray(arr)) return;
+    arr.splice(index, 1);
+    this.notify('UPDATE', name);
+  }
+
+  arrayReplace<N extends ArrayFieldPath<T>>(name: N, v: KeyPathValue<T, N>) {
+    const arr = getKeyValue(this._state.values, name);
+    if (!Array.isArray(arr)) return;
+    setKeyValue(this._state.values, name, v);
+    this.notify('UPDATE', name);
   }
 }
 

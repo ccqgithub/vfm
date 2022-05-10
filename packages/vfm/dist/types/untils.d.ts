@@ -7,5 +7,6 @@ export declare const recursiveUpdateObject: (obj: Record<string, any>, newObj: R
 declare type OnCancel = (cancel: () => void) => void;
 export declare const makeCancellablePromise: <T = any>(fn: (onCancel: OnCancel) => Promise<T>) => CancellablePromise<T>;
 export declare const AllPropType: (SymbolConstructor | ObjectConstructor | StringConstructor | BooleanConstructor | NumberConstructor | ArrayConstructor)[];
+export declare const noop: (...args: any[]) => void;
 export {};
 //# sourceMappingURL=untils.d.ts.map

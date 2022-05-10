@@ -114,3 +114,7 @@ export const makeCancellablePromise = <T = any>(
 };
 
 export const AllPropType = [String, Number, Boolean, Symbol, Array, Object];
+
+export const noop = (...args: any[]) => {
+  args;
+};

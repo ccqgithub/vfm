@@ -1,24 +1,17 @@
 import { reactive, watchEffect, WatchStopHandle, ref, toRaw } from 'vue';
 import {
   FormType,
-  FormState,
   FieldRule,
   FieldState,
   FieldError,
   KeyPathValue,
-  ValidateFunc,
-  ValidatorState
+  ValidateFunc
 } from './types';
 import { FormClass } from './form';
 import { validators } from './validators';
 import { getKeyValue, makeCancellablePromise } from './untils';
 
-const validateRule = (
-  rule: FieldRule,
-  v: any,
-  s: ValidatorState,
-  f: FormState
-) => {
+const validateRule = (rule: FieldRule, v: any, deps?: any) => {
   return makeCancellablePromise(async (onCancel) => {
     // required
     if (rule.required) {
@@ -67,7 +60,7 @@ const validateRule = (
     for (const str of Object.keys(validators) as (keyof typeof validators)[]) {
       if (rule[str] === true) {
         const vld = validators[str];
-        const p = vld(v, s, f);
+        const p = vld(v, deps);
         if (typeof p === 'object' && typeof p.cancel === 'function') {
           onCancel(() => p.cancel?.());
         }
@@ -77,7 +70,7 @@ const validateRule = (
     }
     // custom validator
     if (rule.validator) {
-      const p = rule.validator(v, s, f);
+      const p = rule.validator(v, deps);
       if (typeof p === 'object' && typeof p.cancel === 'function') {
         onCancel(() => p.cancel?.());
       }
@@ -92,7 +85,7 @@ const validateRule = (
 export class FieldClass<
   T extends FormType = FormType,
   N extends string = string,
-  V extends KeyPathValue<T, N> = KeyPathValue<T, N>
+  Deps = any
 > {
   // key path in form data
   public name: N;
@@ -101,12 +94,16 @@ export class FieldClass<
   // 所属表单
   private form: FormClass<T>;
   // 验证函数
-  private rules = ref<FieldRule<V, FormState<T>>[]>([]);
-  private validate: ValidateFunc;
+  private rules = ref<FieldRule<KeyPathValue<T, N>, Deps>[]>([]);
+  private deps: (() => Deps) | null = null;
+  private validate: ValidateFunc<KeyPathValue<T, N>, Deps>;
   private validateCount = 0;
   // fns
-  private transform: ((v: V) => V) | null = null;
-  private isEqual: ((value: V, defaultValue: V) => boolean) | null = null;
+  private transform: ((v: KeyPathValue<T, N>) => KeyPathValue<T, N>) | null =
+    null;
+  private isEqual:
+    | ((value: KeyPathValue<T, N>, defaultValue: KeyPathValue<T, N>) => boolean)
+    | null = null;
   private focusFn: (() => void) | null = null;
   // watcher
   private stopValidateWatcher: WatchStopHandle | null = null;
@@ -119,10 +116,11 @@ export class FieldClass<
     form: FormClass<T>,
     args: {
       name: N;
-      rules?: FieldRule<V, FormState<T>>[];
+      rules?: FieldRule<KeyPathValue<T, N>, Deps>[];
+      deps?: () => Deps;
       immediate?: boolean;
-      transform?: (v: V) => V;
-      isEqual?: (v: V, d: V) => boolean;
+      transform?: (v: KeyPathValue<T, N>) => KeyPathValue<T, N>;
+      isEqual?: (v: KeyPathValue<T, N>, d: KeyPathValue<T, N>) => boolean;
       onFocus?: () => void;
     }
   ) {
@@ -132,6 +130,7 @@ export class FieldClass<
     this.form = form;
     this.name = args.name;
     this.rules.value = args.rules || [];
+    this.deps = args.deps || null;
     this.transform = args.transform || null;
     this.isEqual = args.isEqual || null;
     this.focusFn = args.onFocus || null;
@@ -146,25 +145,19 @@ export class FieldClass<
     }) as FieldState;
 
     // validate
-    const validate: ValidateFunc = () => {
-      const s = toRaw(this.state);
-      const value = this.value;
-      const state = {
-        isValidating: s.isValidating,
-        isDirty: this.state.isDirty,
-        isTouched: this.state.isTouched,
-        isChanged: this.state.isChanged
-      };
-      const formState = this.form.state;
+    const validate: ValidateFunc<KeyPathValue<T, N>, Deps> = async (
+      value,
+      deps,
+      rules
+    ) => {
       const transform = this.transform;
-      const rules = this.rules.value;
-      return makeCancellablePromise(async (onCancel) => {
+
+      return await makeCancellablePromise(async (onCancel) => {
         for (const rule of rules) {
           const promise = validateRule(
-            rule as FieldRule<T>,
+            rule as FieldRule<KeyPathValue<T, N>, Deps>,
             transform && value !== undefined ? transform(value) : value,
-            state,
-            formState
+            deps
           );
           onCancel(() => promise.cancel?.());
           const errMsg = await promise;
@@ -194,11 +187,11 @@ export class FieldClass<
     }
   }
 
-  get value() {
+  getValue() {
     return getKeyValue(this.form.state.values, this.name);
   }
 
-  get defaultValue() {
+  getDefaultValue() {
     return getKeyValue(this.form.state.defaultValues, this.name);
   }
 
@@ -208,7 +201,7 @@ export class FieldClass<
 
   update(
     args: {
-      rules?: FieldRule<V, FormState<T>>[];
+      rules?: FieldRule<KeyPathValue<T, N>, Deps>[];
     } = {}
   ) {
     if (args.rules) {
@@ -222,14 +215,16 @@ export class FieldClass<
     this.stopValidateWatcher = watchEffect(async (onCleanup) => {
       this.validateCount++;
       const count = this.validateCount;
-      const validate = this.validate;
-      // start validate
-      this.runInAction(() => {
-        this.state.isValidating = true;
+      // validate
+      const value = this.getValue();
+      const deps = this.deps?.();
+      const rules = this.rules.value;
+      // validate in next micro task, avoid watchEffect to track unnecessary changes
+      const err = await Promise.resolve().then(() => {
+        const promise = this.validate(value, deps, rules);
+        onCleanup(() => promise.cancel?.());
+        return promise;
       });
-      const promise = validate();
-      onCleanup(() => promise.cancel?.());
-      const err = await promise;
       // has other validate start after this
       if (count !== this.validateCount) return;
       // update validate status
@@ -247,13 +242,14 @@ export class FieldClass<
       });
     });
     // dirty watch
-    // this.stopDirtyWatcher = watchEffect(() => {
-    //   const { value, defaultValue } = this;
-    //   this.runInAction(() => {
-    //     const isEqual = this.isEqual || ((v, d) => v === d);
-    //     this.state.isDirty = !isEqual(toRaw(value), toRaw(defaultValue));
-    //   });
-    // });
+    this.stopDirtyWatcher = watchEffect(() => {
+      const value = this.getValue();
+      const defaultValue = this.getDefaultValue();
+      this.runInAction(() => {
+        const isEqual = this.isEqual || ((v, d) => v === d);
+        this.state.isDirty = !isEqual(toRaw(value), toRaw(defaultValue));
+      });
+    });
     this.isInited = true;
   }
 

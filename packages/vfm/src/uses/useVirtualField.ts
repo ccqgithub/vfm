@@ -6,10 +6,12 @@ import { FormType } from '../types';
 export type UseVirtualFieldProps<
   T extends FormType = FormType,
   VFK extends string = string,
-  N extends VFK = VFK
+  N extends VFK = VFK,
+  V = any
 > = {
   form: FormClass<T, VFK>;
   name: Ref<N> | N;
+  value: () => V;
   rules?: Ref<VirtualFieldRule[]> | VirtualFieldRule[];
 };
 
@@ -22,6 +24,7 @@ export const useVirtualField = <T extends FormType, N extends string>(
   const mounted = ref(false);
 
   let { register, field } = form.registerVirtualField(unref(name), {
+    value: props.value,
     rules: unref(props.rules),
     immediate: false
   });
@@ -31,6 +34,7 @@ export const useVirtualField = <T extends FormType, N extends string>(
     (n, ln) => {
       form.unregisterVirtualField(ln);
       const fs = form.registerVirtualField(unref(name), {
+        value: props.value,
         rules: unref(props.rules),
         immediate: mounted.value
       });

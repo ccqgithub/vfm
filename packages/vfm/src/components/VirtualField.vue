@@ -13,15 +13,20 @@ const props = defineProps({
     type: String as PropType<string>,
     required: true
   },
+  value: {
+    type: Function as PropType<() => any>,
+    required: true
+  },
   rules: {
     type: Array as PropType<VirtualFieldRule[]>,
     default: () => []
   }
 });
-const { name, form, rules } = toRefs(props);
+const { name, form, value, rules } = toRefs(props);
 const { mounted } = useVirtualField({
   form: form.value,
   rules: rules.value,
+  value: value.value,
   name
 });
 </script>

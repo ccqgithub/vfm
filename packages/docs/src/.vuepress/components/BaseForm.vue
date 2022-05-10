@@ -3,42 +3,10 @@ import { onMounted, onBeforeUnmount } from 'vue';
 import { Field, VirtualField } from 'vfm';
 import type { FieldProps } from 'vfm';
 import { form } from './form';
+import BaseInfo from './partial/BaseInfo.vue';
+import AddressList from './partial/AddressList.vue';
 
-// form.registerField('username', {
-//   rules: [
-//     {
-//       required: true
-//     }
-//   ]
-// });
-
-// form.registerField('password', {
-//   rules: [
-//     {
-//       required: true,
-//       pattern: /[a-zA-Z0-9]{8,20}/
-//     }
-//   ]
-// });
-
-// form.registerField('passwordConfirm', {
-//   rules: [
-//     {
-//       required: true,
-//       pattern: /[a-zA-Z0-9]{8,20}/
-//     }, {
-//       validator: (v, _, { values }) => {
-//         if (!values.password) return '';
-//         if (v !== values.password) {
-//           return 'The passwordConfirm must same as password'
-//         }
-//         return ''
-//       }
-//     }
-//   ]
-// });
 const formState = form.state;
-
 // mounted or unmounted
 onMounted(() => form.mount());
 onBeforeUnmount(() => form.unmount());
@@ -51,7 +19,8 @@ onBeforeUnmount(() => form.unmount());
       <div class="vfm-label">User Name:</div>
       <div class="vfm-value">
         <Field
-          :form="form" name="username"
+          :form="form"
+          name="username"
           :rules="[
             {
               required: true
@@ -65,37 +34,81 @@ onBeforeUnmount(() => form.unmount());
             v-bind="field"
           />
           <div class="vfm-error">
-            {{ formState.fieldErrors.username?.message }}
+            {{ form.fieldError('username')?.message }}
           </div>
         </Field>
       </div>
     </div>
-    <!-- <div class="vfm-block-title">Password</div>
     <div class="vfm-p">
       <div class="vfm-label">Password:</div>
       <div class="vfm-value">
-        <input 
-          class="vfm-input" 
-          type="text" 
-          :value="formState.values.password" 
-          @input="(e) => form.setValue('password', (e.target as HTMLInputElement).value)">
+        <Field
+          :form="form"
+          name="password"
+          :rules="[
+            {
+              required: true,
+              pattern: /[a-zA-Z0-9]{8,20}/
+            }
+          ]"
+          #default="{ field }"
+        >
+          <input
+            class="vfm-input"
+            type="password"
+            v-bind="field"
+          />
           <div class="vfm-error">
-            {{ formState.fieldErrors.password?.message }}
+            {{ form.fieldError('password')?.message }}
           </div>
+        </Field>
       </div>
     </div>
     <div class="vfm-p">
       <div class="vfm-label">Password Confirm:</div>
       <div class="vfm-value">
-        <input 
-          class="vfm-input" 
-          type="text" 
-          :value="formState.values.passwordConfirm" 
-          @input="(e) => form.setValue('passwordConfirm', (e.target as HTMLInputElement).value)">
+        <Field
+          :form="form"
+          name="passwordConfirm"
+          :deps="() => ({
+            password: formState.values.password
+          })"
+          :rules="[
+            {
+              required: true,
+              pattern: /[a-zA-Z0-9]{8,20}/
+            }, {
+              validator: (v, { password }) => {
+                if (!password) return '';
+                if (v !== password) {
+                  return 'The passwordConfirm must same as password'
+                }
+                return ''
+              }
+            }
+          ]"
+          #default="{ field }"
+        >
+          <input
+            class="vfm-input"
+            type="password"
+            v-bind="field"
+          />
           <div class="vfm-error">
-            {{ formState.fieldErrors.passwordConfirm?.message }}
+            {{ form.fieldError('passwordConfirm')?.message }}
           </div>
+        </Field>
       </div>
-    </div> -->
+    </div>
+
+    <!-- base info -->
+    <BaseInfo />
+
+    <!-- address -->
+    <AddressList />
+
+    <div class="vfm-p">
+      <button class="vfm-button">Submit</button>
+    </div>
   </div>
 </template>

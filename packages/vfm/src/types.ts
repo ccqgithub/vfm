@@ -59,6 +59,8 @@ export type InternalKeyPathValue<V, Path extends string> = Path extends ''
     ? KeyPathValue<V[Key], Rest>
     : V[Path] extends NestedValue<infer U>
     ? U
+    : V extends Array<infer U>
+    ? U | undefined
     : V[Path]
   : never;
 
@@ -85,12 +87,6 @@ export type FieldValues<
   T extends FormType = FormType,
   P extends boolean = false
 > = P extends true ? UnpackNestedValue<DeepPartial<T>> : UnpackNestedValue<T>;
-
-export type FieldStates<T extends FormType = FormType> = UnpackFieldState<T>;
-
-export type VirtualFieldStates<VFK extends string = string> = {
-  [K in VFK]: VirtualFieldState;
-};
 
 export interface CancellablePromise<T = any> extends Promise<T> {
   cancel?: () => void;
@@ -170,8 +166,6 @@ export type FieldState = {
   isChanged: boolean;
 };
 
-export type ValidatorState = Omit<FieldState, 'error' | 'isError'>;
-
 export type VirtualFieldState = {
   // 错误信息
   error: FieldError | null;
@@ -181,24 +175,27 @@ export type VirtualFieldState = {
   isValidating: boolean;
 };
 
-export type ValidateFunc = () => CancellablePromise<FieldError | null>;
+export type ValidateFunc<V, Deps, Rules = FieldRule<V, Deps>[]> = (
+  v: V,
+  deps: Deps | undefined,
+  rules: Rules
+) => CancellablePromise<FieldError | null>;
 
-export type VirtualValidateFunc = () => CancellablePromise<FieldError | null>;
+export type VirtualValidateFunc<V, Rules = VirtualFieldRule<V>[]> = (
+  v: V,
+  rules: Rules
+) => CancellablePromise<FieldError | null>;
 
-export type Validator<
-  V = any,
-  F extends Record<string, any> = Record<string, any>
-> = (
+export type Validator<V = any, Deps = any> = (
   value: V | undefined,
-  state: ValidatorState,
-  form: F
+  deps?: Deps
 ) => string | CancellablePromise<string>;
 
-export type VirtualFieldValidator<
-  F extends Record<string, any> = Record<string, any>
-> = (form: F) => string | CancellablePromise<string>;
+export type VirtualFieldValidator<V = any> = (
+  value: V
+) => string | CancellablePromise<string>;
 
-export type FieldRule<V = any, F extends FormState = FormState> = {
+export type FieldRule<V = any, Deps = any> = {
   type?: string;
   // short flags
   required?: boolean;
@@ -217,15 +214,34 @@ export type FieldRule<V = any, F extends FormState = FormState> = {
   integer?: boolean;
   ipAddress?: boolean;
   macAddress?: boolean;
-  // custon validator
-  validator?: Validator<V, F>;
+  // custom validator
+  validator?: Validator<V, Deps>;
   // message
   message?: string;
 };
 
-export type VirtualFieldRule<F extends FormState = FormState> = {
+export type VirtualFieldRule<V = any> = {
   type?: string;
-  validator?: VirtualFieldValidator<F>;
+  // short flags
+  required?: boolean;
+  requiredLength?: boolean;
+  minLength?: number;
+  maxLength?: number;
+  min?: number;
+  max?: number;
+  pattern?: RegExp;
+  // builtin validators
+  alpha?: boolean;
+  alphaNum?: boolean;
+  decimal?: boolean;
+  numeric?: boolean;
+  email?: boolean;
+  integer?: boolean;
+  ipAddress?: boolean;
+  macAddress?: boolean;
+  // custom validator
+  validator?: VirtualFieldValidator<V>;
+  // message
   message?: string;
 };
 

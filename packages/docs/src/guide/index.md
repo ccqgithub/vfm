@@ -23,29 +23,32 @@ yarn add vfm
 
 ## Create Sorm Structure
 
-@[code ts](../.vuepress/components/form.ts)
+<details open>
+  <summary>Details:</summary>
+
+  @[code ts](../.vuepress/components/form.ts)
+
+</details>
 
 ## Munual Register Fields
 
-<ExampleBlock>
-  <ExampleItem title="createForm">
+<details open>
+  <summary>Details:</summary>
+  <ExampleBlock>
+    <ExampleItem title="Result" active>
+      <BaseForm />
+    </ExampleItem>
+    <ExampleItem title="CreateForm">
 
 @[code ts](../.vuepress/components/form.ts)
 
   </ExampleItem>
-  <ExampleItem title="BaseInfo">
-
-@[code vue](../.vuepress/components/js/JSBaseInfo.vue)
-
-  </ExampleItem>
-  <ExampleItem title="Form" active>
+    <ExampleItem title="BaseForm">
 
 @[code vue](../.vuepress/components/BaseForm.vue)
 
   </ExampleItem>
-  <ExampleItem title="Result">
+  </ExampleBlock>
+</details>
 
-<BaseForm />
 
-  </ExampleItem>
-</ExampleBlock>

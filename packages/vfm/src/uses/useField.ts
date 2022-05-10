@@ -23,7 +23,8 @@ import { getKeyValue } from './../untils';
 
 export type UseFieldProps<
   T extends FormType = FormType,
-  N extends FieldPath<T> = FieldPath<T>
+  N extends FieldPath<T> = FieldPath<T>,
+  Deps = any
 > = {
   form: FormClass<T>;
   name: Ref<N> | N;
@@ -33,6 +34,7 @@ export type UseFieldProps<
   touchType?: Ref<'FOCUS' | 'BLUR'> | ('FOCUS' | 'BLUR');
   transform?: (v: KeyPathValue<T, N>) => KeyPathValue<T, N>;
   isEqual?: (v: KeyPathValue<T, N>, d: KeyPathValue<T, N>) => boolean;
+  deps?: () => Deps;
 };
 
 export const useField = <T extends FormType, N extends FieldPath<T>>(
@@ -74,6 +76,7 @@ export const useField = <T extends FormType, N extends FieldPath<T>>(
   let { register, field } = form.registerField(unref(name) as any, {
     rules: unref(props.rules),
     transform: props.transform,
+    deps: props.deps,
     immediate: false,
     onFocus: () => {
       (elemRef.value as any)?.focus?.();
@@ -89,11 +92,11 @@ export const useField = <T extends FormType, N extends FieldPath<T>>(
       return [unref(props.name), unref(props.rules)] as const;
     },
     ([n, rules], [ln]) => {
-      console.log('watch a', n, rules);
       form.unregisterField(ln);
       const fs = form.registerField(n, {
         rules,
         transform: props.transform,
+        deps: props.deps,
         isEqual: props.isEqual,
         immediate: mounted.value,
         onFocus: () => {
@@ -112,14 +115,12 @@ export const useField = <T extends FormType, N extends FieldPath<T>>(
     () => getKeyValue(form.state.values, unref(props.name)),
     (v) => {
       model.value = v;
-      console.log('watch b', v);
     }
   );
   // model.value to fieldState.value
   const stopWatchModel = watch(
     () => model.value,
     (v) => {
-      console.log('watch m', v);
       const value = getKeyValue(form.state.values, unref(props.name));
       if (toRaw(value) !== toRaw(v)) {
         model.value = v;

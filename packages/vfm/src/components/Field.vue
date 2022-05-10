@@ -18,6 +18,10 @@ const props = defineProps({
     type: Array as PropType<FieldRule[]>,
     default: () => []
   },
+  deps: {
+    type: Function as PropType<() => any>,
+    default: undefined
+  },
   value: {
     type: AllPropType as PropType<any>,
     default: undefined
@@ -36,11 +40,12 @@ const props = defineProps({
   }
 });
 
-const { form, rules, transform, name, ...rest } = toRefs(props);
+const { form, rules, transform, name, deps, ...rest } = toRefs(props);
 const [slotProps, , { mounted }] = useField({
   form: form.value,
   rules: rules.value,
   transform: transform?.value,
+  deps: deps?.value,
   name: name as any,
   ...rest
 });
