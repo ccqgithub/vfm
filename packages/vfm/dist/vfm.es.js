@@ -932,22 +932,23 @@ class FormClass {
     }
     field.onFocus();
   }
-  submit(onSuccess, onError) {
+  submit(args = {}) {
     const flag = this.submitFlag;
     const callback = () => {
+      var _a, _b;
       if (flag !== this.submitFlag)
         return;
       this.runInAction(() => {
         this._state.isSubmitting = false;
       });
       if (this._state.isError) {
-        onError(toRaw(this._state.error));
+        (_a = args.onError) == null ? void 0 : _a.call(args, toRaw(this._state.error));
         return;
       }
       this.runInAction(() => {
         this._state.isSubmitted = true;
       });
-      onSuccess(toRaw(this._state.values));
+      (_b = args.onSuccess) == null ? void 0 : _b.call(args, toRaw(this._state.values));
     };
     this.runInAction(() => {
       this._state.submitCount++;

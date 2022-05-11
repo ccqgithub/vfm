@@ -30,7 +30,7 @@ yarn add vfm
 
 </details>
 
-## Munual Register Fields
+## Register Fields
 
 <details open>
   <summary>Details:</summary>
@@ -38,14 +38,34 @@ yarn add vfm
     <ExampleItem title="Result" active>
       <BaseForm />
     </ExampleItem>
-    <ExampleItem title="CreateForm">
+    <ExampleItem title="<CreateForm>">
 
 @[code ts](../.vuepress/components/form.ts)
 
   </ExampleItem>
-    <ExampleItem title="BaseForm">
+    <ExampleItem title="<BaseForm>">
 
 @[code vue](../.vuepress/components/BaseForm.vue)
+
+  </ExampleItem>
+    <ExampleItem title="<BaseInfo>">
+
+  @[code vue](../.vuepress/components/partial/BaseInfo.vue)
+
+  </ExampleItem>
+    <ExampleItem title="<AddressList>">
+
+  @[code vue](../.vuepress/components/partial/AddressList.vue)
+
+  </ExampleItem>
+    <ExampleItem title="<SchoolList>">
+
+  @[code vue](../.vuepress/components/partial/SchoolList.vue)
+
+  </ExampleItem>
+    <ExampleItem title="<SelectSchool>">
+
+  @[code vue](../.vuepress/components/partial/SelectSchool.vue)
 
   </ExampleItem>
   </ExampleBlock>

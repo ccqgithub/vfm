@@ -455,8 +455,10 @@ export class FormClass<
   }
 
   submit(
-    onSuccess: (data: FieldValues<T>) => void,
-    onError: (error: FieldError | null) => void
+    args: {
+      onSuccess?: (data: FieldValues<T>) => void;
+      onError?: (error: FieldError) => void;
+    } = {}
   ) {
     const flag = this.submitFlag;
     const callback = () => {
@@ -465,13 +467,13 @@ export class FormClass<
         this._state.isSubmitting = false;
       });
       if (this._state.isError) {
-        onError(toRaw(this._state.error));
+        args.onError?.(toRaw(this._state.error!));
         return;
       }
       this.runInAction(() => {
         this._state.isSubmitted = true;
       });
-      onSuccess(toRaw(this._state.values));
+      args.onSuccess?.(toRaw(this._state.values));
     };
     this.runInAction(() => {
       this._state.submitCount++;

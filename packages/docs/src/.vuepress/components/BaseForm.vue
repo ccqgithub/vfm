@@ -5,8 +5,20 @@ import type { FieldProps } from 'vfm';
 import { form } from './form';
 import BaseInfo from './partial/BaseInfo.vue';
 import AddressList from './partial/AddressList.vue';
+import SchoolList from './partial/SchoolList.vue';
 
 const formState = form.state;
+const submit = () => {
+  form.submit({
+    onSuccess: (data) => {
+      alert(JSON.stringify(data, null, 2));
+    },
+    onError: (err) => {
+      alert(err.message);
+    }
+  })
+}
+
 // mounted or unmounted
 onMounted(() => form.mount());
 onBeforeUnmount(() => form.unmount());
@@ -107,8 +119,11 @@ onBeforeUnmount(() => form.unmount());
     <!-- address -->
     <AddressList />
 
+    <!-- schools -->
+    <SchoolList />
+
     <div class="vfm-p">
-      <button class="vfm-button">Submit</button>
+      <button class="vfm-button" @click="submit">Submit</button>
     </div>
   </div>
 </template>

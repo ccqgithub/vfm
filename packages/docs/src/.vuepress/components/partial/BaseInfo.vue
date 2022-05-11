@@ -2,23 +2,6 @@
 import { Field } from 'vfm';
 import { form } from '../form';
 
-form.registerField('baseInfo.birthDay', {
-  rules: [
-    {
-      required: true
-    }
-  ]
-});
-
-form.registerField('baseInfo.age', {
-  rules: [
-    {
-      required: true,
-      integer: true
-    }
-  ]
-})
-
 const formState = form.state;
 </script>
 

@@ -92,7 +92,7 @@ details {
 
 .vfm-p {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   margin-bottom: 20px;
 }
 
@@ -111,6 +111,7 @@ details {
   height: 26px;
   line-height: 26px;
   display: block;
+  border: 1px solid #ddd;
 }
 
 .vfm-button {

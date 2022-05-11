@@ -66,7 +66,10 @@ export declare class FormClass<T extends FormType = FormType, VFK extends string
     getValue<N extends FieldPath<T>>(name: N): KeyPathValue<T, N>;
     setTouched<N extends FieldPath<T>>(name: N, touched?: boolean): void;
     setFocus<N extends FieldPath<T>>(name: N): void;
-    submit(onSuccess: (data: FieldValues<T>) => void, onError: (error: FieldError | null) => void): void;
+    submit(args?: {
+        onSuccess?: (data: FieldValues<T>) => void;
+        onError?: (error: FieldError) => void;
+    }): void;
     reset(args?: {
         values?: FieldValues<T>;
         defaultValues?: FieldValues<T, true>;
