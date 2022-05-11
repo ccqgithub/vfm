@@ -3,9 +3,9 @@ import { defineUserConfig } from '@vuepress/cli';
 import { viteBundler } from '@vuepress/bundler-vite';
 import { docsearchPlugin } from '@vuepress/plugin-docsearch';
 import { googleAnalyticsPlugin } from '@vuepress/plugin-google-analytics';
-import { registerComponentsPlugin } from '@vuepress/plugin-register-components';
 import { defaultTheme } from '@vuepress/theme-default';
 import { path } from '@vuepress/utils';
+import { registerComponentsPlugin } from '../../plugins/plugin-register-components';
 import { navbar, sidebar } from './configs';
 
 const isProd = process.env.NODE_ENV === 'production';
@@ -119,7 +119,11 @@ export default defineUserConfig({
     //   id: process.env.DOCS_GA_ID ?? '',
     // }),
     registerComponentsPlugin({
-      componentsDir: path.resolve(__dirname, './components'),
+      components: {
+        ExampleBlock: path.resolve(__dirname, './components/ExampleBlock.vue'),
+        ExampleItem: path.resolve(__dirname, './components/ExampleItem.vue'),
+        BaseForm: path.resolve(__dirname, './components/BaseForm.vue')
+      }
     })
   ],
 });

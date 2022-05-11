@@ -26,7 +26,7 @@ yarn add vfm
 <details open>
   <summary>Details:</summary>
 
-  @[code ts](../.vuepress/components/form.ts)
+  @[code ts](./.vuepress/components/form.ts)
 
 </details>
 
@@ -40,32 +40,32 @@ yarn add vfm
     </ExampleItem>
     <ExampleItem title="<CreateForm>">
 
-@[code ts](../.vuepress/components/form.ts)
+@[code ts](./.vuepress/components/form.ts)
 
   </ExampleItem>
     <ExampleItem title="<BaseForm>">
 
-@[code vue](../.vuepress/components/BaseForm.vue)
+@[code vue](./.vuepress/components/BaseForm.vue)
 
   </ExampleItem>
     <ExampleItem title="<BaseInfo>">
 
-  @[code vue](../.vuepress/components/partial/BaseInfo.vue)
+  @[code vue](./.vuepress/components/partial/BaseInfo.vue)
 
   </ExampleItem>
     <ExampleItem title="<AddressList>">
 
-  @[code vue](../.vuepress/components/partial/AddressList.vue)
+  @[code vue](./.vuepress/components/partial/AddressList.vue)
 
   </ExampleItem>
     <ExampleItem title="<SchoolList>">
 
-  @[code vue](../.vuepress/components/partial/SchoolList.vue)
+  @[code vue](./.vuepress/components/partial/SchoolList.vue)
 
   </ExampleItem>
     <ExampleItem title="<SelectSchool>">
 
-  @[code vue](../.vuepress/components/partial/SelectSchool.vue)
+  @[code vue](./.vuepress/components/partial/SelectSchool.vue)
 
   </ExampleItem>
   </ExampleBlock>

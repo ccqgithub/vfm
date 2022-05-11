@@ -66,7 +66,6 @@ export default defineComponent({
 
       // clear tabRefs for HMR
       // tabRefs.value = []
-
       // do not render anything if there is no code-group-item
       if (items.length === 0) {
         return null
@@ -127,7 +126,7 @@ export default defineComponent({
             })
           )
         ),
-        items,
+        items
       ])
     }
   },
