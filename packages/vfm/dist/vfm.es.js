@@ -29,7 +29,7 @@ var __objRest = (source, exclude) => {
     }
   return target;
 };
-import { ref, reactive, watchEffect, toRaw, readonly, computed, unref, watch, onMounted, onUnmounted, defineComponent, toRefs, renderSlot, createCommentVNode, normalizeProps, guardReactiveProps } from "vue";
+import { ref, reactive, watchEffect, toRaw, readonly, computed, unref, watch, onMounted, onBeforeUnmount, defineComponent, toRefs, renderSlot, createCommentVNode, normalizeProps, guardReactiveProps } from "vue";
 const alpha = (value) => {
   const msg = "{{name}} is not alphabetical";
   if (typeof value !== "string")
@@ -214,7 +214,8 @@ const validateRule$1 = (rule, v, deps) => {
         return `{{name}} not match ${rule.pattern.toString()}`;
       }
     }
-    for (const str of Object.keys(validators)) {
+    const validatorKeys = Object.keys(validators);
+    for (const str of validatorKeys) {
       if (rule[str] === true) {
         const vld = validators[str];
         const p = vld(v, deps);
@@ -439,7 +440,8 @@ const validateRule = (rule, v) => {
         return `{{name}} not match ${rule.pattern.toString()}`;
       }
     }
-    for (const str of Object.keys(validators)) {
+    const validatorKeys = Object.keys(validators);
+    for (const str of validatorKeys) {
       if (rule[str] === true) {
         const vld = validators[str];
         const p = vld(v);
@@ -638,8 +640,6 @@ class FormClass {
     if (this.isMounted)
       return;
     const { cacheFields, cacheVirtualFields } = this;
-    this.fieldsKeys.value.push(...cacheFields);
-    this.virtualFieldsKeys.value.push(...cacheVirtualFields);
     for (const k of cacheFields) {
       const filed = this.fields.get(k);
       filed == null ? void 0 : filed.initWatcher();
@@ -650,6 +650,8 @@ class FormClass {
     }
     this.cacheFields = [];
     this.cacheVirtualFields = [];
+    this.fieldsKeys.value.push(...cacheFields);
+    this.virtualFieldsKeys.value.push(...cacheVirtualFields);
     this.stopStateWatcher = watchEffect(() => {
       const keys = this.fieldsKeys.value;
       const virtualKeys = this.virtualFieldsKeys.value;
@@ -738,10 +740,12 @@ class FormClass {
     (_a = this.stopStateWatcher) == null ? void 0 : _a.call(this);
     (_b = this.stopStatusWatcher) == null ? void 0 : _b.call(this);
     (_c = this.stopValidatingWatcher) == null ? void 0 : _c.call(this);
-    for (const name of this.fieldsKeys.value) {
+    const names = [...this.fieldsKeys.value];
+    for (const name of names) {
       this.unregisterField(name);
     }
-    for (const name of this.virtualFieldsKeys.value) {
+    const virtualNames = [...this.virtualFieldsKeys.value];
+    for (const name of virtualNames) {
       this.unregisterVirtualField(name);
     }
     for (const name of this.cacheFields) {
@@ -750,12 +754,17 @@ class FormClass {
     for (const name of this.cacheVirtualFields) {
       this.unregisterVirtualField(name);
     }
+    this.subscribers = [];
+    this.reset({
+      values: toRaw(this.initValues),
+      defaultValues: toRaw(this.defaultValues)
+    });
     this.isMounted = false;
   }
   registerField(name, args = {}) {
     const { immediate = true } = args;
-    const { fieldsKeys, fields } = this;
-    if (fieldsKeys.value.includes(name)) {
+    const { fieldsKeys, fields, cacheFields } = this;
+    if (fieldsKeys.value.includes(name) || cacheFields.includes(name)) {
       console.warn(`Duplicate field <${name}>.`);
       return {
         field: this.fields.get(name),
@@ -763,7 +772,7 @@ class FormClass {
         }
       };
     }
-    for (const k of fieldsKeys.value) {
+    for (const k of [...fieldsKeys.value, ...cacheFields]) {
       if (k.startsWith(`${name}.`) || name.startsWith(`${k}.`)) {
         console.warn(`Fields can not be nested together: <${name}> <${k}>. If you want do this, please use [registerVirtualField]`);
         return {
@@ -776,8 +785,8 @@ class FormClass {
     const field = new FieldClass(this, __spreadProps(__spreadValues({}, args), {
       name
     }));
+    fields.set(name, field);
     const register = () => {
-      fields.set(name, field);
       this.runInAction(() => {
         if (this.isMounted) {
           this.fieldsKeys.value.push(name);
@@ -796,8 +805,8 @@ class FormClass {
   }
   registerVirtualField(name, args) {
     const { immediate = true } = args;
-    const { virtualFieldsKeys, virtualFields } = this;
-    if (virtualFieldsKeys.value.includes(name)) {
+    const { virtualFieldsKeys, virtualFields, cacheVirtualFields } = this;
+    if (virtualFieldsKeys.value.includes(name) || cacheVirtualFields.includes(name)) {
       console.warn(`Duplicate virtual field <${name}>.`);
       return {
         field: this.virtualFields.get(name),
@@ -808,8 +817,8 @@ class FormClass {
     const field = new VirtualFieldClass(this, __spreadProps(__spreadValues({}, args), {
       name
     }));
+    virtualFields.set(name, field);
     const register = () => {
-      virtualFields.set(name, field);
       this.runInAction(() => {
         if (this.isMounted) {
           this.virtualFieldsKeys.value.push(name);
@@ -1197,7 +1206,7 @@ const useField = (props) => {
     register == null ? void 0 : register();
     mounted.value = true;
   });
-  onUnmounted(() => {
+  onBeforeUnmount(() => {
     form.unregisterField(unref(name));
     stopWatch();
     stopWatchValue();
@@ -1245,7 +1254,7 @@ const useVirtualField = (props) => {
     register();
     mounted.value = true;
   });
-  onUnmounted(() => {
+  onBeforeUnmount(() => {
     form.unregisterVirtualField(unref(name));
     stopWatch();
   });
@@ -1352,7 +1361,7 @@ const createFieldArray = (form, path) => {
 };
 const useFieldArray = (form, path) => {
   const _a = createFieldArray(form, path), { onCleanup } = _a, rest = __objRest(_a, ["onCleanup"]);
-  onUnmounted(() => onCleanup());
+  onBeforeUnmount(() => onCleanup());
   return rest;
 };
 const _sfc_main$2 = /* @__PURE__ */ defineComponent({

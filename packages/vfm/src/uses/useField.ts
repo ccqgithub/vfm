@@ -7,7 +7,7 @@ import {
   computed,
   reactive,
   onMounted,
-  onUnmounted
+  onBeforeUnmount
 } from 'vue';
 import {
   FormType,
@@ -133,7 +133,7 @@ export const useField = <T extends FormType, N extends FieldPath<T>>(
     mounted.value = true;
   });
 
-  onUnmounted(() => {
+  onBeforeUnmount(() => {
     form.unregisterField(unref(name));
     stopWatch();
     stopWatchValue();

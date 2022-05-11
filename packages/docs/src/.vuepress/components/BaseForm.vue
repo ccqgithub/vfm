@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { onMounted, onBeforeUnmount } from 'vue';
 import { Field, VirtualField } from 'vfm';
-import type { FieldProps } from 'vfm';
+import type { FieldScope } from 'vfm';
 import { form } from './form';
 import BaseInfo from './partial/BaseInfo.vue';
 import AddressList from './partial/AddressList.vue';
@@ -20,8 +20,12 @@ const submit = () => {
 }
 
 // mounted or unmounted
-onMounted(() => form.mount());
-onBeforeUnmount(() => form.unmount());
+onMounted(() => {
+  form.mount();
+});
+onBeforeUnmount(() => {
+  form.unmount();
+});
 </script>
 
 <template>
@@ -38,7 +42,7 @@ onBeforeUnmount(() => form.unmount());
               required: true
             }
           ]"
-          #default="{ field }"
+          #default="{ field }: FieldScope"
         >
           <input
             class="vfm-input"
@@ -63,7 +67,7 @@ onBeforeUnmount(() => form.unmount());
               pattern: /[a-zA-Z0-9]{8,20}/
             }
           ]"
-          #default="{ field }"
+          #default="{ field }: FieldScope"
         >
           <input
             class="vfm-input"
@@ -99,7 +103,7 @@ onBeforeUnmount(() => form.unmount());
               }
             }
           ]"
-          #default="{ field }"
+          #default="{ field }: FieldScope"
         >
           <input
             class="vfm-input"

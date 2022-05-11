@@ -1,4 +1,4 @@
-import { onUnmounted, onMounted, Ref, ref, unref, watch } from 'vue';
+import { onBeforeUnmount, onMounted, Ref, ref, unref, watch } from 'vue';
 import { FormClass } from '../form';
 import { VirtualFieldRule } from './../types';
 import { FormType } from '../types';
@@ -49,7 +49,7 @@ export const useVirtualField = <T extends FormType, N extends string>(
     mounted.value = true;
   });
 
-  onUnmounted(() => {
+  onBeforeUnmount(() => {
     form.unregisterVirtualField(unref(name));
     stopWatch();
   });

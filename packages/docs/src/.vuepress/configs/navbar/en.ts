@@ -3,10 +3,10 @@ import type { NavbarConfig } from '@vuepress/theme-default';
 export const en: NavbarConfig = [
   {
     text: 'Guide',
-    link: '/guide/'
+    link: '/'
   },
   {
     text: 'APIs',
-    children: ['/api/index.md']
+    link: '/apis/'
   }
 ];

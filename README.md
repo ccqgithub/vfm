@@ -2,7 +2,13 @@
 
 Vue driven form management tool。
 
-- developing...
+## Document
 
-[中文文档](./docs/zh-CN.md)
+- [English Document](https://ccqgithub.github.io/vfm)
+- [中文文档 WIP](https://ccqgithub.github.io/vfm)
 
+## Todo
+
+- Better Documents
+- Unit Tests
+- Better Typescript support (vue limition) (e.g. `component generic props types`, `scoped slot props types`)

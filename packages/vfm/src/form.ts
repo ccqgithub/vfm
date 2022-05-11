@@ -119,8 +119,6 @@ export class FormClass<
 
     // register cache fields
     const { cacheFields, cacheVirtualFields } = this;
-    this.fieldsKeys.value.push(...cacheFields);
-    this.virtualFieldsKeys.value.push(...cacheVirtualFields);
     for (const k of cacheFields) {
       const filed = this.fields.get(k);
       filed?.initWatcher();
@@ -131,6 +129,8 @@ export class FormClass<
     }
     this.cacheFields = [];
     this.cacheVirtualFields = [];
+    this.fieldsKeys.value.push(...cacheFields);
+    this.virtualFieldsKeys.value.push(...cacheVirtualFields);
 
     // init watchers
     // keys change, or fields state change
@@ -218,13 +218,18 @@ export class FormClass<
   }
 
   unmount() {
+    // stop watchers
     this.stopStateWatcher?.();
     this.stopStatusWatcher?.();
     this.stopValidatingWatcher?.();
-    for (const name of this.fieldsKeys.value) {
+
+    // unregister fields
+    const names = [...this.fieldsKeys.value];
+    for (const name of names) {
       this.unregisterField(name as any);
     }
-    for (const name of this.virtualFieldsKeys.value) {
+    const virtualNames = [...this.virtualFieldsKeys.value];
+    for (const name of virtualNames) {
       this.unregisterVirtualField(name as any);
     }
     for (const name of this.cacheFields) {
@@ -233,6 +238,13 @@ export class FormClass<
     for (const name of this.cacheVirtualFields) {
       this.unregisterVirtualField(name as any);
     }
+
+    // reset states
+    this.subscribers = [];
+    this.reset({
+      values: toRaw(this.initValues),
+      defaultValues: toRaw(this.defaultValues)
+    });
     this.isMounted = false;
   }
 
@@ -248,15 +260,15 @@ export class FormClass<
     } = {}
   ): { field: FieldClass<T, N, Deps>; register: () => void } {
     const { immediate = true } = args;
-    const { fieldsKeys, fields } = this;
-    if (fieldsKeys.value.includes(name)) {
+    const { fieldsKeys, fields, cacheFields } = this;
+    if (fieldsKeys.value.includes(name) || cacheFields.includes(name)) {
       console.warn(`Duplicate field <${name}>.`);
       return {
         field: this.fields.get(name)! as unknown as FieldClass<T, N, Deps>,
         register: () => {}
       };
     }
-    for (const k of fieldsKeys.value) {
+    for (const k of [...fieldsKeys.value, ...cacheFields]) {
       if (k.startsWith(`${name}.`) || name.startsWith(`${k}.`)) {
         console.warn(
           `Fields can not be nested together: <${name}> <${k}>. If you want do this, please use [registerVirtualField]`
@@ -272,8 +284,8 @@ export class FormClass<
       ...args,
       name
     });
+    fields.set(name, field as any);
     const register = () => {
-      fields.set(name, field as any);
       this.runInAction(() => {
         if (this.isMounted) {
           this.fieldsKeys.value.push(name);
@@ -299,8 +311,11 @@ export class FormClass<
     }
   ): { field: VirtualFieldClass<T, V>; register: () => void } {
     const { immediate = true } = args;
-    const { virtualFieldsKeys, virtualFields } = this;
-    if (virtualFieldsKeys.value.includes(name)) {
+    const { virtualFieldsKeys, virtualFields, cacheVirtualFields } = this;
+    if (
+      virtualFieldsKeys.value.includes(name) ||
+      cacheVirtualFields.includes(name)
+    ) {
       console.warn(`Duplicate virtual field <${name}>.`);
       return {
         field: this.virtualFields.get(name) as VirtualFieldClass<T, V>,
@@ -311,8 +326,8 @@ export class FormClass<
       ...args,
       name
     });
+    virtualFields.set(name, field as any);
     const register = () => {
-      virtualFields.set(name, field as any);
       this.runInAction(() => {
         if (this.isMounted) {
           this.virtualFieldsKeys.value.push(name);
@@ -359,6 +374,7 @@ export class FormClass<
     const { virtualFields } = this;
     const field = virtualFields.get(name);
     if (!field) return;
+
     field.onUnregister();
     if (this.isMounted) {
       const findIndex = this.virtualFieldsKeys.value.indexOf(name);

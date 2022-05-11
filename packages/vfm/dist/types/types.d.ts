@@ -132,5 +132,8 @@ export declare type FieldProps<T extends FormType = FormType, N extends string =
     onFocus: () => void;
     ref: (el: InputLikeRef | null) => void;
 };
+export declare type FieldScope<T extends FormType = FormType, N extends string = string> = {
+    field: FieldProps<T, N>;
+};
 export {};
 //# sourceMappingURL=types.d.ts.map

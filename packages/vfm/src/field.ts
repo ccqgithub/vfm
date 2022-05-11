@@ -57,7 +57,10 @@ const validateRule = (rule: FieldRule, v: any, deps?: any) => {
       }
     }
     // builtin validators
-    for (const str of Object.keys(validators) as (keyof typeof validators)[]) {
+    const validatorKeys = Object.keys(
+      validators
+    ) as (keyof typeof validators)[];
+    for (const str of validatorKeys) {
       if (rule[str] === true) {
         const vld = validators[str];
         const p = vld(v, deps);
