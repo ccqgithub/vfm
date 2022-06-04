@@ -49,7 +49,7 @@ export default defineUserConfig({
         selectLanguageAriaLabel: '选择语言',
         editLinkText: '在 GitHub 上编辑此页',
         lastUpdatedText: '上次更新',
-        navbar: navbar.en,
+        navbar: navbar.zh,
         sidebar: navbar.zh
       }
     }
