@@ -1065,13 +1065,13 @@ class FormClass {
     var _a;
     return ((_a = this.fieldState(name)) == null ? void 0 : _a.isError) || false;
   }
-  fieldError(name) {
-    var _a;
-    return ((_a = this.fieldState(name)) == null ? void 0 : _a.error) || null;
-  }
   isVirtualError(name) {
     var _a;
     return ((_a = this.virtualFieldState(name)) == null ? void 0 : _a.isError) || false;
+  }
+  fieldError(name) {
+    var _a;
+    return ((_a = this.fieldState(name)) == null ? void 0 : _a.error) || null;
   }
   virtualFieldError(name) {
     var _a;
