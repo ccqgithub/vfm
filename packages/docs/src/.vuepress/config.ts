@@ -1,8 +1,8 @@
 import { defineUserConfig } from '@vuepress/cli';
 // import { shikiPlugin } from '@vuepress/plugin-shiki'
 import { viteBundler } from '@vuepress/bundler-vite';
-import { docsearchPlugin } from '@vuepress/plugin-docsearch';
-import { googleAnalyticsPlugin } from '@vuepress/plugin-google-analytics';
+// import { docsearchPlugin } from '@vuepress/plugin-docsearch';
+// import { googleAnalyticsPlugin } from '@vuepress/plugin-google-analytics';
 import { defaultTheme } from '@vuepress/theme-default';
 import { path } from '@vuepress/utils';
 import { registerComponentsPlugin } from '../../plugins/plugin-register-components';
@@ -13,17 +13,17 @@ const isProd = process.env.NODE_ENV === 'production';
 export default defineUserConfig({
   base: isProd ? '/vfm/' : '/',
   title: 'VFM',
-  description: 'Mobx driven form management tool.',
+  description: 'Vue-Powered form management tool.',
   locales: {
     '/': {
       lang: 'en-US',
       title: 'VFM',
-      description: 'Mobx driven form management tool.'
+      description: 'Vue-Powered form management tool.'
     },
     '/zh/': {
       lang: 'zh-CN',
-      title: 'Lu Ban UI',
-      description: 'Mobx 驱动的表单管理工具'
+      title: 'VFM',
+      description: 'Vue 驱动的表单管理工具'
     }
   },
   bundler: viteBundler(),
@@ -31,14 +31,6 @@ export default defineUserConfig({
     repo: 'ccqgithub/vfm',
     editLinks: true,
     docsDir: 'packages/docs',
-    // #697 Provided by the official algolia team.
-    // algolia: isProd
-    //   ? {
-    //       appId: '9VJEAY5FMM',
-    //       indexName: 'vfm',
-    //       apiKey: 'd33934e356eba49983bfc14b7d7769cb'
-    //     }
-    //   : null,
     smoothScroll: true,
     locales: {
       '/': {
@@ -65,7 +57,7 @@ export default defineUserConfig({
   plugins: [
     // docsearchPlugin({
     //   appId: '34YFD9IUQ2',
-    //   apiKey: '9a9058b8655746634e01071411c366b8',
+    //   apiKey: 'xxx',
     //   indexName: 'vuepress',
     //   searchParameters: {
     //     facetFilters: ['tags:v2'],

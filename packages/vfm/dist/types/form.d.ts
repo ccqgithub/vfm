@@ -41,7 +41,7 @@ export declare class FormClass<T extends FormType = FormType, VFK extends string
         onFocus?: () => void;
         deps?: () => Deps;
     }): {
-        field: FieldClass<T, N, Deps>;
+        field: FieldClass<T, N, Deps, VFK>;
         register: () => void;
     };
     registerVirtualField<N extends VFK = VFK, V = any>(name: N, args: {

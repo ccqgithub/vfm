@@ -258,7 +258,7 @@ export class FormClass<
       onFocus?: () => void;
       deps?: () => Deps;
     } = {}
-  ): { field: FieldClass<T, N, Deps>; register: () => void } {
+  ): { field: FieldClass<T, N, Deps, VFK>; register: () => void } {
     const { immediate = true } = args;
     const { fieldsKeys, fields, cacheFields } = this;
     if (fieldsKeys.value.includes(name) || cacheFields.includes(name)) {
@@ -630,12 +630,12 @@ export class FormClass<
     return this.fieldState(name)?.isError || false;
   }
 
-  fieldError<N extends FieldPath<T>>(name: N) {
-    return this.fieldState(name)?.error || null;
-  }
-
   isVirtualError<N extends VFK>(name: N) {
     return this.virtualFieldState(name)?.isError || false;
+  }
+
+  fieldError<N extends FieldPath<T>>(name: N) {
+    return this.fieldState(name)?.error || null;
   }
 
   virtualFieldError<N extends VFK>(name: N) {

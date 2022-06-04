@@ -16,14 +16,15 @@ export const createFieldArray = <
     p = form.getPathValue(path as any);
   }
   const initArr = p as any[];
-  const initFields = initArr.map(() => {
+  const initFields = initArr.map((index) => {
     const id = `${fieldId++}`;
     return {
-      id
+      id,
+      name: `${path}.${index}`
     };
   });
   let lastIds = initFields.map((v) => v.id);
-  const fields = ref<{ id: string }[]>(initFields);
+  const fields = ref<{ id: string; name: string }[]>(initFields);
   const usedFlag = {};
   const stopWatch = watch(
     () => {
@@ -32,7 +33,7 @@ export const createFieldArray = <
     },
     (newArr, oldArr) => {
       const arr = [...oldArr];
-      const newFields = newArr.map((item) => {
+      const newFields = newArr.map((item, index) => {
         const v = toRaw(item);
         const oIndex = arr.findIndex((o) => toRaw(o) === v);
         let id = '';
@@ -43,7 +44,7 @@ export const createFieldArray = <
           // set this item is used
           arr[oIndex] = usedFlag;
         }
-        return { id: `${id}` };
+        return { id: `${id}`, name: `${path}.${index}` };
       });
       fields.value = newFields;
       lastIds = newFields.map((v) => v.id);
@@ -112,4 +113,16 @@ export const createFieldArray = <
     remove,
     update
   };
+};
+
+export type FieldArrayScope<V = any> = {
+  fields: { id: string; name: string }[];
+  prepend: (v: V) => void;
+  append: (v: V) => void;
+  insert: (id: string, v: V) => void;
+  swap: (from: string, to: string) => void;
+  move: (from: string, to: string) => void;
+  replace: (values: V[]) => void;
+  remove: (id: string) => void;
+  update: (id: string, v: V) => void;
 };

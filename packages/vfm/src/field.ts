@@ -5,7 +5,8 @@ import {
   FieldState,
   FieldError,
   KeyPathValue,
-  ValidateFunc
+  ValidateFunc,
+  FieldPath
 } from './types';
 import { FormClass } from './form';
 import { validators } from './validators';
@@ -87,15 +88,16 @@ const validateRule = (rule: FieldRule, v: any, deps?: any) => {
 
 export class FieldClass<
   T extends FormType = FormType,
-  N extends string = string,
-  Deps = any
+  N extends FieldPath<T> = FieldPath<T>,
+  Deps = any,
+  VFK extends string = string
 > {
   // key path in form data
   public name: N;
   // 当前状态
   public state: FieldState;
   // 所属表单
-  private form: FormClass<T>;
+  private form: FormClass<T, VFK>;
   // 验证函数
   private rules = ref<FieldRule<KeyPathValue<T, N>, Deps>[]>([]);
   private deps: (() => Deps) | null = null;

@@ -29,7 +29,7 @@ var __objRest = (source, exclude) => {
     }
   return target;
 };
-import { ref, reactive, watchEffect, toRaw, readonly, computed, unref, watch, onMounted, onBeforeUnmount, defineComponent, toRefs, renderSlot, createCommentVNode, normalizeProps, guardReactiveProps } from "vue";
+import { ref, reactive, watchEffect, toRaw, readonly, computed, unref, watch, onMounted, onBeforeUnmount, defineComponent, toRefs, renderSlot, createCommentVNode, mergeProps } from "vue";
 const alpha = (value) => {
   const msg = "{{name}} is not alphabetical";
   if (typeof value !== "string")
@@ -1270,10 +1270,11 @@ const createFieldArray = (form, path) => {
     p = form.getPathValue(path);
   }
   const initArr = p;
-  const initFields = initArr.map(() => {
+  const initFields = initArr.map((index) => {
     const id = `${fieldId++}`;
     return {
-      id
+      id,
+      name: `${path}.${index}`
     };
   });
   let lastIds = initFields.map((v) => v.id);
@@ -1284,7 +1285,7 @@ const createFieldArray = (form, path) => {
     return newArr.map((item) => toRaw(item));
   }, (newArr, oldArr) => {
     const arr = [...oldArr];
-    const newFields = newArr.map((item) => {
+    const newFields = newArr.map((item, index) => {
       const v = toRaw(item);
       const oIndex = arr.findIndex((o) => toRaw(o) === v);
       let id = "";
@@ -1294,7 +1295,7 @@ const createFieldArray = (form, path) => {
         id = lastIds[oIndex];
         arr[oIndex] = usedFlag;
       }
-      return { id: `${id}` };
+      return { id: `${id}`, name: `${path}.${index}` };
     });
     fields.value = newFields;
     lastIds = newFields.map((v) => v.id);
@@ -1430,9 +1431,9 @@ const _sfc_main$1 = /* @__PURE__ */ defineComponent({
   },
   setup(__props) {
     const props = __props;
-    const _a = useFieldArray(props.form, props.name), { fieldsValue } = _a, rest = __objRest(_a, ["fieldsValue"]);
+    const _a = useFieldArray(props.form, props.name), { fieldsValue, fields } = _a, rest = __objRest(_a, ["fieldsValue", "fields"]);
     return (_ctx, _cache) => {
-      return renderSlot(_ctx.$slots, "default", normalizeProps(guardReactiveProps(rest)));
+      return renderSlot(_ctx.$slots, "default", mergeProps(rest, { fields: unref(fields) }));
     };
   }
 });

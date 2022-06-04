@@ -30,7 +30,9 @@ export declare type FieldError = {
     type?: string;
     message: string;
 };
-export declare type FormErrors<T> = T extends NestedValueType | NativeObjectType ? FieldError | null | undefined : T extends Array<infer U> ? FormErrors<U>[] : T extends ObjectType ? {
+export declare type FormErrors<T> = T extends NestedValueType | NativeObjectType ? FieldError | null | undefined : T extends Array<infer U> ? {
+    [key: number]: FormErrors<U>;
+} : T extends ObjectType ? {
     [K in keyof T]?: FormErrors<T[K]>;
 } : FieldError | null | undefined;
 export declare type FormState<T extends FormType = FormType, VFK extends string = string> = {
@@ -116,12 +118,18 @@ export declare type InputLikeRef = Element | Component | {
 };
 export declare type Join<K, P> = K extends string | number ? P extends string | number ? '' extends K ? P : `${K}${'' extends P ? '' : '.'}${P}` : '' : '';
 export declare type AutoPath<T extends ObjectType, L extends string = ''> = T extends NestedValueType | NativeObjectType ? L : T extends Array<infer U> ? Join<L, `${number}`> | Join<Join<L, `${number}`>, AutoPath<U>> : T extends ObjectType ? {
+    [key: string]: any;
+} extends T ? string : {
     [K in keyof T]: Join<L, K> | Join<Join<L, K>, AutoPath<T[K]>>;
 }[keyof T] : L;
 export declare type FieldPath<T extends ObjectType, L extends string = ''> = T extends NestedValueType | NativeObjectType ? L : T extends Array<infer U> ? Join<Join<L, `${number}`>, FieldPath<U>> : T extends ObjectType ? {
+    [key: string]: any;
+} extends T ? string : {
     [K in keyof T]: Join<Join<L, K>, FieldPath<T[K]>>;
 }[keyof T] : L;
 export declare type ArrayFieldPath<T extends ObjectType, L extends string = ''> = T extends NestedValueType | NativeObjectType ? never : T extends Array<infer U> ? L | Join<Join<L, `${number}`>, ArrayFieldPath<U>> : T extends ObjectType ? {
+    [key: string]: any;
+} extends T ? string : {
     [K in keyof T]: Join<Join<L, K>, ArrayFieldPath<T[K]>>;
 }[keyof T] : never;
 export declare type ArrayItem<T> = T extends Array<infer U> ? U : never;

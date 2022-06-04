@@ -15,10 +15,7 @@
     "lib": ["esnext", "dom", "dom.iterable"],
     "types": ["jest", "puppeteer", "node"],
     "typeRoots": ["./types", "node_modules/@types"],
-    "isolatedModules": true,
-    "paths": {
-      "react": ["types/react/index.d.ts"]
-    }
+    "isolatedModules": true
   },
   "include": ["src/**/*", "src/.vuepress/**/*", "*.ts"]
 }

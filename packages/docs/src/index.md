@@ -1,77 +1,17 @@
-# Getting Started
-
-> You can click `Result` to show the real result of the code.
-
-## Install
-
-<CodeGroup>
-  <CodeGroupItem title="NPM">
-
-```
-npm install vfm
-```
-
-  </CodeGroupItem>
-  <CodeGroupItem title="YARN">
-
-```
-yarn add vfm
-```
-
-  </CodeGroupItem>
-</CodeGroup>
-
-## Create Sorm Structure
-
-<details open>
-  <summary>Details:</summary>
-
-  @[code ts](./.vuepress/components/form.ts)
-
-</details>
-
-## Register Fields
-
-<details open>
-  <summary>Details:</summary>
-  <ExampleBlock>
-    <ExampleItem title="Result" active>
-      <BaseForm />
-    </ExampleItem>
-    <ExampleItem title="<CreateForm>">
-
-@[code ts](./.vuepress/components/form.ts)
-
-  </ExampleItem>
-    <ExampleItem title="<BaseForm>">
-
-@[code vue](./.vuepress/components/BaseForm.vue)
-
-  </ExampleItem>
-    <ExampleItem title="<BaseInfo>">
-
-  @[code vue](./.vuepress/components/partial/BaseInfo.vue)
-
-  </ExampleItem>
-    <ExampleItem title="<AddressList>">
-
-  @[code vue](./.vuepress/components/partial/AddressList.vue)
-
-  </ExampleItem>
-    <ExampleItem title="<SchoolList>">
-
-  @[code vue](./.vuepress/components/partial/SchoolList.vue)
-
-  </ExampleItem>
-    <ExampleItem title="<SelectSchool>">
-
-  @[code vue](./.vuepress/components/partial/SelectSchool.vue)
-
-  </ExampleItem>
-  </ExampleBlock>
-</details>
-
-::: slot footer
-MIT Licensed | Copyright © 2022-present [Season Chen](https://github.com/ccqgithub)
-:::
+---
+home: true
+title: Home
+actions:
+  - text: Getting Started
+    link: /guide/index.html
+    type: primary
+features:
+  - title: Simplicity First
+    details: Simple, practical, easy-to-understand APIs. Full typescript development, perfect typescript type definition.
+  - title: Vue-Powered
+    details: Enjoy the dev experience of Vue, use Vue's reactivity ability to build form, no other dependencies.
+  - title: Feature Rich
+    details: Support nested fields, array fields， virtual fields, and many built-in validators.
+footer: MIT Licensed | Copyright © 2022-present Season Chen
+---
 

@@ -1,9 +1,11 @@
+<!-- // nested array fields -->
+<!-- // 嵌套的数组字段 -->
+
 <script setup lang="ts">
 import { useFieldArray, Field } from 'vfm';
 import { form } from '../form';
 
 const { fields, append, remove } = useFieldArray(form, 'address');
-const formState = form.state;
 const add = () => {
   append({
     phone: '',
@@ -71,7 +73,7 @@ const del = (id: string) => {
       </div>
     </div>
     <div class="vfm-p">
-      <div class="vfm-action" @click="() => del(item.id)">- delete</div>
+      <div class="vfm-action red" @click="() => del(item.id)">- delete</div>
     </div>
   </div>
   <div class="vfm-p">

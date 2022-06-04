@@ -1,76 +1,17 @@
-# Getting Started
+---
+home: true
+title: 首页
+actions:
+  - text: 快速开始
+    link: /guide/index.html
+    type: primary
+features:
+  - title: 简洁至上
+    details: 简单, 实用, 便于理解的APIs。纯Typescript开发，完善的类型定义。
+  - title: Vue 驱动
+    details: 享受 Vue 的开发体验，实用Vue的响应式能力构建表单，没有额外的依赖。
+  - title: 功能丰富
+    details: 支持嵌套字段，数组字段，虚拟字段，和一系列内置的`Validator`。
+footer: MIT Licensed | Copyright © 2022-present Season Chen
+---
 
-> You can click `Result` to show the real result of the code.
-
-## Install
-
-<CodeGroup>
-  <CodeGroupItem title="NPM">
-
-```
-npm install vfm
-```
-
-  </CodeGroupItem>
-  <CodeGroupItem title="YARN">
-
-```
-yarn add vfm
-```
-
-  </CodeGroupItem>
-</CodeGroup>
-
-## Create Sorm Structure
-
-<details open>
-  <summary>Details:</summary>
-
-  @[code ts](../.vuepress/components/form.ts)
-
-</details>
-
-## Register Fields
-
-<details open>
-  <summary>Details:</summary>
-  <ExampleBlock>
-    <ExampleItem title="Result" active>
-      <BaseForm />
-    </ExampleItem>
-    <ExampleItem title="<CreateForm>">
-
-@[code ts](../.vuepress/components/form.ts)
-
-  </ExampleItem>
-    <ExampleItem title="<BaseForm>">
-
-@[code vue](../.vuepress/components/BaseForm.vue)
-
-  </ExampleItem>
-    <ExampleItem title="<BaseInfo>">
-
-  @[code vue](../.vuepress/components/partial/BaseInfo.vue)
-
-  </ExampleItem>
-    <ExampleItem title="<AddressList>">
-
-  @[code vue](../.vuepress/components/partial/AddressList.vue)
-
-  </ExampleItem>
-    <ExampleItem title="<SchoolList>">
-
-  @[code vue](../.vuepress/components/partial/SchoolList.vue)
-
-  </ExampleItem>
-    <ExampleItem title="<SelectSchool>">
-
-  @[code vue](../.vuepress/components/partial/SelectSchool.vue)
-
-  </ExampleItem>
-  </ExampleBlock>
-</details>
-
-::: slot footer
-MIT Licensed | Copyright © 2022-present [Season Chen](https://github.com/ccqgithub)
-:::

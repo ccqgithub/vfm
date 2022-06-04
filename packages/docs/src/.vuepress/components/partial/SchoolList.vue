@@ -1,3 +1,8 @@
+<!-- // object value -->
+<!-- // object类型的值 -->
+<!-- // the NestedValue<xxx> will be treat as the `value` type of field `schools`, not nested fields -->
+<!-- // NestedValue<xxx> 被当做字段`schools`的值，而不是嵌套的字段 -->
+
 <script setup lang="ts">
 import { ref } from 'vue';
 import { Field } from 'vfm';

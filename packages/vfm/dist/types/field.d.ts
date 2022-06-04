@@ -1,6 +1,6 @@
-import { FormType, FieldRule, FieldState, KeyPathValue } from './types';
+import { FormType, FieldRule, FieldState, KeyPathValue, FieldPath } from './types';
 import { FormClass } from './form';
-export declare class FieldClass<T extends FormType = FormType, N extends string = string, Deps = any> {
+export declare class FieldClass<T extends FormType = FormType, N extends FieldPath<T> = FieldPath<T>, Deps = any, VFK extends string = string> {
     name: N;
     state: FieldState;
     private form;

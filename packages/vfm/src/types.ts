@@ -100,7 +100,9 @@ export type FieldError = {
 export type FormErrors<T> = T extends NestedValueType | NativeObjectType
   ? FieldError | null | undefined
   : T extends Array<infer U>
-  ? FormErrors<U>[]
+  ? {
+      [key: number]: FormErrors<U>;
+    }
   : T extends ObjectType
   ? {
       [K in keyof T]?: FormErrors<T[K]>;
@@ -269,9 +271,11 @@ export type AutoPath<T extends ObjectType, L extends string = ''> = T extends
   : T extends Array<infer U>
   ? Join<L, `${number}`> | Join<Join<L, `${number}`>, AutoPath<U>>
   : T extends ObjectType
-  ? {
-      [K in keyof T]: Join<L, K> | Join<Join<L, K>, AutoPath<T[K]>>;
-    }[keyof T]
+  ? { [key: string]: any } extends T
+    ? string
+    : {
+        [K in keyof T]: Join<L, K> | Join<Join<L, K>, AutoPath<T[K]>>;
+      }[keyof T]
   : L;
 
 export type FieldPath<T extends ObjectType, L extends string = ''> = T extends
@@ -281,9 +285,11 @@ export type FieldPath<T extends ObjectType, L extends string = ''> = T extends
   : T extends Array<infer U>
   ? Join<Join<L, `${number}`>, FieldPath<U>>
   : T extends ObjectType
-  ? {
-      [K in keyof T]: Join<Join<L, K>, FieldPath<T[K]>>;
-    }[keyof T]
+  ? { [key: string]: any } extends T
+    ? string
+    : {
+        [K in keyof T]: Join<Join<L, K>, FieldPath<T[K]>>;
+      }[keyof T]
   : L;
 
 export type ArrayFieldPath<
@@ -294,9 +300,11 @@ export type ArrayFieldPath<
   : T extends Array<infer U>
   ? L | Join<Join<L, `${number}`>, ArrayFieldPath<U>>
   : T extends ObjectType
-  ? {
-      [K in keyof T]: Join<Join<L, K>, ArrayFieldPath<T[K]>>;
-    }[keyof T]
+  ? { [key: string]: any } extends T
+    ? string
+    : {
+        [K in keyof T]: Join<Join<L, K>, ArrayFieldPath<T[K]>>;
+      }[keyof T]
   : never;
 
 export type ArrayItem<T> = T extends Array<infer U> ? U : never;

@@ -1,3 +1,6 @@
+<!-- // nested fields -->
+<!-- // 嵌套字段 -->
+
 <script setup lang="ts">
 import { Field } from 'vfm';
 import { form } from '../form';

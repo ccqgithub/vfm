@@ -14,9 +14,12 @@ const props = defineProps({
   }
 });
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
-const { fieldsValue, ...rest } = useFieldArray(props.form, props.name as any);
+const { fieldsValue, fields, ...rest } = useFieldArray(
+  props.form,
+  props.name as any
+);
 </script>
 
 <template>
-  <slot v-bind="rest" />
+  <slot v-bind="rest" :fields="fields" />
 </template>
