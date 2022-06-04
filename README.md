@@ -5,7 +5,7 @@ Vue driven form management tool。
 ## Document
 
 - [English Document](https://ccqgithub.github.io/vfm)
-- [中文文档 WIP](https://ccqgithub.github.io/vfm)
+- [中文文档](https://ccqgithub.github.io/vfm)
 
 ## Todo
 
