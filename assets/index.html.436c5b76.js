@@ -1,1 +1,0 @@
-const e={key:"v-2b3f8d8e",path:"/zh/apis/",title:"APIs",lang:"zh-CN",frontmatter:{},excerpt:"",headers:[],git:{updatedTime:1652281472e3,contributors:[{name:"Season Chen",email:"season@SeasondeMacBook-Pro.local",commits:1}]},filePathRelative:"zh/apis/index.md"};export{e as data};
