@@ -1,5 +1,8 @@
 import { DisposablePromise } from './types';
 
+/**
+ * @internal
+ */
 export const setKeyValue = (
   data: Record<string, any>,
   keyPath: string,
@@ -18,6 +21,9 @@ export const setKeyValue = (
   }
 };
 
+/**
+ * @internal
+ */
 export const getKeyValue = (data: Record<string, any>, keyPath: string) => {
   const arr = keyPath.split('.');
   let v: any = data;
@@ -28,6 +34,9 @@ export const getKeyValue = (data: Record<string, any>, keyPath: string) => {
   return v;
 };
 
+/**
+ * @internal
+ */
 export const delKey = (data: Record<string, any>, keyPath: string) => {
   const arr = keyPath.split('.');
   let v: any = data;
@@ -45,6 +54,9 @@ export const delKey = (data: Record<string, any>, keyPath: string) => {
   }
 };
 
+/**
+ * @internal
+ */
 export const updateObject = (
   obj: Record<string, any>,
   newObj: Record<string, any>

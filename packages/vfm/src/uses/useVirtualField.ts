@@ -16,6 +16,9 @@ export type UseVirtualFieldProps<
   debounce?: number;
 };
 
+/**
+ * @category Use
+ */
 export const useVirtualField = <T extends FormType, N extends string>(
   props: UseVirtualFieldProps<T, N>
 ): {

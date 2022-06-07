@@ -41,6 +41,9 @@ export type UseFieldProps<
   defaultValue?: KeyPathValue<T, N>;
 };
 
+/**
+ * @category Use
+ */
 export const useField = <T extends FormType, N extends FieldPath<T>>(
   props: UseFieldProps<T, N>
 ): [
