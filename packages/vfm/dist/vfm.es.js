@@ -1639,25 +1639,6 @@ const _sfc_main$1 = /* @__PURE__ */ defineComponent({
     name: {
       type: String,
       required: true
-    }
-  },
-  setup(__props) {
-    const props = __props;
-    const _a = useFieldArray(props.form, props.name), { fieldsValue, fields } = _a, rest = __objRest(_a, ["fieldsValue", "fields"]);
-    return (_ctx, _cache) => {
-      return renderSlot(_ctx.$slots, "default", mergeProps(rest, { fields: unref(fields) }));
-    };
-  }
-});
-const _sfc_main = /* @__PURE__ */ defineComponent({
-  props: {
-    form: {
-      type: Object,
-      required: true
-    },
-    name: {
-      type: String,
-      required: true
     },
     value: {
       type: Function,
@@ -1687,4 +1668,23 @@ const _sfc_main = /* @__PURE__ */ defineComponent({
     };
   }
 });
-export { _sfc_main$2 as Field, _sfc_main$1 as FieldArray, FieldClass, Form, _sfc_main as VirtualField, VirtualFieldClass, createFieldArray, createForm, useField, useFieldArray, useVirtualField, validators };
+const _sfc_main = /* @__PURE__ */ defineComponent({
+  props: {
+    form: {
+      type: Object,
+      required: true
+    },
+    name: {
+      type: String,
+      required: true
+    }
+  },
+  setup(__props) {
+    const props = __props;
+    const _a = useFieldArray(props.form, props.name), { fieldsValue, fields } = _a, rest = __objRest(_a, ["fieldsValue", "fields"]);
+    return (_ctx, _cache) => {
+      return renderSlot(_ctx.$slots, "default", mergeProps(rest, { fields: unref(fields) }));
+    };
+  }
+});
+export { _sfc_main$2 as Field, _sfc_main as FieldArray, FieldClass, Form, _sfc_main$1 as VirtualField, VirtualFieldClass, createFieldArray, createForm, useField, useFieldArray, useVirtualField, validators };
