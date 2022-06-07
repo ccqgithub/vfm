@@ -7,6 +7,7 @@
   "scripts": {
     "docs:dev": "vuepress dev src",
     "docs:build": "vuepress build src",
+    "docs:api": "node run-typedoc.js && vue-docgen -c docgen.config.js && node cp.js",
     "docs:deploy": "gh-pages --dist './src/.vuepress/dist/' --src '**/*'"
   },
   "author": "",
@@ -15,7 +16,7 @@
     "vuepress": "2.0.0-beta.43",
     "gh-pages": "^3.2.3",
     "vue": "^3.2.0",
-    "vfm": "1.0.0",
+    "vfm": "1.1.0",
     "@vuepress/plugin-docsearch": "^2.0.0-beta.43",
     "@vuepress/plugin-google-analytics": "^2.0.0-beta.43",
     "@vuepress/plugin-register-components": "^2.0.0-beta.43",

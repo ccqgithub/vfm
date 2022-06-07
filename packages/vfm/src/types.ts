@@ -88,9 +88,10 @@ export type FieldValues<
   P extends boolean = false
 > = P extends true ? UnpackNestedValue<DeepPartial<T>> : UnpackNestedValue<T>;
 
-export interface CancellablePromise<T = any> extends Promise<T> {
-  cancel?: () => void;
-}
+export type DisposablePromise<T = any> = {
+  promise: Promise<T>;
+  dispose?: () => void;
+};
 
 export type FieldError = {
   type?: string;
@@ -181,21 +182,21 @@ export type ValidateFunc<V, Deps, Rules = FieldRule<V, Deps>[]> = (
   v: V,
   deps: Deps | undefined,
   rules: Rules
-) => CancellablePromise<FieldError | null>;
+) => DisposablePromise<FieldError | null>;
 
 export type VirtualValidateFunc<V, Rules = VirtualFieldRule<V>[]> = (
   v: V,
   rules: Rules
-) => CancellablePromise<FieldError | null>;
+) => DisposablePromise<FieldError | null>;
 
 export type Validator<V = any, Deps = any> = (
   value: V | undefined,
   deps?: Deps
-) => string | CancellablePromise<string>;
+) => string | Promise<string> | DisposablePromise<string>;
 
 export type VirtualFieldValidator<V = any> = (
   value: V
-) => string | CancellablePromise<string>;
+) => string | Promise<string> | DisposablePromise<string>;
 
 export type FieldRule<V = any, Deps = any> = {
   type?: string;
@@ -220,6 +221,8 @@ export type FieldRule<V = any, Deps = any> = {
   validator?: Validator<V, Deps>;
   // message
   message?: string;
+  // debounce validate the rule
+  debounce?: number;
 };
 
 export type VirtualFieldRule<V = any> = {
@@ -245,6 +248,8 @@ export type VirtualFieldRule<V = any> = {
   validator?: VirtualFieldValidator<V>;
   // message
   message?: string;
+  // debounce validate the rule
+  debounce?: number;
 };
 
 export type InputLikeRef =
@@ -314,7 +319,8 @@ export type FieldProps<
   N extends string = string
 > = {
   value: KeyPathValue<T, N>;
-  onChange: (v: KeyPathValue<T, N>) => void;
+  onChange?: (v: KeyPathValue<T, N> | Event) => void;
+  onInput?: (v: KeyPathValue<T, N> | Event) => void;
   onBlur: () => void;
   onFocus: () => void;
   ref: (el: InputLikeRef | null) => void;

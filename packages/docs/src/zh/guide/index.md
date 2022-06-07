@@ -1,4 +1,4 @@
-## 快速开始
+# 快速开始
 
 > 在下面的例子中，你可以点击 `文件名` 来查看代码，点击 `运行结果` 来使用代码的结果。
 
@@ -21,16 +21,16 @@ yarn add vfm
   </CodeGroupItem>
 </CodeGroup>
 
-## Create Sorm Structure
+## 创建表单结构
 
 <details open>
   <summary>详情:</summary>
 
-  @[code ts](../.vuepress/components/form.ts)
+  @[code ts](../../.vuepress/components/form.ts)
 
 </details>
 
-## Register Fields
+## 注册字段
 
 <details open>
   <summary>详情:</summary>
@@ -40,32 +40,32 @@ yarn add vfm
     </ExampleItem>
     <ExampleItem title="<CreateForm>">
 
-@[code ts](../.vuepress/components/form.ts)
+@[code ts](../../.vuepress/components/form.ts)
 
   </ExampleItem>
     <ExampleItem title="<BaseForm>">
 
-@[code vue](../.vuepress/components/BaseForm.vue)
+@[code vue](../../.vuepress/components/BaseForm.vue)
 
   </ExampleItem>
     <ExampleItem title="<BaseInfo>">
 
-  @[code vue](../.vuepress/components/partial/BaseInfo.vue)
+  @[code vue](../../.vuepress/components/partial/BaseInfo.vue)
 
   </ExampleItem>
     <ExampleItem title="<AddressList>">
 
-  @[code vue](../.vuepress/components/partial/AddressList.vue)
+  @[code vue](../../.vuepress/components/partial/AddressList.vue)
 
   </ExampleItem>
     <ExampleItem title="<SchoolList>">
 
-  @[code vue](../.vuepress/components/partial/SchoolList.vue)
+  @[code vue](../../.vuepress/components/partial/SchoolList.vue)
 
   </ExampleItem>
     <ExampleItem title="<SelectSchool>">
 
-  @[code vue](../.vuepress/components/partial/SelectSchool.vue)
+  @[code vue](../../.vuepress/components/partial/SelectSchool.vue)
 
   </ExampleItem>
   </ExampleBlock>

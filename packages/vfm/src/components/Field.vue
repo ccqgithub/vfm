@@ -1,13 +1,13 @@
 <script lang="ts" setup>
 import { PropType, toRefs } from 'vue';
 import { useField } from '../uses';
-import { FormClass } from '../form';
+import { Form } from '../form';
 import { FieldRule } from '../types';
 import { AllPropType } from '../untils';
 
 const props = defineProps({
   form: {
-    type: Object as PropType<FormClass>,
+    type: Object as PropType<Form>,
     required: true
   },
   name: {
@@ -20,6 +20,10 @@ const props = defineProps({
   },
   deps: {
     type: Function as PropType<() => any>,
+    default: undefined
+  },
+  debounce: {
+    type: Number,
     default: undefined
   },
   value: {
@@ -37,16 +41,41 @@ const props = defineProps({
   touchType: {
     type: String as PropType<'FOCUS' | 'BLUR'>,
     default: 'BLUR'
+  },
+  changeType: {
+    type: String as PropType<'ONINPUT' | 'ONCHANGE'>,
+    default: 'ONCHANGE'
+  },
+  isEqual: {
+    type: Function as PropType<(v: any) => any>,
+    default: undefined
   }
 });
 
-const { form, rules, transform, name, deps, ...rest } = toRefs(props);
+const {
+  form,
+  rules,
+  transform,
+  name,
+  deps,
+  debounce,
+  changeType,
+  value,
+  defaultValue,
+  isEqual,
+  ...rest
+} = toRefs(props);
 const [slotProps, , { mounted }] = useField({
   form: form.value,
   rules: rules.value,
   transform: transform?.value,
   deps: deps?.value,
+  debounce: debounce?.value,
   name: name as any,
+  changeType: changeType.value,
+  value: value?.value,
+  defaultValue: defaultValue?.value,
+  isEqual: isEqual?.value,
   ...rest
 });
 </script>

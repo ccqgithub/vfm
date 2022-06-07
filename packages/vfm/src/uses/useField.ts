@@ -18,7 +18,7 @@ import {
   FieldPath,
   FieldProps
 } from './../types';
-import { FormClass } from '../form';
+import { Form } from '../form';
 import { getKeyValue } from './../untils';
 
 export type UseFieldProps<
@@ -26,7 +26,7 @@ export type UseFieldProps<
   N extends FieldPath<T> = FieldPath<T>,
   Deps = any
 > = {
-  form: FormClass<T>;
+  form: Form<T>;
   name: Ref<N> | N;
   rules?:
     | Ref<FieldRule<KeyPathValue<T, N>, FormState<T>>[]>
@@ -35,6 +35,10 @@ export type UseFieldProps<
   transform?: (v: KeyPathValue<T, N>) => KeyPathValue<T, N>;
   isEqual?: (v: KeyPathValue<T, N>, d: KeyPathValue<T, N>) => boolean;
   deps?: () => Deps;
+  debounce?: number;
+  changeType?: 'ONINPUT' | 'ONCHANGE';
+  value?: KeyPathValue<T, N>;
+  defaultValue?: KeyPathValue<T, N>;
 };
 
 export const useField = <T extends FormType, N extends FieldPath<T>>(
@@ -80,7 +84,10 @@ export const useField = <T extends FormType, N extends FieldPath<T>>(
     immediate: false,
     onFocus: () => {
       (elemRef.value as any)?.focus?.();
-    }
+    },
+    debounce: props.debounce,
+    value: props.value,
+    defaultValue: props.defaultValue
   });
   // value ref for v-model
   const model = ref(getKeyValue(form.state.values, unref(props.name))) as Ref<
@@ -101,7 +108,10 @@ export const useField = <T extends FormType, N extends FieldPath<T>>(
         immediate: mounted.value,
         onFocus: () => {
           (elemRef.value as any)?.focus?.();
-        }
+        },
+        debounce: props.debounce,
+        value: props.value,
+        defaultValue: props.defaultValue
       });
       register = fs.register;
       field = fs.field;
@@ -141,15 +151,27 @@ export const useField = <T extends FormType, N extends FieldPath<T>>(
     elemRef.value = null;
   });
 
-  const res = reactive({
-    get value() {
-      return model.value;
-    },
-    onChange,
-    onBlur,
-    onFocus,
-    ref: setRef
-  }) as FieldProps<T, N>;
+  const res = (
+    props.changeType === 'ONCHANGE'
+      ? reactive({
+          get value() {
+            return model.value;
+          },
+          onChange,
+          onBlur,
+          onFocus,
+          ref: setRef
+        })
+      : reactive({
+          get value() {
+            return model.value;
+          },
+          onInput: onChange,
+          onBlur,
+          onFocus,
+          ref: setRef
+        })
+  ) as FieldProps<T, N>;
 
   return [
     res,

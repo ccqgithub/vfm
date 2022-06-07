@@ -161,25 +161,82 @@ const recursiveUpdateObject = (obj, newObj, deleteOldKeys = true) => {
     }
   });
 };
-const makeCancellablePromise = (fn) => {
-  const cancelList = [];
-  let resolve = null;
-  const promise = fn((cancel) => {
-    cancelList.push(cancel);
-  });
-  const resPromise = new Promise((r, j) => {
-    resolve = r;
-    promise.then(r, j);
-  });
-  resPromise.cancel = () => {
-    resolve == null ? void 0 : resolve("");
-    cancelList.forEach((cancel) => cancel());
-  };
-  return resPromise;
-};
 const AllPropType = [String, Number, Boolean, Symbol, Array, Object];
+const makeDisposablePromise = (fn) => {
+  let disposeList = [];
+  const onDispose = (dispose) => {
+    disposeList.push(dispose);
+  };
+  const promise = fn(onDispose);
+  const res = {
+    promise: new Promise((resolve, reject) => {
+      promise.then((v) => {
+        disposeList = [];
+        resolve(v);
+      }, (e) => {
+        disposeList = [];
+        reject(e);
+      });
+    }),
+    dispose: () => {
+      disposeList.forEach((dispose) => dispose());
+      disposeList = [];
+    }
+  };
+  return res;
+};
+const debouncePromise = (fn, delay) => {
+  let disposeLast = null;
+  let resPromise = null;
+  let waitPromises = [];
+  const call = async (...args) => {
+    disposeLast == null ? void 0 : disposeLast();
+    waitPromises.push(new Promise((resolve, reject) => {
+      let cancelFn = null;
+      const timer = setTimeout(() => {
+        const res = fn(...args);
+        if ("promise" in res) {
+          res.promise.then(resolve, reject);
+          cancelFn = () => {
+            var _a;
+            (_a = res.dispose) == null ? void 0 : _a.call(res);
+          };
+        } else {
+          res.then(resolve, reject);
+        }
+      }, delay);
+      disposeLast = () => {
+        cancelFn == null ? void 0 : cancelFn();
+        cancelFn = null;
+        clearTimeout(timer);
+        reject();
+      };
+    }));
+    if (resPromise)
+      return resPromise;
+    resPromise = (async () => {
+      while (waitPromises.length) {
+        const p = waitPromises.shift();
+        try {
+          const res = await p;
+          if (!waitPromises.length)
+            return res;
+        } catch (e) {
+          if (!waitPromises.length)
+            throw e;
+        }
+      }
+    })();
+    return resPromise.finally(() => {
+      disposeLast = null;
+      resPromise = null;
+      waitPromises = [];
+    });
+  };
+  return call;
+};
 const validateRule$1 = (rule, v, deps) => {
-  return makeCancellablePromise(async (onCancel) => {
+  return makeDisposablePromise(async (onDispose) => {
     if (rule.required) {
       if (!v && v !== 0)
         return "{{name}} is required";
@@ -219,26 +276,26 @@ const validateRule$1 = (rule, v, deps) => {
       if (rule[str] === true) {
         const vld = validators[str];
         const p = vld(v, deps);
-        if (typeof p === "object" && typeof p.cancel === "function") {
-          onCancel(() => {
+        if (typeof p === "object" && "dispose" in p && typeof p.dispose === "function") {
+          onDispose(() => {
             var _a;
-            return (_a = p.cancel) == null ? void 0 : _a.call(p);
+            return (_a = p.dispose) == null ? void 0 : _a.call(p);
           });
         }
-        const msg = await p;
+        const msg = typeof p === "object" && "promise" in p ? await p.promise : await p;
         if (msg)
           return msg;
       }
     }
     if (rule.validator) {
       const p = rule.validator(v, deps);
-      if (typeof p === "object" && typeof p.cancel === "function") {
-        onCancel(() => {
+      if (typeof p === "object" && "dispose" in p && typeof p.dispose === "function") {
+        onDispose(() => {
           var _a;
-          return (_a = p.cancel) == null ? void 0 : _a.call(p);
+          return (_a = p.dispose) == null ? void 0 : _a.call(p);
         });
       }
-      const msg = await p;
+      const msg = typeof p === "object" && "promise" in p ? await p.promise : await p;
       if (msg)
         return msg;
     }
@@ -249,7 +306,8 @@ class FieldClass {
   constructor(form, args) {
     this.rules = ref([]);
     this.deps = null;
-    this.validateCount = 0;
+    this.validateDispose = null;
+    this.debounce = 0;
     this.transform = null;
     this.isEqual = null;
     this.focusFn = null;
@@ -263,11 +321,14 @@ class FieldClass {
     const { immediate = true } = args;
     this.form = form;
     this.name = args.name;
-    this.rules.value = args.rules || [];
+    this.setRules(args.rules || []);
     this.deps = args.deps || null;
     this.transform = args.transform || null;
     this.isEqual = args.isEqual || null;
     this.focusFn = args.onFocus || null;
+    this.debounce = args.debounce || 0;
+    this.initValue = args.initValue;
+    this.initDefaultValue = args.initDefaultValue;
     this.state = reactive({
       error: null,
       isError: false,
@@ -276,16 +337,22 @@ class FieldClass {
       isTouched: false,
       isChanged: false
     });
-    const validate = async (value, deps, rules) => {
+    const validate = (value, deps, rules) => {
       const transform = this.transform;
-      return await makeCancellablePromise(async (onCancel) => {
+      let disposed = false;
+      return makeDisposablePromise(async (onDispose) => {
+        onDispose(() => {
+          disposed = true;
+        });
         for (const rule of rules) {
-          const promise = validateRule$1(rule, transform && value !== void 0 ? transform(value) : value, deps);
-          onCancel(() => {
+          const validateRuleRes = validateRule$1(rule, transform && value !== void 0 ? transform(value) : value, deps);
+          onDispose(() => {
             var _a;
-            return (_a = promise.cancel) == null ? void 0 : _a.call(promise);
+            return (_a = validateRuleRes.dispose) == null ? void 0 : _a.call(validateRuleRes);
           });
-          const errMsg = await promise;
+          const errMsg = await validateRuleRes.promise;
+          if (disposed)
+            return null;
           let error = null;
           if (errMsg) {
             error = typeof errMsg === "string" ? {
@@ -312,30 +379,41 @@ class FieldClass {
   getDefaultValue() {
     return getKeyValue(this.form.state.defaultValues, this.name);
   }
+  setRules(rules = []) {
+    this.rules.value = rules.map((v) => {
+      if (!v.debounce)
+        return v;
+      const rule = {
+        validator: debouncePromise((value, deps) => {
+          return validateRule$1(v, value, deps);
+        }, v.debounce)
+      };
+      return rule;
+    });
+  }
   update(args = {}) {
     if (args.rules) {
-      this.rules.value = args.rules;
+      this.setRules(args.rules);
     }
   }
   initWatcher() {
     if (this.isInited)
       return;
-    this.stopValidateWatcher = watchEffect(async (onCleanup) => {
+    const doValidate = async (args) => {
       var _a;
-      this.validateCount++;
-      const count = this.validateCount;
-      const value = this.getValue();
-      const deps = (_a = this.deps) == null ? void 0 : _a.call(this);
-      const rules = this.rules.value;
-      const err = await Promise.resolve().then(() => {
-        const promise = this.validate(value, deps, rules);
-        onCleanup(() => {
-          var _a2;
-          return (_a2 = promise.cancel) == null ? void 0 : _a2.call(promise);
-        });
-        return promise;
-      });
-      if (count !== this.validateCount)
+      (_a = this.validateDispose) == null ? void 0 : _a.call(this);
+      this.validateDispose = null;
+      const { value, deps, rules } = args;
+      let disposed = false;
+      const validateRes = this.validate(value, deps, rules);
+      this.validateDispose = () => {
+        var _a2;
+        (_a2 = validateRes.dispose) == null ? void 0 : _a2.call(validateRes);
+        disposed = true;
+        this.validateDispose = null;
+      };
+      const err = await validateRes.promise;
+      if (disposed)
         return;
       this.runInAction(() => {
         this.state.isValidating = false;
@@ -349,6 +427,24 @@ class FieldClass {
           this.state.error = null;
         }
         this.state.isError = hasError;
+      });
+      this.validateDispose = null;
+    };
+    const validate = this.debounce ? debouncePromise(doValidate, this.debounce) : doValidate;
+    this.stopValidateWatcher = watchEffect(() => {
+      var _a;
+      this.runInAction(() => {
+        this.state.isValidating = true;
+      });
+      const value = this.getValue();
+      const deps = (_a = this.deps) == null ? void 0 : _a.call(this);
+      const rules = this.rules.value;
+      Promise.resolve().then(() => {
+        validate({
+          value,
+          deps,
+          rules
+        });
       });
     });
     this.stopDirtyWatcher = watchEffect(() => {
@@ -368,9 +464,11 @@ class FieldClass {
     this.isRegistered = true;
   }
   onUnregister() {
-    var _a, _b;
-    (_a = this.stopValidateWatcher) == null ? void 0 : _a.call(this);
-    (_b = this.stopDirtyWatcher) == null ? void 0 : _b.call(this);
+    var _a, _b, _c;
+    (_a = this.validateDispose) == null ? void 0 : _a.call(this);
+    this.validateDispose = null;
+    (_b = this.stopValidateWatcher) == null ? void 0 : _b.call(this);
+    (_c = this.stopDirtyWatcher) == null ? void 0 : _c.call(this);
     this.isRegistered = false;
     this.isInited = false;
   }
@@ -387,10 +485,11 @@ class FieldClass {
     (_a = this.focusFn) == null ? void 0 : _a.call(this);
   }
   reset(args = {}) {
-    var _a, _b;
-    this.validateCount++;
-    (_a = this.stopValidateWatcher) == null ? void 0 : _a.call(this);
-    (_b = this.stopDirtyWatcher) == null ? void 0 : _b.call(this);
+    var _a, _b, _c;
+    (_a = this.validateDispose) == null ? void 0 : _a.call(this);
+    this.validateDispose = null;
+    (_b = this.stopValidateWatcher) == null ? void 0 : _b.call(this);
+    (_c = this.stopDirtyWatcher) == null ? void 0 : _c.call(this);
     this.runInAction(() => {
       const { keepChanged = false, keepTouched = false } = args;
       this.state.error = null;
@@ -405,7 +504,7 @@ class FieldClass {
   }
 }
 const validateRule = (rule, v) => {
-  return makeCancellablePromise(async (onCancel) => {
+  return makeDisposablePromise(async (onDispose) => {
     if (rule.required) {
       if (!v && v !== 0)
         return "{{name}} is required";
@@ -445,26 +544,26 @@ const validateRule = (rule, v) => {
       if (rule[str] === true) {
         const vld = validators[str];
         const p = vld(v);
-        if (typeof p === "object" && typeof p.cancel === "function") {
-          onCancel(() => {
+        if (typeof p === "object" && "dispose" in p && typeof p.dispose === "function") {
+          onDispose(() => {
             var _a;
-            return (_a = p.cancel) == null ? void 0 : _a.call(p);
+            return (_a = p.dispose) == null ? void 0 : _a.call(p);
           });
         }
-        const msg = await p;
+        const msg = typeof p === "object" && "promise" in p ? await p.promise : await p;
         if (msg)
           return msg;
       }
     }
     if (rule.validator) {
       const p = rule.validator(v);
-      if (typeof p === "object" && typeof p.cancel === "function") {
-        onCancel(() => {
+      if (typeof p === "object" && "dispose" in p && typeof p.dispose === "function") {
+        onDispose(() => {
           var _a;
-          return (_a = p.cancel) == null ? void 0 : _a.call(p);
+          return (_a = p.dispose) == null ? void 0 : _a.call(p);
         });
       }
-      const msg = await p;
+      const msg = typeof p === "object" && "promise" in p ? await p.promise : await p;
       if (msg)
         return msg;
     }
@@ -475,7 +574,8 @@ class VirtualFieldClass {
   constructor(form, args) {
     this.name = "";
     this.rules = ref([]);
-    this.validateCount = 0;
+    this.validateDispose = null;
+    this.debounce = 0;
     this.stopValidateWatcher = null;
     this.isRegistered = false;
     this.isInited = false;
@@ -486,7 +586,8 @@ class VirtualFieldClass {
     this.form = form;
     this.name = args.name;
     this.value = args.value;
-    this.rules.value = args.rules || [];
+    this.setRules(args.rules || []);
+    this.debounce = args.debounce || 0;
     this.state = reactive({
       name: this.name,
       error: null,
@@ -494,15 +595,21 @@ class VirtualFieldClass {
       isValidating: false
     });
     const validate = (value, rules) => {
-      return makeCancellablePromise(async (onCancel) => {
-        let error = null;
+      let disposed = false;
+      return makeDisposablePromise(async (onDispose) => {
+        onDispose(() => {
+          disposed = true;
+        });
         for (const rule of rules) {
-          const promise = validateRule(rule, value);
-          onCancel(() => {
+          const validateRuleRes = validateRule(rule, value);
+          onDispose(() => {
             var _a;
-            return (_a = promise.cancel) == null ? void 0 : _a.call(promise);
+            return (_a = validateRuleRes.dispose) == null ? void 0 : _a.call(validateRuleRes);
           });
-          const errMsg = await promise;
+          const errMsg = await validateRuleRes.promise;
+          if (disposed)
+            return null;
+          let error = null;
           if (errMsg) {
             error = typeof errMsg === "string" ? {
               type: rule.type,
@@ -522,34 +629,47 @@ class VirtualFieldClass {
       this.initWatcher();
     }
   }
+  setRules(rules = []) {
+    this.rules.value = rules.map((v) => {
+      if (!v.debounce)
+        return v;
+      const rule = {
+        validator: debouncePromise((value) => {
+          return validateRule(v, value);
+        }, v.debounce)
+      };
+      return rule;
+    });
+  }
   update(args) {
     if (args.rules) {
-      this.rules.value = args.rules;
+      this.setRules(args.rules);
     }
     if (args.value) {
       this.value = args.value;
     }
   }
   initWatcher() {
+    var _a;
     if (this.isInited)
       return;
-    this.stopValidateWatcher = watchEffect(async (onCleanup) => {
-      this.validateCount++;
-      const count = this.validateCount;
+    (_a = this.validateDispose) == null ? void 0 : _a.call(this);
+    this.validateDispose = null;
+    const doValidate = async (args) => {
       this.runInAction(() => {
         this.state.isValidating = true;
       });
-      const value = this.value();
-      const rules = this.rules.value;
-      const err = await Promise.resolve().then(() => {
-        const promise = this.validate(value, rules);
-        onCleanup(() => {
-          var _a;
-          return (_a = promise.cancel) == null ? void 0 : _a.call(promise);
-        });
-        return promise;
-      });
-      if (count !== this.validateCount)
+      const { value, rules } = args;
+      let disposed = false;
+      const validateRes = this.validate(value, rules);
+      this.validateDispose = () => {
+        var _a2;
+        (_a2 = validateRes.dispose) == null ? void 0 : _a2.call(validateRes);
+        disposed = true;
+        this.validateDispose = null;
+      };
+      const err = await validateRes.promise;
+      if (disposed)
         return;
       this.runInAction(() => {
         this.state.isValidating = false;
@@ -564,6 +684,15 @@ class VirtualFieldClass {
         }
         this.state.isError = hasError;
       });
+      this.validateDispose = null;
+    };
+    const validate = this.debounce ? debouncePromise(doValidate, this.debounce) : doValidate;
+    this.stopValidateWatcher = watchEffect(() => {
+      const value = this.value();
+      const rules = this.rules.value;
+      Promise.resolve().then(() => {
+        validate({ value, rules });
+      });
     });
     this.isInited = true;
   }
@@ -574,13 +703,15 @@ class VirtualFieldClass {
     this.isRegistered = true;
   }
   onUnregister() {
-    var _a;
-    (_a = this.stopValidateWatcher) == null ? void 0 : _a.call(this);
+    var _a, _b;
+    (_a = this.validateDispose) == null ? void 0 : _a.call(this);
+    this.validateDispose = null;
+    (_b = this.stopValidateWatcher) == null ? void 0 : _b.call(this);
     this.isRegistered = false;
     this.isInited = false;
   }
 }
-class FormClass {
+class Form {
   constructor(args) {
     this.touchType = "BLUR";
     this._publicState = null;
@@ -603,7 +734,7 @@ class FormClass {
     };
     const { initValues = {} } = args;
     this.initValues = toRaw(initValues);
-    this.defaultValues = toRaw(args.defaultValues);
+    this.defaultValues = toRaw(args.defaultValues || args.initValues);
     this._state = reactive({
       values: initValues,
       defaultValues: args.defaultValues || initValues,
@@ -642,7 +773,13 @@ class FormClass {
     const { cacheFields, cacheVirtualFields } = this;
     for (const k of cacheFields) {
       const filed = this.fields.get(k);
-      filed == null ? void 0 : filed.initWatcher();
+      filed.initWatcher();
+      if (filed.initDefaultValue !== void 0) {
+        setKeyValue(this._state.defaultValues, k, filed.initDefaultValue);
+      }
+      if (filed.initValue !== void 0) {
+        setKeyValue(this._state.values, k, filed.initValue);
+      }
     }
     for (const k of cacheVirtualFields) {
       const filed = this.virtualFields.get(k);
@@ -762,7 +899,11 @@ class FormClass {
     this.isMounted = false;
   }
   registerField(name, args = {}) {
-    const { immediate = true } = args;
+    const {
+      immediate = true,
+      value = getKeyValue(this.initValues, name),
+      defaultValue = getKeyValue(this.defaultValues || {}, name)
+    } = args;
     const { fieldsKeys, fields, cacheFields } = this;
     if (fieldsKeys.value.includes(name) || cacheFields.includes(name)) {
       console.warn(`Duplicate field <${name}>.`);
@@ -783,12 +924,20 @@ class FormClass {
       }
     }
     const field = new FieldClass(this, __spreadProps(__spreadValues({}, args), {
-      name
+      name,
+      initValue: value,
+      initDefaultValue: defaultValue
     }));
     fields.set(name, field);
     const register = () => {
       this.runInAction(() => {
         if (this.isMounted) {
+          if (defaultValue !== void 0) {
+            setKeyValue(this._state.defaultValues, name, defaultValue);
+          }
+          if (value !== void 0) {
+            setKeyValue(this._state.values, name, defaultValue);
+          }
           this.fieldsKeys.value.push(name);
           field.initWatcher();
         } else {
@@ -1061,6 +1210,14 @@ class FormClass {
     var _a;
     return ((_a = this.fieldState(name)) == null ? void 0 : _a.isChanged) || false;
   }
+  isValidating(name) {
+    var _a;
+    return ((_a = this.fieldState(name)) == null ? void 0 : _a.isValidating) || false;
+  }
+  isVirtualValidating(name) {
+    var _a;
+    return ((_a = this.virtualFieldState(name)) == null ? void 0 : _a.isValidating) || false;
+  }
   isError(name) {
     var _a;
     return ((_a = this.fieldState(name)) == null ? void 0 : _a.isError) || false;
@@ -1138,7 +1295,7 @@ class FormClass {
   }
 }
 const createForm = (args) => {
-  return new FormClass(args);
+  return new Form(args);
 };
 const useField = (props) => {
   const { form, name } = props;
@@ -1169,7 +1326,10 @@ const useField = (props) => {
     onFocus: () => {
       var _a, _b;
       (_b = (_a = elemRef.value) == null ? void 0 : _a.focus) == null ? void 0 : _b.call(_a);
-    }
+    },
+    debounce: props.debounce,
+    value: props.value,
+    defaultValue: props.defaultValue
   });
   const model = ref(getKeyValue(form.state.values, unref(props.name)));
   const fieldState = ref(field.state);
@@ -1186,7 +1346,10 @@ const useField = (props) => {
       onFocus: () => {
         var _a, _b;
         (_b = (_a = elemRef.value) == null ? void 0 : _a.focus) == null ? void 0 : _b.call(_a);
-      }
+      },
+      debounce: props.debounce,
+      value: props.value,
+      defaultValue: props.defaultValue
     });
     register = fs.register;
     field = fs.field;
@@ -1213,11 +1376,19 @@ const useField = (props) => {
     stopWatchModel();
     elemRef.value = null;
   });
-  const res = reactive({
+  const res = props.changeType === "ONCHANGE" ? reactive({
     get value() {
       return model.value;
     },
     onChange,
+    onBlur,
+    onFocus,
+    ref: setRef
+  }) : reactive({
+    get value() {
+      return model.value;
+    },
+    onInput: onChange,
     onBlur,
     onFocus,
     ref: setRef
@@ -1236,7 +1407,8 @@ const useVirtualField = (props) => {
   let { register, field } = form.registerVirtualField(unref(name), {
     value: props.value,
     rules: unref(props.rules),
-    immediate: false
+    immediate: false,
+    debounce: props.debounce
   });
   const fieldState = ref(field.state);
   const stopWatch = watch(() => unref(props.name), (n, ln) => {
@@ -1244,7 +1416,8 @@ const useVirtualField = (props) => {
     const fs = form.registerVirtualField(unref(name), {
       value: props.value,
       rules: unref(props.rules),
-      immediate: mounted.value
+      immediate: mounted.value,
+      debounce: props.debounce
     });
     register = fs.register;
     field = fs.field;
@@ -1383,6 +1556,10 @@ const _sfc_main$2 = /* @__PURE__ */ defineComponent({
       type: Function,
       default: void 0
     },
+    debounce: {
+      type: Number,
+      default: void 0
+    },
     value: {
       type: AllPropType,
       default: void 0
@@ -1398,17 +1575,52 @@ const _sfc_main$2 = /* @__PURE__ */ defineComponent({
     touchType: {
       type: String,
       default: "BLUR"
+    },
+    changeType: {
+      type: String,
+      default: "ONCHANGE"
+    },
+    isEqual: {
+      type: Function,
+      default: void 0
     }
   },
   setup(__props) {
     const props = __props;
-    const _a = toRefs(props), { form, rules, transform, name, deps } = _a, rest = __objRest(_a, ["form", "rules", "transform", "name", "deps"]);
+    const _a = toRefs(props), {
+      form,
+      rules,
+      transform,
+      name,
+      deps,
+      debounce,
+      changeType,
+      value,
+      defaultValue,
+      isEqual
+    } = _a, rest = __objRest(_a, [
+      "form",
+      "rules",
+      "transform",
+      "name",
+      "deps",
+      "debounce",
+      "changeType",
+      "value",
+      "defaultValue",
+      "isEqual"
+    ]);
     const [slotProps, , { mounted }] = useField(__spreadValues({
       form: form.value,
       rules: rules.value,
       transform: transform == null ? void 0 : transform.value,
       deps: deps == null ? void 0 : deps.value,
-      name
+      debounce: debounce == null ? void 0 : debounce.value,
+      name,
+      changeType: changeType.value,
+      value: value == null ? void 0 : value.value,
+      defaultValue: defaultValue == null ? void 0 : defaultValue.value,
+      isEqual: isEqual == null ? void 0 : isEqual.value
     }, rest));
     return (_ctx, _cache) => {
       return unref(mounted) ? renderSlot(_ctx.$slots, "default", {
@@ -1454,15 +1666,20 @@ const _sfc_main = /* @__PURE__ */ defineComponent({
     rules: {
       type: Array,
       default: () => []
+    },
+    debounce: {
+      type: Number,
+      default: void 0
     }
   },
   setup(__props) {
     const props = __props;
-    const { name, form, value, rules } = toRefs(props);
+    const { name, form, value, rules, debounce } = toRefs(props);
     const { mounted } = useVirtualField({
       form: form.value,
       rules: rules.value,
       value: value.value,
+      debounce: debounce == null ? void 0 : debounce.value,
       name
     });
     return (_ctx, _cache) => {
@@ -1470,4 +1687,4 @@ const _sfc_main = /* @__PURE__ */ defineComponent({
     };
   }
 });
-export { _sfc_main$2 as Field, _sfc_main$1 as FieldArray, FieldClass, FormClass, _sfc_main as VirtualField, VirtualFieldClass, createFieldArray, createForm, useField, useFieldArray, useVirtualField, validators };
+export { _sfc_main$2 as Field, _sfc_main$1 as FieldArray, FieldClass, Form, _sfc_main as VirtualField, VirtualFieldClass, createFieldArray, createForm, useField, useFieldArray, useVirtualField, validators };

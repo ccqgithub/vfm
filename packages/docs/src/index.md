@@ -11,7 +11,7 @@ features:
   - title: Vue-Powered
     details: Enjoy the dev experience of Vue, use Vue's reactivity ability to build form, no other dependencies.
   - title: Feature Rich
-    details: Support nested fields, array fields， virtual fields, and many built-in validators.
+    details: Support nested fields, array fields， virtual fields, and many built-in validators, and many more.
 footer: MIT Licensed | Copyright © 2022-present Season Chen
 ---
 

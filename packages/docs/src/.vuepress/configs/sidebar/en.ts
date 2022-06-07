@@ -1,19 +1,16 @@
 import type { SidebarConfig } from '@vuepress/theme-default';
 
-export const en = 'auto';
-// export const en: SidebarConfig = {
-//   '/': [
-//     {
-//       text: 'Guide',
-//       children: ['/index.md']
-//     }
-//   ],
-//   '/apis/': [
-//     {
-//       text: 'APIs',
-//       children: [
-//         '/apis/index.md',
-//       ]
-//     }
-//   ]
-// };
+export const en: SidebarConfig = {
+  '/': [
+    '/guide/index.md'
+  ],
+  '/components/': [
+    '/components/index.md',
+    '/components/Field.md',
+    '/components/VirtualField.md',
+    '/components/FieldArray.md'
+  ],
+  '/apis/': [
+    '/apis/index.md'
+  ]
+};

@@ -23,6 +23,7 @@ const formState = form.state;
             required: true
           }
         ]"
+        value="1988"
         #default="{ field }"
       >
         <input

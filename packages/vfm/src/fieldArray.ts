@@ -1,12 +1,12 @@
 import { toRaw, ref, watch } from 'vue';
-import { FormClass } from './form';
+import { Form } from './form';
 import { FormType, KeyPathValue, ArrayFieldPath, ArrayItem } from './types';
 
 export const createFieldArray = <
   T extends FormType,
   N extends ArrayFieldPath<T>
 >(
-  form: FormClass<T>,
+  form: Form<T>,
   path: N
 ) => {
   let fieldId = 0;

@@ -1,11 +1,11 @@
 <script setup lang="ts">
 import { PropType } from 'vue';
-import { FormClass } from '../form';
+import { Form } from '../form';
 import { useFieldArray } from '../uses';
 
 const props = defineProps({
   form: {
-    type: Object as PropType<FormClass>,
+    type: Object as PropType<Form>,
     required: true
   },
   name: {

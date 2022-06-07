@@ -2,15 +2,17 @@
   "compilerOptions": {
     "baseUrl": ".",
     "outDir": "dist",
-    "declaration": true,
-    "sourceMap": true,
-    "declarationMap": true,
+    "rootDir": ".",
     "target": "es6",
     "module": "esnext",
     "moduleResolution": "node",
     "allowJs": false,
     "checkJs": false,
+    "declaration": true,
+    "sourceMap": true,
+    "declarationMap": true,
     "strict": true,
+    "preserveSymlinks": true,
     "noUnusedLocals": false,
     "experimentalDecorators": true,
     "emitDecoratorMetadata": true,
@@ -20,11 +22,6 @@
     "jsx": "preserve",
     "lib": ["esnext", "dom"],
     "types": ["jest", "puppeteer", "node"],
-    "rootDir": ".",
-    "preserveSymlinks": true,
-    "paths": {
-      "vfm": ["src/index.ts"]
-    }
   },
   "include": [
     "src",

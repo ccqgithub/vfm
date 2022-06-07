@@ -1,4 +1,4 @@
-import { CancellablePromise } from './types';
+import { DisposablePromise } from './types';
 
 export const setKeyValue = (
   data: Record<string, any>,
@@ -89,32 +89,132 @@ export const recursiveUpdateObject = (
   });
 };
 
-type OnCancel = (cancel: () => void) => void;
-export const makeCancellablePromise = <T = any>(
-  fn: (onCancel: OnCancel) => Promise<T>
+/**
+ * 函数调用间隔控制
+ * fn: 执行的函数
+ * delay: 函数执行的最小间隔，单位毫秒
+ * leading
+ */
+export const debounce = <FN extends (...args: any[]) => any>(
+  fn: FN,
+  delay: number,
+  leading = false
 ) => {
-  const cancelList: (() => void)[] = [];
-  let resolve: ((v: any) => void) | null = null;
-
-  const promise = fn((cancel) => {
-    cancelList.push(cancel);
-  });
-
-  const resPromise: CancellablePromise<T> = new Promise((r, j) => {
-    resolve = r;
-    promise.then(r, j);
-  });
-  // do cancel
-  resPromise.cancel = () => {
-    resolve?.('');
-    cancelList.forEach((cancel) => cancel());
+  return (...args: Parameters<FN>) => {
+    let timer;
+    let last_exec = -Infinity;
+    const exec = function () {
+      last_exec = Date.now();
+      fn(...args);
+    };
+    timer && clearTimeout(timer);
+    if (leading) {
+      Date.now() - last_exec >= delay && exec();
+    } else {
+      timer = setTimeout(exec, delay);
+    }
   };
-
-  return resPromise;
 };
 
 export const AllPropType = [String, Number, Boolean, Symbol, Array, Object];
 
 export const noop = (...args: any[]) => {
   args;
+};
+
+type OnDispose = (dispose: () => void) => void;
+export const makeDisposablePromise = <T = any>(
+  fn: (onDispose: OnDispose) => Promise<T>
+) => {
+  let disposeList: (() => void)[] = [];
+
+  const onDispose = (dispose: () => void) => {
+    disposeList.push(dispose);
+  };
+  const promise = fn(onDispose);
+  const res: DisposablePromise<T> = {
+    promise: new Promise((resolve, reject) => {
+      promise.then(
+        (v) => {
+          disposeList = [];
+          resolve(v);
+        },
+        (e) => {
+          disposeList = [];
+          reject(e);
+        }
+      );
+    }),
+    dispose: () => {
+      disposeList.forEach((dispose) => dispose());
+      disposeList = [];
+    }
+  };
+
+  return res;
+};
+
+export const debouncePromise = <
+  FN extends (...args: any[]) => Promise<T> | DisposablePromise<T>,
+  T
+>(
+  fn: FN,
+  delay: number
+) => {
+  let disposeLast: (() => void) | null = null;
+  let resPromise: Promise<T> | null = null;
+  let waitPromises: Promise<T>[] = [];
+
+  const call = async (...args: Parameters<FN>) => {
+    // dispose last call, the last promise will be rejected
+    disposeLast?.();
+
+    // push cur call to wait list
+    waitPromises.push(
+      new Promise((resolve, reject) => {
+        let cancelFn: (() => void) | null = null;
+        const timer = setTimeout(() => {
+          const res = fn(...args);
+          if ('promise' in res) {
+            res.promise.then(resolve, reject);
+            cancelFn = () => {
+              res.dispose?.();
+            };
+          } else {
+            res.then(resolve, reject);
+          }
+        }, delay);
+        disposeLast = () => {
+          cancelFn?.();
+          cancelFn = null;
+          clearTimeout(timer);
+          reject();
+        };
+      })
+    );
+
+    if (resPromise) return resPromise;
+
+    resPromise = (async () => {
+      while (waitPromises.length) {
+        const p = waitPromises.shift()!;
+        try {
+          const res = await p;
+          // the last item, use it as resolve
+          if (!waitPromises.length) return res;
+        } catch (e) {
+          // the last item, use it as the reject
+          if (!waitPromises.length) throw e;
+        }
+      }
+    })() as Promise<T>;
+
+    return resPromise.finally(() => {
+      disposeLast = null;
+      resPromise = null;
+      waitPromises = [];
+    });
+  };
+
+  return call;
 };

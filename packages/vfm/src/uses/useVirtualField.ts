@@ -1,5 +1,5 @@
 import { onBeforeUnmount, onMounted, Ref, ref, unref, watch } from 'vue';
-import { FormClass } from '../form';
+import { Form } from '../form';
 import { VirtualFieldRule } from './../types';
 import { FormType } from '../types';
 
@@ -9,10 +9,11 @@ export type UseVirtualFieldProps<
   N extends VFK = VFK,
   V = any
 > = {
-  form: FormClass<T, VFK>;
+  form: Form<T, VFK>;
   name: Ref<N> | N;
   value: () => V;
   rules?: Ref<VirtualFieldRule[]> | VirtualFieldRule[];
+  debounce?: number;
 };
 
 export const useVirtualField = <T extends FormType, N extends string>(
@@ -26,7 +27,8 @@ export const useVirtualField = <T extends FormType, N extends string>(
   let { register, field } = form.registerVirtualField(unref(name), {
     value: props.value,
     rules: unref(props.rules),
-    immediate: false
+    immediate: false,
+    debounce: props.debounce
   });
   const fieldState = ref(field.state);
   const stopWatch = watch(
@@ -36,7 +38,8 @@ export const useVirtualField = <T extends FormType, N extends string>(
       const fs = form.registerVirtualField(unref(name), {
         value: props.value,
         rules: unref(props.rules),
-        immediate: mounted.value
+        immediate: mounted.value,
+        debounce: props.debounce
       });
       register = fs.register;
       field = fs.field;

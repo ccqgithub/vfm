@@ -1,12 +1,12 @@
 <script lang="ts" setup>
 import { PropType, toRefs } from 'vue';
-import { FormClass } from '../form';
+import { Form } from '../form';
 import { useVirtualField } from '../uses';
 import { VirtualFieldRule } from '../types';
 
 const props = defineProps({
   form: {
-    type: Object as PropType<FormClass>,
+    type: Object as PropType<Form>,
     required: true
   },
   name: {
@@ -20,13 +20,18 @@ const props = defineProps({
   rules: {
     type: Array as PropType<VirtualFieldRule[]>,
     default: () => []
+  },
+  debounce: {
+    type: Number,
+    default: undefined
   }
 });
-const { name, form, value, rules } = toRefs(props);
+const { name, form, value, rules, debounce } = toRefs(props);
 const { mounted } = useVirtualField({
   form: form.value,
   rules: rules.value,
   value: value.value,
+  debounce: debounce?.value,
   name
 });
 </script>

@@ -1,5 +1,5 @@
 import { reactive, watchEffect, WatchStopHandle, ref } from 'vue';
-import { FormClass } from './form';
+import { Form } from './form';
 import {
   FormType,
   FieldError,
@@ -8,10 +8,10 @@ import {
   VirtualValidateFunc
 } from './types';
 import { validators } from './validators';
-import { makeCancellablePromise } from './untils';
+import { makeDisposablePromise, debouncePromise } from './untils';
 
 const validateRule = (rule: VirtualFieldRule, v: any) => {
-  return makeCancellablePromise(async (onCancel) => {
+  return makeDisposablePromise(async (onDispose) => {
     // required
     if (rule.required) {
       if (!v && v !== 0) return '{{name}} is required';
@@ -63,20 +63,30 @@ const validateRule = (rule: VirtualFieldRule, v: any) => {
       if (rule[str] === true) {
         const vld = validators[str];
         const p = vld(v);
-        if (typeof p === 'object' && typeof p.cancel === 'function') {
-          onCancel(() => p.cancel?.());
+        if (
+          typeof p === 'object' &&
+          'dispose' in p &&
+          typeof p.dispose === 'function'
+        ) {
+          onDispose(() => p.dispose?.());
         }
-        const msg = await p;
+        const msg =
+          typeof p === 'object' && 'promise' in p ? await p.promise : await p;
         if (msg) return msg;
       }
     }
     // custom validator
     if (rule.validator) {
       const p = rule.validator(v);
-      if (typeof p === 'object' && typeof p.cancel === 'function') {
-        onCancel(() => p.cancel?.());
+      if (
+        typeof p === 'object' &&
+        'dispose' in p &&
+        typeof p.dispose === 'function'
+      ) {
+        onDispose(() => p.dispose?.());
       }
-      const msg = await p;
+      const msg =
+        typeof p === 'object' && 'promise' in p ? await p.promise : await p;
       if (msg) return msg;
     }
     // no error
@@ -84,18 +94,21 @@ const validateRule = (rule: VirtualFieldRule, v: any) => {
   });
 };
 
-// virtual field
+/**
+ * @internal
+ */
 export class VirtualFieldClass<T extends FormType = FormType, V = any> {
   public name = '';
   // 当前状态
   public state: VirtualFieldState;
   // 所属表单
-  private form: FormClass<T>;
+  private form: Form<T>;
   // 验证函数
   private rules = ref<VirtualFieldRule<V>[]>([]);
   private value: () => V;
   private validate: VirtualValidateFunc<V>;
-  private validateCount = 0;
+  private validateDispose: (() => void) | null = null;
+  private debounce = 0;
   // watcher
   private stopValidateWatcher: WatchStopHandle | null = null;
   // if registered
@@ -103,12 +116,13 @@ export class VirtualFieldClass<T extends FormType = FormType, V = any> {
   private isInited = false;
 
   constructor(
-    form: FormClass<T>,
+    form: Form<T>,
     args: {
       name: string;
       value: () => V;
       rules?: VirtualFieldRule<V>[];
       immediate?: boolean;
+      debounce?: number;
     }
   ) {
     const { immediate = true } = args;
@@ -117,7 +131,8 @@ export class VirtualFieldClass<T extends FormType = FormType, V = any> {
     this.form = form;
     this.name = args.name;
     this.value = args.value;
-    this.rules.value = args.rules || [];
+    this.setRules(args.rules || []);
+    this.debounce = args.debounce || 0;
     this.state = reactive({
       name: this.name,
       error: null,
@@ -127,12 +142,24 @@ export class VirtualFieldClass<T extends FormType = FormType, V = any> {
 
     // validate
     const validate: VirtualValidateFunc<V> = (value, rules) => {
-      return makeCancellablePromise(async (onCancel) => {
-        let error: FieldError | null = null;
+      let disposed = false;
+      return makeDisposablePromise(async (onDispose) => {
+        onDispose(() => {
+          disposed = true;
+        });
+
         for (const rule of rules) {
-          const promise = validateRule(rule as VirtualFieldRule<V>, value);
-          onCancel(() => promise.cancel?.());
-          const errMsg = await promise;
+          const validateRuleRes = validateRule(
+            rule as VirtualFieldRule<V>,
+            value
+          );
+          onDispose(() => validateRuleRes.dispose?.());
+          const errMsg = await validateRuleRes.promise;
+
+          // disposed
+          if (disposed) return null;
+
+          let error: FieldError | null = null;
           if (errMsg) {
             error =
               typeof errMsg === 'string'
@@ -162,9 +189,21 @@ export class VirtualFieldClass<T extends FormType = FormType, V = any> {
     fn();
   };
 
+  setRules(rules: VirtualFieldRule<V>[] = []) {
+    this.rules.value = rules.map((v) => {
+      if (!v.debounce) return v;
+      const rule: VirtualFieldRule<V> = {
+        validator: debouncePromise((value) => {
+          return validateRule(v, value);
+        }, v.debounce)
+      };
+      return rule;
+    });
+  }
+
   update(args: { rules?: VirtualFieldRule<V>[]; value?: () => V }) {
     if (args.rules) {
-      this.rules.value = args.rules;
+      this.setRules(args.rules);
     }
     if (args.value) {
       this.value = args.value;
@@ -173,24 +212,33 @@ export class VirtualFieldClass<T extends FormType = FormType, V = any> {
 
   public initWatcher() {
     if (this.isInited) return;
-    // auto validate
-    this.stopValidateWatcher = watchEffect(async (onCleanup) => {
-      this.validateCount++;
-      const count = this.validateCount;
+
+    // dispose last validate
+    this.validateDispose?.();
+    this.validateDispose = null;
+
+    // do validate
+    const doValidate = async (args: {
+      value: V;
+      rules: VirtualFieldRule<V>[];
+    }) => {
       this.runInAction(() => {
         this.state.isValidating = true;
       });
       // validate
-      const value = this.value();
-      const rules = this.rules.value;
-      // validate in next micro task, avoid watchEffect to track unnecessary changes
-      const err = await Promise.resolve().then(() => {
-        const promise = this.validate(value, rules);
-        onCleanup(() => promise.cancel?.());
-        return promise;
-      });
-      // has other validate start after this
-      if (count !== this.validateCount) return;
+      const { value, rules } = args;
+      let disposed = false;
+      const validateRes = this.validate(value, rules);
+      this.validateDispose = () => {
+        validateRes.dispose?.();
+        disposed = true;
+        this.validateDispose = null;
+      };
+      const err = await validateRes.promise;
+
+      // disposed
+      if (disposed) return;
+
       // update state
       this.runInAction(() => {
         this.state.isValidating = false;
@@ -204,6 +252,21 @@ export class VirtualFieldClass<T extends FormType = FormType, V = any> {
         }
         this.state.isError = hasError;
       });
+
+      // run end, no need dispose
+      this.validateDispose = null;
+    };
+    const validate = this.debounce
+      ? debouncePromise(doValidate, this.debounce)
+      : doValidate;
+    // auto validate
+    this.stopValidateWatcher = watchEffect(() => {
+      const value = this.value();
+      const rules = this.rules.value;
+      // validate in next micro task, avoid watchEffect to track unnecessary changes
+      Promise.resolve().then(() => {
+        validate({ value, rules });
+      });
     });
     this.isInited = true;
   }
@@ -215,6 +278,8 @@ export class VirtualFieldClass<T extends FormType = FormType, V = any> {
   }
 
   onUnregister() {
+    this.validateDispose?.();
+    this.validateDispose = null;
     this.stopValidateWatcher?.();
     this.isRegistered = false;
     this.isInited = false;

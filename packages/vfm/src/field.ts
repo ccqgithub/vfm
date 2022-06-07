@@ -8,12 +8,13 @@ import {
   ValidateFunc,
   FieldPath
 } from './types';
-import { FormClass } from './form';
+import { Form } from './form';
 import { validators } from './validators';
-import { getKeyValue, makeCancellablePromise } from './untils';
+import { getKeyValue, makeDisposablePromise, debouncePromise } from './untils';
 
+// validate rule
 const validateRule = (rule: FieldRule, v: any, deps?: any) => {
-  return makeCancellablePromise(async (onCancel) => {
+  return makeDisposablePromise(async (onDispose) => {
     // required
     if (rule.required) {
       if (!v && v !== 0) return '{{name}} is required';
@@ -65,20 +66,30 @@ const validateRule = (rule: FieldRule, v: any, deps?: any) => {
       if (rule[str] === true) {
         const vld = validators[str];
         const p = vld(v, deps);
-        if (typeof p === 'object' && typeof p.cancel === 'function') {
-          onCancel(() => p.cancel?.());
+        if (
+          typeof p === 'object' &&
+          'dispose' in p &&
+          typeof p.dispose === 'function'
+        ) {
+          onDispose(() => p.dispose?.());
         }
-        const msg = await p;
+        const msg =
+          typeof p === 'object' && 'promise' in p ? await p.promise : await p;
         if (msg) return msg;
       }
     }
     // custom validator
     if (rule.validator) {
       const p = rule.validator(v, deps);
-      if (typeof p === 'object' && typeof p.cancel === 'function') {
-        onCancel(() => p.cancel?.());
+      if (
+        typeof p === 'object' &&
+        'dispose' in p &&
+        typeof p.dispose === 'function'
+      ) {
+        onDispose(() => p.dispose?.());
       }
-      const msg = await p;
+      const msg =
+        typeof p === 'object' && 'promise' in p ? await p.promise : await p;
       if (msg) return msg;
     }
     // no error
@@ -86,6 +97,9 @@ const validateRule = (rule: FieldRule, v: any, deps?: any) => {
   });
 };
 
+/**
+ * @internal
+ */
 export class FieldClass<
   T extends FormType = FormType,
   N extends FieldPath<T> = FieldPath<T>,
@@ -94,15 +108,18 @@ export class FieldClass<
 > {
   // key path in form data
   public name: N;
+  public initValue?: KeyPathValue<T, N>;
+  public initDefaultValue?: KeyPathValue<T, N>;
   // 当前状态
   public state: FieldState;
   // 所属表单
-  private form: FormClass<T, VFK>;
+  private form: Form<T, VFK>;
   // 验证函数
   private rules = ref<FieldRule<KeyPathValue<T, N>, Deps>[]>([]);
   private deps: (() => Deps) | null = null;
   private validate: ValidateFunc<KeyPathValue<T, N>, Deps>;
-  private validateCount = 0;
+  private validateDispose: (() => void) | null = null;
+  private debounce = 0;
   // fns
   private transform: ((v: KeyPathValue<T, N>) => KeyPathValue<T, N>) | null =
     null;
@@ -118,7 +135,7 @@ export class FieldClass<
   private isInited = false;
 
   constructor(
-    form: FormClass<T>,
+    form: Form<T>,
     args: {
       name: N;
       rules?: FieldRule<KeyPathValue<T, N>, Deps>[];
@@ -127,6 +144,9 @@ export class FieldClass<
       transform?: (v: KeyPathValue<T, N>) => KeyPathValue<T, N>;
       isEqual?: (v: KeyPathValue<T, N>, d: KeyPathValue<T, N>) => boolean;
       onFocus?: () => void;
+      debounce?: number;
+      initValue?: KeyPathValue<T, N>;
+      initDefaultValue?: KeyPathValue<T, N>;
     }
   ) {
     const { immediate = true } = args;
@@ -134,11 +154,14 @@ export class FieldClass<
     // init state
     this.form = form;
     this.name = args.name;
-    this.rules.value = args.rules || [];
+    this.setRules(args.rules || []);
     this.deps = args.deps || null;
     this.transform = args.transform || null;
     this.isEqual = args.isEqual || null;
     this.focusFn = args.onFocus || null;
+    this.debounce = args.debounce || 0;
+    this.initValue = args.initValue;
+    this.initDefaultValue = args.initDefaultValue;
     // state
     this.state = reactive({
       error: null,
@@ -150,23 +173,31 @@ export class FieldClass<
     }) as FieldState;
 
     // validate
-    const validate: ValidateFunc<KeyPathValue<T, N>, Deps> = async (
+    const validate: ValidateFunc<KeyPathValue<T, N>, Deps> = (
       value,
       deps,
       rules
     ) => {
       const transform = this.transform;
-
-      return await makeCancellablePromise(async (onCancel) => {
+      let disposed = false;
+      return makeDisposablePromise(async (onDispose) => {
+        onDispose(() => {
+          disposed = true;
+        });
         for (const rule of rules) {
-          const promise = validateRule(
+          const validateRuleRes = validateRule(
             rule as FieldRule<KeyPathValue<T, N>, Deps>,
             transform && value !== undefined ? transform(value) : value,
             deps
           );
-          onCancel(() => promise.cancel?.());
-          const errMsg = await promise;
+          onDispose(() => validateRuleRes.dispose?.());
+          const errMsg = await validateRuleRes.promise;
+
+          // disposed
+          if (disposed) return null;
+
           let error: FieldError | null = null;
+          // has first error
           if (errMsg) {
             error =
               typeof errMsg === 'string'
@@ -204,34 +235,55 @@ export class FieldClass<
     fn();
   };
 
+  setRules(rules: FieldRule<KeyPathValue<T, N>, Deps>[] = []) {
+    this.rules.value = rules.map((v) => {
+      if (!v.debounce) return v;
+      const rule: FieldRule<KeyPathValue<T, N>, Deps> = {
+        validator: debouncePromise((value, deps) => {
+          return validateRule(v, value, deps);
+        }, v.debounce)
+      };
+      return rule;
+    });
+  }
+
   update(
     args: {
       rules?: FieldRule<KeyPathValue<T, N>, Deps>[];
     } = {}
   ) {
     if (args.rules) {
-      this.rules.value = args.rules;
+      this.setRules(args.rules);
     }
   }
 
   initWatcher() {
     if (this.isInited) return;
-    // auto validate
-    this.stopValidateWatcher = watchEffect(async (onCleanup) => {
-      this.validateCount++;
-      const count = this.validateCount;
+
+    // do validate
+    const doValidate = async (args: {
+      value: KeyPathValue<T, N>;
+      deps?: Deps;
+      rules: FieldRule<KeyPathValue<T, N>, Deps>[];
+    }) => {
+      // dispose last validate
+      this.validateDispose?.();
+      this.validateDispose = null;
+
       // validate
-      const value = this.getValue();
-      const deps = this.deps?.();
-      const rules = this.rules.value;
-      // validate in next micro task, avoid watchEffect to track unnecessary changes
-      const err = await Promise.resolve().then(() => {
-        const promise = this.validate(value, deps, rules);
-        onCleanup(() => promise.cancel?.());
-        return promise;
-      });
-      // has other validate start after this
-      if (count !== this.validateCount) return;
+      const { value, deps, rules } = args;
+      let disposed = false;
+      const validateRes = this.validate(value, deps, rules);
+      this.validateDispose = () => {
+        validateRes.dispose?.();
+        disposed = true;
+        this.validateDispose = null;
+      };
+      const err = await validateRes.promise;
+
+      // disposed
+      if (disposed) return;
+
       // update validate status
       this.runInAction(() => {
         this.state.isValidating = false;
@@ -244,6 +296,30 @@ export class FieldClass<
           this.state.error = null;
         }
         this.state.isError = hasError;
+      });
+
+      // run end, no need dispose
+      this.validateDispose = null;
+    };
+    const validate = this.debounce
+      ? debouncePromise(doValidate, this.debounce)
+      : doValidate;
+    // auto validate
+    this.stopValidateWatcher = watchEffect(() => {
+      this.runInAction(() => {
+        this.state.isValidating = true;
+      });
+
+      const value = this.getValue();
+      const deps = this.deps?.();
+      const rules = this.rules.value;
+      // validate in next micro task, avoid watchEffect to track unnecessary changes
+      Promise.resolve().then(() => {
+        validate({
+          value,
+          deps,
+          rules
+        });
       });
     });
     // dirty watch
@@ -265,6 +341,8 @@ export class FieldClass<
   }
 
   onUnregister() {
+    this.validateDispose?.();
+    this.validateDispose = null;
     this.stopValidateWatcher?.();
     this.stopDirtyWatcher?.();
     this.isRegistered = false;
@@ -291,7 +369,8 @@ export class FieldClass<
       keepChanged?: boolean;
     } = {}
   ) {
-    this.validateCount++;
+    this.validateDispose?.();
+    this.validateDispose = null;
     this.stopValidateWatcher?.();
     this.stopDirtyWatcher?.();
     this.runInAction(() => {

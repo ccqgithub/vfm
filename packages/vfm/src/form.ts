@@ -31,12 +31,13 @@ import {
   VirtualFieldRule
 } from './types';
 
-export type GetFormType<T> = T extends FormClass<infer U> ? U : never;
+export type GetFormType<T> = T extends Form<infer U> ? U : never;
 
-export class FormClass<
-  T extends FormType = FormType,
-  VFK extends string = string
-> {
+/**
+ * Class to management form state.
+ * @template T form structure type
+ */
+export class Form<T extends FormType = FormType, VFK extends string = string> {
   public touchType: 'FOCUS' | 'BLUR' = 'BLUR';
   // states
   private _state: FormState<T, VFK>;
@@ -76,7 +77,9 @@ export class FormClass<
   }) {
     const { initValues = {} as FieldValues<T> } = args;
     this.initValues = toRaw(initValues);
-    this.defaultValues = toRaw(args.defaultValues);
+    this.defaultValues = toRaw(
+      args.defaultValues || (args.initValues as FieldValues<T, true>)
+    );
     this._state = reactive({
       values: initValues,
       defaultValues: args.defaultValues || initValues,
@@ -120,8 +123,14 @@ export class FormClass<
     // register cache fields
     const { cacheFields, cacheVirtualFields } = this;
     for (const k of cacheFields) {
-      const filed = this.fields.get(k);
-      filed?.initWatcher();
+      const filed = this.fields.get(k)!;
+      filed.initWatcher();
+      if (filed.initDefaultValue !== undefined) {
+        setKeyValue(this._state.defaultValues, k, filed.initDefaultValue);
+      }
+      if (filed.initValue !== undefined) {
+        setKeyValue(this._state.values, k, filed.initValue);
+      }
     }
     for (const k of cacheVirtualFields) {
       const filed = this.virtualFields.get(k);
@@ -251,15 +260,22 @@ export class FormClass<
   registerField<N extends FieldPath<T>, Deps = any>(
     name: N,
     args: {
+      value?: KeyPathValue<T, N>;
+      defaultValue?: KeyPathValue<T, N>;
       rules?: FieldRule<KeyPathValue<T, N>, Deps>[];
       immediate?: boolean;
       transform?: (v: KeyPathValue<T, N>) => KeyPathValue<T, N>;
       isEqual?: (v: KeyPathValue<T, N>, d: KeyPathValue<T, N>) => boolean;
       onFocus?: () => void;
       deps?: () => Deps;
+      debounce?: number;
     } = {}
   ): { field: FieldClass<T, N, Deps, VFK>; register: () => void } {
-    const { immediate = true } = args;
+    const {
+      immediate = true,
+      value = getKeyValue(this.initValues, name),
+      defaultValue = getKeyValue(this.defaultValues || {}, name)
+    } = args;
     const { fieldsKeys, fields, cacheFields } = this;
     if (fieldsKeys.value.includes(name) || cacheFields.includes(name)) {
       console.warn(`Duplicate field <${name}>.`);
@@ -280,14 +296,22 @@ export class FormClass<
       }
     }
     // field value
-    const field: FieldClass<T, N, Deps> = new FieldClass(this as FormClass<T>, {
+    const field: FieldClass<T, N, Deps> = new FieldClass(this as Form<T>, {
       ...args,
-      name
+      name,
+      initValue: value,
+      initDefaultValue: defaultValue
     });
     fields.set(name, field as any);
     const register = () => {
       this.runInAction(() => {
         if (this.isMounted) {
+          if (defaultValue !== undefined) {
+            setKeyValue(this._state.defaultValues, name, defaultValue);
+          }
+          if (value !== undefined) {
+            setKeyValue(this._state.values, name, defaultValue);
+          }
           this.fieldsKeys.value.push(name);
           field.initWatcher();
         } else {
@@ -308,6 +332,7 @@ export class FormClass<
       rules?: VirtualFieldRule<V>[];
       value: () => V;
       immediate?: boolean;
+      debounce?: number;
     }
   ): { field: VirtualFieldClass<T, V>; register: () => void } {
     const { immediate = true } = args;
@@ -322,7 +347,7 @@ export class FormClass<
         register: () => {}
       };
     }
-    const field = new VirtualFieldClass(this as FormClass<T>, {
+    const field = new VirtualFieldClass(this as Form<T>, {
       ...args,
       name
     });
@@ -626,6 +651,14 @@ export class FormClass<
     return this.fieldState(name)?.isChanged || false;
   }
 
+  isValidating<N extends FieldPath<T>>(name: N) {
+    return this.fieldState(name)?.isValidating || false;
+  }
+
+  isVirtualValidating<N extends VFK>(name: N) {
+    return this.virtualFieldState(name)?.isValidating || false;
+  }
+
   isError<N extends FieldPath<T>>(name: N) {
     return this.fieldState(name)?.isError || false;
   }
@@ -733,5 +766,5 @@ export const createForm = <
   touchType?: 'FOCUS' | 'BLUR';
   readonly?: boolean;
 }) => {
-  return new FormClass<T, VFK>(args);
+  return new Form<T, VFK>(args);
 };

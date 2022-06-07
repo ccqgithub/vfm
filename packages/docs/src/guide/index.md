@@ -1,6 +1,6 @@
-## Getting Started
+# Getting Started
 
-> In the examples below, you can click `File Name` to view real code, and click `Result` to show the result of the code.
+> In the examples below, you can click `<File Name>` to view real code, and click `Result` to show the result of the code.
 
 ## Install
 
@@ -21,7 +21,7 @@ yarn add vfm
   </CodeGroupItem>
 </CodeGroup>
 
-## Create Sorm Structure
+## Create Form Structure
 
 <details open>
   <summary>Details:</summary>

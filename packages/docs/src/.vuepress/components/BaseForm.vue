@@ -3,6 +3,7 @@ import { onMounted, onBeforeUnmount } from 'vue';
 import { Field, VirtualField, FieldArray } from 'vfm';
 // vue now not support slot props types, manual set in template
 import type { FieldScope, FieldArrayScope } from 'vfm';
+import { debounce } from 'lodash-es';
 import { form } from './form';
 import BaseInfo from './partial/BaseInfo.vue';
 import AddressList from './partial/AddressList.vue';
@@ -29,6 +30,40 @@ onMounted(() => {
 onBeforeUnmount(() => {
   form.unmount();
 });
+
+// async validate
+const checkName = (name: string) => {
+  console.log('checkName')
+  return new Promise<string>((resolve) => {
+    setTimeout(() => {
+      if (name === 'test') {
+        resolve('Username already exists');
+        return;
+      }
+      resolve('');
+    }, 1000)
+  });
+}
+// disoiseable validate
+const checkName2 = (name: string) => {
+  console.log('checkName2')
+  let timer: ReturnType<typeof setTimeout> | null = null;
+  const promise = new Promise<string>((resolve) => {
+    timer = setTimeout(() => {
+      if (name === 'test') {
+        resolve('Username already exists');
+        return;
+      }
+      resolve('');
+    }, 1000)
+  });
+  return {
+    promise,
+    dispose: () => {
+      timer && clearTimeout(timer);
+    }
+  }
+}
 </script>
 
 <template>
@@ -44,8 +79,15 @@ onBeforeUnmount(() => {
           :rules="[
             {
               required: true
+            },
+            {
+              validator: (v) => {
+                return checkName(v);
+              },
+              debounce: 300
             }
           ]"
+          change-type="ONINPUT"
           #default="{ field }: FieldScope"
         >
           <input
@@ -53,7 +95,10 @@ onBeforeUnmount(() => {
             type="text"
             v-bind="field"
           />
-          <div class="vfm-error">
+          <div v-if="form.isValidating('username')" class="vfm-error">
+            loading...
+          </div>
+          <div v-else class="vfm-error">
             {{ form.fieldError('username')?.message }}
           </div>
         </Field>
@@ -201,6 +246,9 @@ onBeforeUnmount(() => {
 
     <div class="vfm-p">
       <button class="vfm-button" @click="submit">Submit</button>
+      <div class="vfm-error" :style="{ width: '100%', textAlign: 'center' }" v-if="form.state.isError">
+        Have error, cannot submit
+      </div>
     </div>
   </div>
 </template>

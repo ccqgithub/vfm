@@ -6,6 +6,10 @@ export const en: NavbarConfig = [
     link: '/guide/'
   },
   {
+    text: 'Components',
+    link: '/components/'
+  },
+  {
     text: 'APIs',
     link: '/apis/'
   }

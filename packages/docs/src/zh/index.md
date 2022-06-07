@@ -3,7 +3,7 @@ home: true
 title: 首页
 actions:
   - text: 快速开始
-    link: /guide/index.html
+    link: /zh/guide/index.html
     type: primary
 features:
   - title: 简洁至上
