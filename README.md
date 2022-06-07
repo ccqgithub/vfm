@@ -9,5 +9,5 @@ Vue driven form management tool。
 
 ## Todo
 
-- Unit Tests
-- Better Typescript support (vue limition) (e.g. `component generic props types`, `scoped slot props types`)
+- Unit Tests.
+- Better Typescript support (vue limition) (e.g. `component generic props types`, `scoped slot props types`).
