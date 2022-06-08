@@ -9,8 +9,8 @@
 
 ## Slots
 
-| Name    | Description        | Bindings                                                          |
-| ------- | ------------------ | ----------------------------------------------------------------- |
-| default | Field default slot | **fields** `mixed` - see [FieldArrayScope](apis/#fieldarrayscope) |
+| Name    | Description        | Bindings                                                             |
+| ------- | ------------------ | -------------------------------------------------------------------- |
+| default | Field default slot | **fields** `mixed` - see [FieldArrayScope](../apis/#fieldarrayscope) |
 
 ---

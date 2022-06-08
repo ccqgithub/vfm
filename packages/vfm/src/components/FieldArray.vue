@@ -29,7 +29,7 @@ const { fieldsValue, fields, ...rest } = useFieldArray(
 <template>
   <!--
     @slot Field default slot
-    @binding fields see [FieldArrayScope](apis/#fieldarrayscope)
+    @binding fields see [FieldArrayScope](../apis/#fieldarrayscope)
   -->
   <slot v-bind="rest" :fields="fields" />
 </template>
