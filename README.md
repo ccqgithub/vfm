@@ -1,6 +1,6 @@
 # VFM: Vue Form Management
 
-Vue driven form management tool。
+Form Validation for Vue3.
 
 ## Document
 

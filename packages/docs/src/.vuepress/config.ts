@@ -13,17 +13,17 @@ const isProd = process.env.NODE_ENV === 'production';
 export default defineUserConfig({
   base: isProd ? '/vfm/' : '/',
   title: 'VFM',
-  description: 'Vue-Powered form management tool',
+  description: 'Form Validation for Vue3.',
   locales: {
     '/': {
       lang: 'en-US',
       title: 'VFM',
-      description: 'Vue-Powered form management tool'
+      description: 'Form Validation for Vue3.'
     },
     '/zh/': {
       lang: 'zh-CN',
       title: 'VFM',
-      description: 'Vue 驱动的表单管理工具'
+      description: 'Vue 驱动的表单管理和校验工具'
     }
   },
   bundler: viteBundler(),
