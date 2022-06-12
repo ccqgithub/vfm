@@ -1,1 +1,0 @@
-const e={key:"v-1020f180",path:"/components/",title:"Components",lang:"en-US",frontmatter:{},excerpt:"",headers:[],git:{updatedTime:1655009517e3,contributors:[{name:"Season Chen",email:"season@SeasondeMacBook-Pro.local",commits:1}]},filePathRelative:"components/index.md"};export{e as data};
