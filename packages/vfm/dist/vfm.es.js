@@ -29,7 +29,7 @@ var __objRest = (source, exclude) => {
     }
   return target;
 };
-import { ref, reactive, watchEffect, toRaw, readonly, computed, unref, watch, onMounted, onBeforeUnmount, defineComponent, toRefs, renderSlot, createCommentVNode, mergeProps } from "vue";
+import { ref, reactive, watchEffect, toRaw, readonly, computed, inject, unref, watch, onMounted, onBeforeUnmount, defineComponent, toRefs, renderSlot, createCommentVNode, mergeProps, provide, onUnmounted } from "vue";
 const alpha = (value) => {
   const msg = "{{name}} is not alphabetical";
   if (typeof value !== "string")
@@ -1297,8 +1297,16 @@ class Form {
 const createForm = (args) => {
   return new Form(args);
 };
+const FormContextKey = Symbol();
+const useForm = () => {
+  return inject(FormContextKey, null);
+};
 const useField = (props) => {
-  const { form, name } = props;
+  const injectForm = useForm();
+  const { form = injectForm, name } = props;
+  if (!form) {
+    throw new Error("No provided form!");
+  }
   const touchType = computed(() => {
     if (props.touchType)
       return unref(props.touchType);
@@ -1402,7 +1410,11 @@ const useField = (props) => {
   ];
 };
 const useVirtualField = (props) => {
-  const { form, name } = props;
+  const injectForm = useForm();
+  const { form = injectForm, name } = props;
+  if (!form) {
+    throw new Error("No provided form!");
+  }
   const mounted = ref(false);
   let { register, field } = form.registerVirtualField(unref(name), {
     value: props.value,
@@ -1533,58 +1545,145 @@ const createFieldArray = (form, path) => {
     update
   };
 };
-const useFieldArray = (form, path) => {
+const useFieldArray = (args) => {
+  const injectForm = useForm();
+  const { form = injectForm, path } = args;
+  if (!form) {
+    throw new Error("No provided form!");
+  }
   const _a = createFieldArray(form, path), { onCleanup } = _a, rest = __objRest(_a, ["onCleanup"]);
   onBeforeUnmount(() => onCleanup());
   return rest;
 };
-const _sfc_main$2 = /* @__PURE__ */ defineComponent({
+const _sfc_main$3 = /* @__PURE__ */ defineComponent({
+  __name: "VirtualField",
   props: {
     form: {
       type: Object,
-      required: true
+      default: void 0
     },
     name: {
       type: String,
+      required: true
+    },
+    value: {
+      type: Function,
       required: true
     },
     rules: {
       type: Array,
       default: () => []
     },
-    deps: {
-      type: Function,
-      default: void 0
-    },
     debounce: {
       type: Number,
       default: void 0
-    },
-    value: {
-      type: AllPropType,
-      default: void 0
-    },
-    defaultValue: {
-      type: AllPropType,
-      default: void 0
-    },
-    transform: {
-      type: Function,
-      default: void 0
-    },
-    touchType: {
-      type: String,
-      default: "BLUR"
-    },
-    changeType: {
-      type: String,
-      default: "ONCHANGE"
-    },
-    isEqual: {
-      type: Function,
-      default: void 0
     }
   },
+  setup(__props) {
+    const props = __props;
+    const { name, form, value, rules, debounce } = toRefs(props);
+    const { mounted } = useVirtualField({
+      form: form == null ? void 0 : form.value,
+      rules: rules.value,
+      value: value.value,
+      debounce: debounce == null ? void 0 : debounce.value,
+      name
+    });
+    return (_ctx, _cache) => {
+      return unref(mounted) ? renderSlot(_ctx.$slots, "default", { key: 0 }) : createCommentVNode("", true);
+    };
+  }
+});
+const _sfc_main$2 = /* @__PURE__ */ defineComponent({
+  __name: "FieldArray",
+  props: {
+    form: {
+      type: Object,
+      default: void 0
+    },
+    name: {
+      type: String,
+      required: true
+    }
+  },
+  setup(__props) {
+    const props = __props;
+    const _a = useFieldArray({
+      form: props.form,
+      path: props.name
+    }), { fieldsValue, fields } = _a, rest = __objRest(_a, ["fieldsValue", "fields"]);
+    return (_ctx, _cache) => {
+      return renderSlot(_ctx.$slots, "default", mergeProps(rest, { fields: unref(fields) }));
+    };
+  }
+});
+const _sfc_main$1 = /* @__PURE__ */ defineComponent({
+  __name: "FormProvider",
+  props: {
+    form: {
+      type: Object,
+      required: true
+    }
+  },
+  setup(__props) {
+    const props = __props;
+    provide(FormContextKey, props.form);
+    onMounted(() => props.form.mount());
+    onUnmounted(() => props.form.unmount());
+    return (_ctx, _cache) => {
+      return renderSlot(_ctx.$slots, "default");
+    };
+  }
+});
+const getProps = () => ({
+  form: {
+    type: Object,
+    default: void 0
+  },
+  name: {
+    type: String,
+    required: true
+  },
+  rules: {
+    type: Array,
+    default: () => []
+  },
+  deps: {
+    type: Function,
+    default: void 0
+  },
+  debounce: {
+    type: Number,
+    default: void 0
+  },
+  value: {
+    type: AllPropType,
+    default: void 0
+  },
+  defaultValue: {
+    type: AllPropType,
+    default: void 0
+  },
+  transform: {
+    type: Function,
+    default: void 0
+  },
+  touchType: {
+    type: String,
+    default: "BLUR"
+  },
+  changeType: {
+    type: String,
+    default: "ONCHANGE"
+  },
+  isEqual: {
+    type: Function,
+    default: void 0
+  }
+});
+const _sfc_main = /* @__PURE__ */ defineComponent({
+  __name: "index",
+  props: getProps(),
   setup(__props) {
     const props = __props;
     const _a = toRefs(props), {
@@ -1611,7 +1710,7 @@ const _sfc_main$2 = /* @__PURE__ */ defineComponent({
       "isEqual"
     ]);
     const [slotProps, , { mounted }] = useField(__spreadValues({
-      form: form.value,
+      form: form == null ? void 0 : form.value,
       rules: rules.value,
       transform: transform == null ? void 0 : transform.value,
       deps: deps == null ? void 0 : deps.value,
@@ -1630,61 +1729,8 @@ const _sfc_main$2 = /* @__PURE__ */ defineComponent({
     };
   }
 });
-const _sfc_main$1 = /* @__PURE__ */ defineComponent({
-  props: {
-    form: {
-      type: Object,
-      required: true
-    },
-    name: {
-      type: String,
-      required: true
-    },
-    value: {
-      type: Function,
-      required: true
-    },
-    rules: {
-      type: Array,
-      default: () => []
-    },
-    debounce: {
-      type: Number,
-      default: void 0
-    }
-  },
-  setup(__props) {
-    const props = __props;
-    const { name, form, value, rules, debounce } = toRefs(props);
-    const { mounted } = useVirtualField({
-      form: form.value,
-      rules: rules.value,
-      value: value.value,
-      debounce: debounce == null ? void 0 : debounce.value,
-      name
-    });
-    return (_ctx, _cache) => {
-      return unref(mounted) ? renderSlot(_ctx.$slots, "default", { key: 0 }) : createCommentVNode("", true);
-    };
-  }
-});
-const _sfc_main = /* @__PURE__ */ defineComponent({
-  props: {
-    form: {
-      type: Object,
-      required: true
-    },
-    name: {
-      type: String,
-      required: true
-    }
-  },
-  setup(__props) {
-    const props = __props;
-    const _a = useFieldArray(props.form, props.name), { fieldsValue, fields } = _a, rest = __objRest(_a, ["fieldsValue", "fields"]);
-    return (_ctx, _cache) => {
-      return renderSlot(_ctx.$slots, "default", mergeProps(rest, { fields: unref(fields) }));
-    };
-  }
-});
-export { _sfc_main$2 as Field, _sfc_main as FieldArray, FieldClass, Form, _sfc_main$1 as VirtualField, VirtualFieldClass, createFieldArray, createForm, useField, useFieldArray, useVirtualField, validators };
+const Field = _sfc_main;
+const VirtualField = _sfc_main$3;
+const FieldArray = _sfc_main$2;
+const FormProvider = _sfc_main$1;
+export { Field, FieldArray, FieldClass, Form, FormContextKey, FormProvider, VirtualField, VirtualFieldClass, createFieldArray, createForm, useField, useFieldArray, useForm, useVirtualField, validators };

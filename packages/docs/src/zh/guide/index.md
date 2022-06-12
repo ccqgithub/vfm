@@ -35,7 +35,7 @@ yarn add vfm
 <details open>
   <summary>详情:</summary>
   <ExampleBlock>
-    <ExampleItem title="结果" active>
+    <ExampleItem title="运行结果" active>
       <BaseForm />
     </ExampleItem>
     <ExampleItem title="<CreateForm>">
@@ -71,4 +71,24 @@ yarn add vfm
   </ExampleBlock>
 </details>
 
+
+## Form Provider
+
+你可以使用 `FormProvider` 来为子组件提供`form`，内部使用Vue的 [依赖注入](https://vuejs.org/api/composition-api-dependency-injection.html).
+
+这样，你就不用给每个组件传递`form`属性，不过缺点是类型提示没有传递`form`友好。
+
+<details open>
+  <summary>详情:</summary>
+  <ExampleBlock>
+    <ExampleItem title="运行结果" active>
+      <ProviderForm />
+    </ExampleItem>
+    <ExampleItem title="<ProviderForm>">
+
+  @[code vue](../.vuepress/components/ProviderForm.vue)
+
+  </ExampleItem>
+  </ExampleBlock>
+</details>
 

@@ -257,20 +257,24 @@ export class Form<T extends FormType = FormType, VFK extends string = string> {
     this.isMounted = false;
   }
 
-  registerField<N extends FieldPath<T>, Deps = any>(
+  registerField<
+    N extends FieldPath<T>,
+    Deps = any,
+    Transform = KeyPathValue<T, N>
+  >(
     name: N,
     args: {
       value?: KeyPathValue<T, N>;
       defaultValue?: KeyPathValue<T, N>;
-      rules?: FieldRule<KeyPathValue<T, N>, Deps>[];
+      rules?: FieldRule<Transform, Deps>[];
       immediate?: boolean;
-      transform?: (v: KeyPathValue<T, N>) => KeyPathValue<T, N>;
+      transform?: (v: KeyPathValue<T, N>) => Transform;
       isEqual?: (v: KeyPathValue<T, N>, d: KeyPathValue<T, N>) => boolean;
       onFocus?: () => void;
       deps?: () => Deps;
       debounce?: number;
     } = {}
-  ): { field: FieldClass<T, N, Deps, VFK>; register: () => void } {
+  ): { field: FieldClass<T, N, Deps, Transform, VFK>; register: () => void } {
     const {
       immediate = true,
       value = getKeyValue(this.initValues, name),
@@ -280,7 +284,12 @@ export class Form<T extends FormType = FormType, VFK extends string = string> {
     if (fieldsKeys.value.includes(name) || cacheFields.includes(name)) {
       console.warn(`Duplicate field <${name}>.`);
       return {
-        field: this.fields.get(name)! as unknown as FieldClass<T, N, Deps>,
+        field: this.fields.get(name)! as unknown as FieldClass<
+          T,
+          N,
+          Deps,
+          Transform
+        >,
         register: () => {}
       };
     }
@@ -290,18 +299,26 @@ export class Form<T extends FormType = FormType, VFK extends string = string> {
           `Fields can not be nested together: <${name}> <${k}>. If you want do this, please use [registerVirtualField]`
         );
         return {
-          field: this.fields.get(name)! as unknown as FieldClass<T, N, Deps>,
+          field: this.fields.get(name)! as unknown as FieldClass<
+            T,
+            N,
+            Deps,
+            Transform
+          >,
           register: () => {}
         };
       }
     }
     // field value
-    const field: FieldClass<T, N, Deps> = new FieldClass(this as Form<T>, {
-      ...args,
-      name,
-      initValue: value,
-      initDefaultValue: defaultValue
-    });
+    const field: FieldClass<T, N, Deps, Transform> = new FieldClass(
+      this as Form<T>,
+      {
+        ...args,
+        name,
+        initValue: value,
+        initDefaultValue: defaultValue
+      }
+    );
     fields.set(name, field as any);
     const register = () => {
       this.runInAction(() => {

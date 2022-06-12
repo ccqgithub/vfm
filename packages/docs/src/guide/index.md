@@ -71,4 +71,23 @@ yarn add vfm
   </ExampleBlock>
 </details>
 
+## Form Provider
+
+You can use `FormProvider` to provide form to children by [Dependency Injection](https://vuejs.org/api/composition-api-dependency-injection.html).
+
+Use this you do not need to pass form to every component, but will lose some type intellisense.
+
+<details open>
+  <summary>Details:</summary>
+  <ExampleBlock>
+    <ExampleItem title="Result" active>
+      <ProviderForm />
+    </ExampleItem>
+    <ExampleItem title="<ProviderForm>">
+
+  @[code vue](../.vuepress/components/ProviderForm.vue)
+
+  </ExampleItem>
+  </ExampleBlock>
+</details>
 

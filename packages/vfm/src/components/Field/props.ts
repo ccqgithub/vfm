@@ -1,23 +1,26 @@
-<script lang="ts" setup>
-import { PropType, toRefs } from 'vue';
-import { useField } from '../uses';
-import { Form } from '../form';
-import { FieldRule } from '../types';
-import { AllPropType } from '../untils';
+import { PropType } from 'vue';
+import { Form } from '../../form';
+import { AllPropType } from '../../untils';
+import { FieldRule, FormType, FieldPath, KeyPathValue } from '../../types';
 
-const props = defineProps({
+export const getProps = <
+  T extends FormType = FormType,
+  N extends FieldPath<T> = FieldPath<T>,
+  Deps = any,
+  Transform = KeyPathValue<T, N>
+>() => ({
   /**
    * The form instance that created by [createForm](../apis/#createform)
    */
   form: {
-    type: Object as PropType<Form>,
-    required: true
+    type: Object as PropType<Form<T>>,
+    default: undefined
   },
   /**
    * Field name
    */
   name: {
-    type: String as PropType<string>,
+    type: String as any as PropType<FieldPath<T, N>>,
     required: true
   },
   /**
@@ -25,7 +28,7 @@ const props = defineProps({
    * *Tips:* Do not visit form's error state in the `validator` function, because the validate will change error state, it will causes an infinite loop of calls.
    */
   rules: {
-    type: Array as PropType<FieldRule[]>,
+    type: Array as PropType<FieldRule<Transform, Deps>[]>,
     default: () => []
   },
   /**
@@ -33,7 +36,7 @@ const props = defineProps({
    * *Tips:* Do not visit form's error state in the function, because the validate will change error state, it will causes an infinite loop of calls.
    */
   deps: {
-    type: Function as PropType<() => any>,
+    type: Function as PropType<() => Deps>,
     default: undefined
   },
   /**
@@ -47,21 +50,21 @@ const props = defineProps({
    * The initial value of the field, it will override the `initValues` of `createForm`.
    */
   value: {
-    type: AllPropType as PropType<any>,
+    type: AllPropType as PropType<KeyPathValue<T, N>>,
     default: undefined
   },
   /**
    * The default value of the field, used to determine whether field is dirty and reset field. it will override the `initValues` of `createForm`.
    */
   defaultValue: {
-    type: AllPropType as PropType<any>,
+    type: AllPropType as PropType<KeyPathValue<T, N>>,
     default: undefined
   },
   /**
    * Transform value before pass to validate.
    */
   transform: {
-    type: Function as PropType<(v: any) => any>,
+    type: Function as PropType<(v: KeyPathValue<T, N>) => Transform>,
     default: undefined
   },
   /**
@@ -82,45 +85,9 @@ const props = defineProps({
    * Compare value and defaultValue, checkout them wether is append.
    */
   isEqual: {
-    type: Function as PropType<(v: any) => any>,
+    type: Function as PropType<
+      (v: KeyPathValue<T, N>, d: KeyPathValue<T, N>) => boolean
+    >,
     default: undefined
   }
 });
-
-const {
-  form,
-  rules,
-  transform,
-  name,
-  deps,
-  debounce,
-  changeType,
-  value,
-  defaultValue,
-  isEqual,
-  ...rest
-} = toRefs(props);
-const [slotProps, , { mounted }] = useField({
-  form: form.value,
-  rules: rules.value,
-  transform: transform?.value,
-  deps: deps?.value,
-  debounce: debounce?.value,
-  name: name as any,
-  changeType: changeType.value,
-  value: value?.value,
-  defaultValue: defaultValue?.value,
-  isEqual: isEqual?.value,
-  ...rest
-});
-</script>
-
-<template>
-  <template v-if="mounted">
-    <!--
-      @slot Field default slot
-      @binding field see [FieldScope](../apis/#fieldscope)
-    -->
-    <slot :field="slotProps"></slot>
-  </template>
-</template>

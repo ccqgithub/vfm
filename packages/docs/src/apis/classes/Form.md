@@ -42,7 +42,7 @@ Class to management form state.
 
 #### Defined in
 
-[form.ts:70](https://github.com/ccqgithub/vfm/blob/69a307e/packages/vfm/src/form.ts#L70)
+[form.ts:70](https://github.com/ccqgithub/vfm/blob/d83ba3d/packages/vfm/src/form.ts#L70)
 
 ## Properties
 
@@ -52,7 +52,7 @@ Class to management form state.
 
 #### Defined in
 
-[form.ts:41](https://github.com/ccqgithub/vfm/blob/69a307e/packages/vfm/src/form.ts#L41)
+[form.ts:41](https://github.com/ccqgithub/vfm/blob/d83ba3d/packages/vfm/src/form.ts#L41)
 
 ## Accessors
 
@@ -66,7 +66,7 @@ Class to management form state.
 
 #### Defined in
 
-[form.ts:108](https://github.com/ccqgithub/vfm/blob/69a307e/packages/vfm/src/form.ts#L108)
+[form.ts:108](https://github.com/ccqgithub/vfm/blob/d83ba3d/packages/vfm/src/form.ts#L108)
 
 ## Methods
 
@@ -93,7 +93,7 @@ Class to management form state.
 
 #### Defined in
 
-[form.ts:678](https://github.com/ccqgithub/vfm/blob/69a307e/packages/vfm/src/form.ts#L678)
+[form.ts:695](https://github.com/ccqgithub/vfm/blob/d83ba3d/packages/vfm/src/form.ts#L695)
 
 ___
 
@@ -121,7 +121,7 @@ ___
 
 #### Defined in
 
-[form.ts:698](https://github.com/ccqgithub/vfm/blob/69a307e/packages/vfm/src/form.ts#L698)
+[form.ts:715](https://github.com/ccqgithub/vfm/blob/d83ba3d/packages/vfm/src/form.ts#L715)
 
 ___
 
@@ -149,7 +149,7 @@ ___
 
 #### Defined in
 
-[form.ts:722](https://github.com/ccqgithub/vfm/blob/69a307e/packages/vfm/src/form.ts#L722)
+[form.ts:739](https://github.com/ccqgithub/vfm/blob/d83ba3d/packages/vfm/src/form.ts#L739)
 
 ___
 
@@ -176,7 +176,7 @@ ___
 
 #### Defined in
 
-[form.ts:688](https://github.com/ccqgithub/vfm/blob/69a307e/packages/vfm/src/form.ts#L688)
+[form.ts:705](https://github.com/ccqgithub/vfm/blob/d83ba3d/packages/vfm/src/form.ts#L705)
 
 ___
 
@@ -203,7 +203,7 @@ ___
 
 #### Defined in
 
-[form.ts:745](https://github.com/ccqgithub/vfm/blob/69a307e/packages/vfm/src/form.ts#L745)
+[form.ts:762](https://github.com/ccqgithub/vfm/blob/d83ba3d/packages/vfm/src/form.ts#L762)
 
 ___
 
@@ -230,7 +230,7 @@ ___
 
 #### Defined in
 
-[form.ts:752](https://github.com/ccqgithub/vfm/blob/69a307e/packages/vfm/src/form.ts#L752)
+[form.ts:769](https://github.com/ccqgithub/vfm/blob/d83ba3d/packages/vfm/src/form.ts#L769)
 
 ___
 
@@ -258,7 +258,7 @@ ___
 
 #### Defined in
 
-[form.ts:709](https://github.com/ccqgithub/vfm/blob/69a307e/packages/vfm/src/form.ts#L709)
+[form.ts:726](https://github.com/ccqgithub/vfm/blob/d83ba3d/packages/vfm/src/form.ts#L726)
 
 ___
 
@@ -286,7 +286,7 @@ ___
 
 #### Defined in
 
-[form.ts:734](https://github.com/ccqgithub/vfm/blob/69a307e/packages/vfm/src/form.ts#L734)
+[form.ts:751](https://github.com/ccqgithub/vfm/blob/d83ba3d/packages/vfm/src/form.ts#L751)
 
 ___
 
@@ -312,7 +312,7 @@ ___
 
 #### Defined in
 
-[form.ts:434](https://github.com/ccqgithub/vfm/blob/69a307e/packages/vfm/src/form.ts#L434)
+[form.ts:451](https://github.com/ccqgithub/vfm/blob/d83ba3d/packages/vfm/src/form.ts#L451)
 
 ___
 
@@ -338,7 +338,7 @@ ___
 
 #### Defined in
 
-[form.ts:439](https://github.com/ccqgithub/vfm/blob/69a307e/packages/vfm/src/form.ts#L439)
+[form.ts:456](https://github.com/ccqgithub/vfm/blob/d83ba3d/packages/vfm/src/form.ts#L456)
 
 ___
 
@@ -364,7 +364,7 @@ ___
 
 #### Defined in
 
-[form.ts:670](https://github.com/ccqgithub/vfm/blob/69a307e/packages/vfm/src/form.ts#L670)
+[form.ts:687](https://github.com/ccqgithub/vfm/blob/d83ba3d/packages/vfm/src/form.ts#L687)
 
 ___
 
@@ -390,7 +390,7 @@ ___
 
 #### Defined in
 
-[form.ts:628](https://github.com/ccqgithub/vfm/blob/69a307e/packages/vfm/src/form.ts#L628)
+[form.ts:645](https://github.com/ccqgithub/vfm/blob/d83ba3d/packages/vfm/src/form.ts#L645)
 
 ___
 
@@ -416,7 +416,7 @@ ___
 
 #### Defined in
 
-[form.ts:468](https://github.com/ccqgithub/vfm/blob/69a307e/packages/vfm/src/form.ts#L468)
+[form.ts:485](https://github.com/ccqgithub/vfm/blob/d83ba3d/packages/vfm/src/form.ts#L485)
 
 ___
 
@@ -442,7 +442,7 @@ ___
 
 #### Defined in
 
-[form.ts:448](https://github.com/ccqgithub/vfm/blob/69a307e/packages/vfm/src/form.ts#L448)
+[form.ts:465](https://github.com/ccqgithub/vfm/blob/d83ba3d/packages/vfm/src/form.ts#L465)
 
 ___
 
@@ -468,7 +468,7 @@ ___
 
 #### Defined in
 
-[form.ts:472](https://github.com/ccqgithub/vfm/blob/69a307e/packages/vfm/src/form.ts#L472)
+[form.ts:489](https://github.com/ccqgithub/vfm/blob/d83ba3d/packages/vfm/src/form.ts#L489)
 
 ___
 
@@ -494,7 +494,7 @@ ___
 
 #### Defined in
 
-[form.ts:456](https://github.com/ccqgithub/vfm/blob/69a307e/packages/vfm/src/form.ts#L456)
+[form.ts:473](https://github.com/ccqgithub/vfm/blob/d83ba3d/packages/vfm/src/form.ts#L473)
 
 ___
 
@@ -520,7 +520,7 @@ ___
 
 #### Defined in
 
-[form.ts:650](https://github.com/ccqgithub/vfm/blob/69a307e/packages/vfm/src/form.ts#L650)
+[form.ts:667](https://github.com/ccqgithub/vfm/blob/d83ba3d/packages/vfm/src/form.ts#L667)
 
 ___
 
@@ -546,7 +546,7 @@ ___
 
 #### Defined in
 
-[form.ts:642](https://github.com/ccqgithub/vfm/blob/69a307e/packages/vfm/src/form.ts#L642)
+[form.ts:659](https://github.com/ccqgithub/vfm/blob/d83ba3d/packages/vfm/src/form.ts#L659)
 
 ___
 
@@ -572,7 +572,7 @@ ___
 
 #### Defined in
 
-[form.ts:662](https://github.com/ccqgithub/vfm/blob/69a307e/packages/vfm/src/form.ts#L662)
+[form.ts:679](https://github.com/ccqgithub/vfm/blob/d83ba3d/packages/vfm/src/form.ts#L679)
 
 ___
 
@@ -598,7 +598,7 @@ ___
 
 #### Defined in
 
-[form.ts:646](https://github.com/ccqgithub/vfm/blob/69a307e/packages/vfm/src/form.ts#L646)
+[form.ts:663](https://github.com/ccqgithub/vfm/blob/d83ba3d/packages/vfm/src/form.ts#L663)
 
 ___
 
@@ -624,7 +624,7 @@ ___
 
 #### Defined in
 
-[form.ts:654](https://github.com/ccqgithub/vfm/blob/69a307e/packages/vfm/src/form.ts#L654)
+[form.ts:671](https://github.com/ccqgithub/vfm/blob/d83ba3d/packages/vfm/src/form.ts#L671)
 
 ___
 
@@ -650,7 +650,7 @@ ___
 
 #### Defined in
 
-[form.ts:666](https://github.com/ccqgithub/vfm/blob/69a307e/packages/vfm/src/form.ts#L666)
+[form.ts:683](https://github.com/ccqgithub/vfm/blob/d83ba3d/packages/vfm/src/form.ts#L683)
 
 ___
 
@@ -676,7 +676,7 @@ ___
 
 #### Defined in
 
-[form.ts:658](https://github.com/ccqgithub/vfm/blob/69a307e/packages/vfm/src/form.ts#L658)
+[form.ts:675](https://github.com/ccqgithub/vfm/blob/d83ba3d/packages/vfm/src/form.ts#L675)
 
 ___
 
@@ -690,7 +690,7 @@ ___
 
 #### Defined in
 
-[form.ts:120](https://github.com/ccqgithub/vfm/blob/69a307e/packages/vfm/src/form.ts#L120)
+[form.ts:120](https://github.com/ccqgithub/vfm/blob/d83ba3d/packages/vfm/src/form.ts#L120)
 
 ___
 
@@ -711,13 +711,13 @@ ___
 
 #### Defined in
 
-[form.ts:622](https://github.com/ccqgithub/vfm/blob/69a307e/packages/vfm/src/form.ts#L622)
+[form.ts:639](https://github.com/ccqgithub/vfm/blob/d83ba3d/packages/vfm/src/form.ts#L639)
 
 ___
 
 ### registerField
 
-▸ **registerField**<`N`, `Deps`\>(`name`, `args?`): `Object`
+▸ **registerField**<`N`, `Deps`, `Transform`\>(`name`, `args?`): `Object`
 
 #### Type parameters
 
@@ -725,6 +725,7 @@ ___
 | :------ | :------ |
 | `N` | extends `string` |
 | `Deps` | `any` |
+| `Transform` | [`KeyPathValue`](../index.md#keypathvalue)<`T`, `N`\> |
 
 #### Parameters
 
@@ -735,12 +736,12 @@ ___
 | `args.debounce?` | `number` |
 | `args.defaultValue?` | [`KeyPathValue`](../index.md#keypathvalue)<`T`, `N`\> |
 | `args.immediate?` | `boolean` |
-| `args.rules?` | [`FieldRule`](../index.md#fieldrule)<[`KeyPathValue`](../index.md#keypathvalue)<`T`, `N`\>, `Deps`\>[] |
+| `args.rules?` | [`FieldRule`](../index.md#fieldrule)<`Transform`, `Deps`\>[] |
 | `args.value?` | [`KeyPathValue`](../index.md#keypathvalue)<`T`, `N`\> |
 | `args.deps?` | () => `Deps` |
 | `args.isEqual?` | (`v`: [`KeyPathValue`](../index.md#keypathvalue)<`T`, `N`\>, `d`: [`KeyPathValue`](../index.md#keypathvalue)<`T`, `N`\>) => `boolean` |
 | `args.onFocus?` | () => `void` |
-| `args.transform?` | (`v`: [`KeyPathValue`](../index.md#keypathvalue)<`T`, `N`\>) => [`KeyPathValue`](../index.md#keypathvalue)<`T`, `N`\> |
+| `args.transform?` | (`v`: [`KeyPathValue`](../index.md#keypathvalue)<`T`, `N`\>) => `Transform` |
 
 #### Returns
 
@@ -748,12 +749,12 @@ ___
 
 | Name | Type |
 | :------ | :------ |
-| `field` | `FieldClass`<`T`, `N`, `Deps`, `VFK`\> |
+| `field` | `FieldClass`<`T`, `N`, `Deps`, `Transform`, `VFK`\> |
 | `register` | () => `void` |
 
 #### Defined in
 
-[form.ts:260](https://github.com/ccqgithub/vfm/blob/69a307e/packages/vfm/src/form.ts#L260)
+[form.ts:260](https://github.com/ccqgithub/vfm/blob/d83ba3d/packages/vfm/src/form.ts#L260)
 
 ___
 
@@ -790,7 +791,7 @@ ___
 
 #### Defined in
 
-[form.ts:329](https://github.com/ccqgithub/vfm/blob/69a307e/packages/vfm/src/form.ts#L329)
+[form.ts:346](https://github.com/ccqgithub/vfm/blob/d83ba3d/packages/vfm/src/form.ts#L346)
 
 ___
 
@@ -818,7 +819,7 @@ ___
 
 #### Defined in
 
-[form.ts:533](https://github.com/ccqgithub/vfm/blob/69a307e/packages/vfm/src/form.ts#L533)
+[form.ts:550](https://github.com/ccqgithub/vfm/blob/d83ba3d/packages/vfm/src/form.ts#L550)
 
 ___
 
@@ -850,7 +851,7 @@ ___
 
 #### Defined in
 
-[form.ts:581](https://github.com/ccqgithub/vfm/blob/69a307e/packages/vfm/src/form.ts#L581)
+[form.ts:598](https://github.com/ccqgithub/vfm/blob/d83ba3d/packages/vfm/src/form.ts#L598)
 
 ___
 
@@ -870,7 +871,7 @@ ___
 
 #### Defined in
 
-[form.ts:116](https://github.com/ccqgithub/vfm/blob/69a307e/packages/vfm/src/form.ts#L116)
+[form.ts:116](https://github.com/ccqgithub/vfm/blob/d83ba3d/packages/vfm/src/form.ts#L116)
 
 ___
 
@@ -896,7 +897,7 @@ ___
 
 #### Defined in
 
-[form.ts:489](https://github.com/ccqgithub/vfm/blob/69a307e/packages/vfm/src/form.ts#L489)
+[form.ts:506](https://github.com/ccqgithub/vfm/blob/d83ba3d/packages/vfm/src/form.ts#L506)
 
 ___
 
@@ -923,7 +924,7 @@ ___
 
 #### Defined in
 
-[form.ts:417](https://github.com/ccqgithub/vfm/blob/69a307e/packages/vfm/src/form.ts#L417)
+[form.ts:434](https://github.com/ccqgithub/vfm/blob/d83ba3d/packages/vfm/src/form.ts#L434)
 
 ___
 
@@ -950,7 +951,7 @@ ___
 
 #### Defined in
 
-[form.ts:480](https://github.com/ccqgithub/vfm/blob/69a307e/packages/vfm/src/form.ts#L480)
+[form.ts:497](https://github.com/ccqgithub/vfm/blob/d83ba3d/packages/vfm/src/form.ts#L497)
 
 ___
 
@@ -977,7 +978,7 @@ ___
 
 #### Defined in
 
-[form.ts:422](https://github.com/ccqgithub/vfm/blob/69a307e/packages/vfm/src/form.ts#L422)
+[form.ts:439](https://github.com/ccqgithub/vfm/blob/d83ba3d/packages/vfm/src/form.ts#L439)
 
 ___
 
@@ -999,7 +1000,7 @@ ___
 
 #### Defined in
 
-[form.ts:498](https://github.com/ccqgithub/vfm/blob/69a307e/packages/vfm/src/form.ts#L498)
+[form.ts:515](https://github.com/ccqgithub/vfm/blob/d83ba3d/packages/vfm/src/form.ts#L515)
 
 ___
 
@@ -1025,7 +1026,7 @@ ___
 
 #### Defined in
 
-[form.ts:611](https://github.com/ccqgithub/vfm/blob/69a307e/packages/vfm/src/form.ts#L611)
+[form.ts:628](https://github.com/ccqgithub/vfm/blob/d83ba3d/packages/vfm/src/form.ts#L628)
 
 ___
 
@@ -1039,7 +1040,7 @@ ___
 
 #### Defined in
 
-[form.ts:229](https://github.com/ccqgithub/vfm/blob/69a307e/packages/vfm/src/form.ts#L229)
+[form.ts:229](https://github.com/ccqgithub/vfm/blob/d83ba3d/packages/vfm/src/form.ts#L229)
 
 ___
 
@@ -1067,7 +1068,7 @@ ___
 
 #### Defined in
 
-[form.ts:372](https://github.com/ccqgithub/vfm/blob/69a307e/packages/vfm/src/form.ts#L372)
+[form.ts:389](https://github.com/ccqgithub/vfm/blob/d83ba3d/packages/vfm/src/form.ts#L389)
 
 ___
 
@@ -1093,7 +1094,7 @@ ___
 
 #### Defined in
 
-[form.ts:398](https://github.com/ccqgithub/vfm/blob/69a307e/packages/vfm/src/form.ts#L398)
+[form.ts:415](https://github.com/ccqgithub/vfm/blob/d83ba3d/packages/vfm/src/form.ts#L415)
 
 ___
 
@@ -1119,7 +1120,7 @@ ___
 
 #### Defined in
 
-[form.ts:674](https://github.com/ccqgithub/vfm/blob/69a307e/packages/vfm/src/form.ts#L674)
+[form.ts:691](https://github.com/ccqgithub/vfm/blob/d83ba3d/packages/vfm/src/form.ts#L691)
 
 ___
 
@@ -1145,4 +1146,4 @@ ___
 
 #### Defined in
 
-[form.ts:635](https://github.com/ccqgithub/vfm/blob/69a307e/packages/vfm/src/form.ts#L635)
+[form.ts:652](https://github.com/ccqgithub/vfm/blob/d83ba3d/packages/vfm/src/form.ts#L652)

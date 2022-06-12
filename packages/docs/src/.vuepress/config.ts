@@ -29,23 +29,15 @@ export default defineUserConfig({
   bundler: viteBundler(),
   theme: defaultTheme({
     repo: 'ccqgithub/vfm',
-    editLinks: true,
     docsDir: 'packages/docs',
-    smoothScroll: true,
     locales: {
       '/': {
-        label: 'English',
-        selectText: 'Languages',
-        ariaLabel: 'Select language',
         editLinkText: 'Edit this page on GitHub',
         lastUpdatedText: 'Last Updated',
         navbar: navbar.en,
         sidebar: sidebar.en
       },
       '/zh/': {
-        label: '简体中文',
-        selectLanguageName: '简体中文',
-        selectLanguageText: '选择语言',
         selectLanguageAriaLabel: '选择语言',
         editLinkText: '在 GitHub 上编辑此页',
         lastUpdatedText: '上次更新',
@@ -111,7 +103,8 @@ export default defineUserConfig({
       components: {
         ExampleBlock: path.resolve(__dirname, './components/ExampleBlock.vue'),
         ExampleItem: path.resolve(__dirname, './components/ExampleItem.vue'),
-        BaseForm: path.resolve(__dirname, './components/BaseForm.vue')
+        BaseForm: path.resolve(__dirname, './components/BaseForm.vue'),
+        ProviderForm: path.resolve(__dirname, './components/ProviderForm.vue'),
       }
     })
   ],

@@ -2,10 +2,10 @@
 
 ## Props
 
-| Prop name | Description                                                         | Type   | Values | Default |
-| --------- | ------------------------------------------------------------------- | ------ | ------ | ------- |
-| form      | The form instance that created by [createForm](../apis/#createform) | Form   | -      |         |
-| name      | The name of the array field.                                        | string | -      |         |
+| Prop name | Description                                                         | Type   | Values | Default   |
+| --------- | ------------------------------------------------------------------- | ------ | ------ | --------- |
+| form      | The form instance that created by [createForm](../apis/#createform) | Form   | -      | undefined |
+| name      | The name of the array field.                                        | string | -      |           |
 
 ## Slots
 

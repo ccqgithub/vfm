@@ -11,7 +11,6 @@ import {
 } from 'vue';
 import {
   FormType,
-  FormState,
   FieldRule,
   InputLikeRef,
   KeyPathValue,
@@ -20,19 +19,19 @@ import {
 } from './../types';
 import { Form } from '../form';
 import { getKeyValue } from './../untils';
+import { useForm } from './useForm';
 
 export type UseFieldProps<
   T extends FormType = FormType,
   N extends FieldPath<T> = FieldPath<T>,
-  Deps = any
+  Deps = any,
+  Transform = KeyPathValue<T, N>
 > = {
-  form: Form<T>;
+  form?: Form<T>;
   name: Ref<N> | N;
-  rules?:
-    | Ref<FieldRule<KeyPathValue<T, N>, FormState<T>>[]>
-    | FieldRule<KeyPathValue<T, N>, FormState<T>>[];
+  rules?: Ref<FieldRule<Transform, Deps>[]> | FieldRule<Transform, Deps>[];
   touchType?: Ref<'FOCUS' | 'BLUR'> | ('FOCUS' | 'BLUR');
-  transform?: (v: KeyPathValue<T, N>) => KeyPathValue<T, N>;
+  transform?: (v: KeyPathValue<T, N>) => Transform;
   isEqual?: (v: KeyPathValue<T, N>, d: KeyPathValue<T, N>) => boolean;
   deps?: () => Deps;
   debounce?: number;
@@ -44,8 +43,13 @@ export type UseFieldProps<
 /**
  * @category Use
  */
-export const useField = <T extends FormType, N extends FieldPath<T>>(
-  props: UseFieldProps<T, N>
+export const useField = <
+  T extends FormType,
+  N extends FieldPath<T>,
+  Deps = any,
+  Transform = KeyPathValue<T, N>
+>(
+  props: UseFieldProps<T, N, Deps, Transform>
 ): [
   FieldProps<T, N>,
   Ref<KeyPathValue<T, N>>,
@@ -53,7 +57,13 @@ export const useField = <T extends FormType, N extends FieldPath<T>>(
     mounted: Ref<Boolean>;
   }
 ] => {
-  const { form, name } = props;
+  const injectForm = useForm() as Form<T> | null;
+  const { form = injectForm, name } = props;
+
+  if (!form) {
+    throw new Error('No provided form!');
+  }
+
   const touchType = computed(() => {
     if (props.touchType) return unref(props.touchType);
     return form.touchType || 'BLUR';

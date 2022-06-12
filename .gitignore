@@ -6,3 +6,4 @@ explorations
 TODOs.md
 *.log
 **/dist
+**/pacakge.lock.json

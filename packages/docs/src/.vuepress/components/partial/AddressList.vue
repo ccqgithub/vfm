@@ -5,7 +5,9 @@
 import { useFieldArray, Field } from 'vfm';
 import { form } from '../form';
 
-const { fields, append, remove } = useFieldArray(form, 'address');
+const { fields, append, remove } = useFieldArray({
+  form, path: 'address'
+});
 const add = () => {
   append({
     phone: '',

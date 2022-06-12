@@ -1,7 +1,5 @@
 <script setup lang="ts">
 import { PropType, ref } from 'vue';
-import { useFieldArray, Field } from 'vfm';
-import { form } from '../form';
 
 type School = {
   name: string;

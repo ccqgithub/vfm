@@ -2,6 +2,7 @@ import { onBeforeUnmount, onMounted, Ref, ref, unref, watch } from 'vue';
 import { Form } from '../form';
 import { VirtualFieldRule } from './../types';
 import { FormType } from '../types';
+import { useForm } from './useForm';
 
 export type UseVirtualFieldProps<
   T extends FormType = FormType,
@@ -9,7 +10,7 @@ export type UseVirtualFieldProps<
   N extends VFK = VFK,
   V = any
 > = {
-  form: Form<T, VFK>;
+  form?: Form<T, VFK>;
   name: Ref<N> | N;
   value: () => V;
   rules?: Ref<VirtualFieldRule[]> | VirtualFieldRule[];
@@ -24,7 +25,13 @@ export const useVirtualField = <T extends FormType, N extends string>(
 ): {
   mounted: Ref<Boolean>;
 } => {
-  const { form, name } = props;
+  const injectForm = useForm() as Form<T> | null;
+  const { form = injectForm, name } = props;
+
+  if (!form) {
+    throw new Error('No provided form!');
+  }
+
   const mounted = ref(false);
 
   let { register, field } = form.registerVirtualField(unref(name), {

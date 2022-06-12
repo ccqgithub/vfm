@@ -10,7 +10,7 @@ const props = defineProps({
    */
   form: {
     type: Object as PropType<Form>,
-    required: true
+    default: undefined
   },
   /**
    * The field name
@@ -45,7 +45,7 @@ const props = defineProps({
 });
 const { name, form, value, rules, debounce } = toRefs(props);
 const { mounted } = useVirtualField({
-  form: form.value,
+  form: form?.value,
   rules: rules.value,
   value: value.value,
   debounce: debounce?.value,

@@ -104,6 +104,7 @@ export class FieldClass<
   T extends FormType = FormType,
   N extends FieldPath<T> = FieldPath<T>,
   Deps = any,
+  Transform = KeyPathValue<T, N>,
   VFK extends string = string
 > {
   // key path in form data
@@ -121,8 +122,7 @@ export class FieldClass<
   private validateDispose: (() => void) | null = null;
   private debounce = 0;
   // fns
-  private transform: ((v: KeyPathValue<T, N>) => KeyPathValue<T, N>) | null =
-    null;
+  private transform: ((v: KeyPathValue<T, N>) => Transform) | null = null;
   private isEqual:
     | ((value: KeyPathValue<T, N>, defaultValue: KeyPathValue<T, N>) => boolean)
     | null = null;
@@ -138,10 +138,10 @@ export class FieldClass<
     form: Form<T>,
     args: {
       name: N;
-      rules?: FieldRule<KeyPathValue<T, N>, Deps>[];
+      rules?: FieldRule<Transform, Deps>[];
       deps?: () => Deps;
       immediate?: boolean;
-      transform?: (v: KeyPathValue<T, N>) => KeyPathValue<T, N>;
+      transform?: (v: KeyPathValue<T, N>) => Transform;
       isEqual?: (v: KeyPathValue<T, N>, d: KeyPathValue<T, N>) => boolean;
       onFocus?: () => void;
       debounce?: number;

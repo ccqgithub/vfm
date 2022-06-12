@@ -1,9 +1,6 @@
 <script setup lang="ts">
 import { onMounted, onBeforeUnmount } from 'vue';
 import { Field, VirtualField, FieldArray } from 'vfm';
-// vue now not support slot props types, manual set in template
-import type { FieldScope, FieldArrayScope } from 'vfm';
-import { debounce } from 'lodash-es';
 import { form } from './form';
 import BaseInfo from './partial/BaseInfo.vue';
 import AddressList from './partial/AddressList.vue';
@@ -88,7 +85,7 @@ const checkName2 = (name: string) => {
             }
           ]"
           change-type="ONINPUT"
-          #default="{ field }: FieldScope"
+          #default="{ field }"
         >
           <input
             class="vfm-input"
@@ -116,7 +113,7 @@ const checkName2 = (name: string) => {
               pattern: /[a-zA-Z0-9]{8,20}/
             }
           ]"
-          #default="{ field }: FieldScope"
+          #default="{ field }"
         >
           <input
             class="vfm-input"
@@ -152,7 +149,7 @@ const checkName2 = (name: string) => {
               }
             }
           ]"
-          #default="{ field }: FieldScope"
+          #default="{ field }"
         >
           <input
             class="vfm-input"
@@ -175,7 +172,7 @@ const checkName2 = (name: string) => {
     <div class="vfm-p">
       <div class="vfm-label">Tags:</div>
       <div class="vfm-value">
-        <FieldArray :form="form" name="tags" #default="{ append, remove, fields }: FieldArrayScope<string>">
+        <FieldArray :form="form" name="tags" #default="{ append, remove, fields }">
           <div class="vfm-flex">
             <div class="vfm-flex-item" v-for="(item, index) in fields" :key="item.id">
               <div class="vfm-flex-item-box">
@@ -189,7 +186,7 @@ const checkName2 = (name: string) => {
                         message: 'Required'
                       }
                     ]"
-                    #default="{ field }: FieldScope"
+                    #default="{ field }"
                   >
                     <input
                       class="vfm-input"

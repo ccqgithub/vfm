@@ -14,7 +14,7 @@
     "jsx": "preserve",
     "lib": ["esnext", "dom", "dom.iterable"],
     "types": ["jest", "puppeteer", "node"],
-    "typeRoots": ["./types", "node_modules/@types"],
+    "typeRoots": ["./node_modules/@types"],
     "isolatedModules": true
   },
   "include": ["src/**/*", "src/.vuepress/**/*", "*.ts"]

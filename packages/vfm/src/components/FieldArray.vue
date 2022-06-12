@@ -9,7 +9,7 @@ const props = defineProps({
    */
   form: {
     type: Object as PropType<Form>,
-    required: true
+    default: undefined
   },
   /**
    * The name of the array field.
@@ -20,10 +20,10 @@ const props = defineProps({
   }
 });
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
-const { fieldsValue, fields, ...rest } = useFieldArray(
-  props.form,
-  props.name as any
-);
+const { fieldsValue, fields, ...rest } = useFieldArray({
+  form: props.form,
+  path: props.name as any
+});
 </script>
 
 <template>
