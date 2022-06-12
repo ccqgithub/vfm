@@ -10,4 +10,4 @@ Form Validation for Vue3.
 ## Todo
 
 - Better Typescript support (vue limition) (e.g. `component generic props types`, `scoped slot props types`).
-- - Unit Tests.
+- Unit Tests.
