@@ -1,6 +1,6 @@
 {
   "name": "vfm",
-  "version": "1.2.0",
+  "version": "1.2.1",
   "description": "Form Validation for Vue3.",
   "main": "dist/vfm.es.js",
   "types": "dist/types/index.d.ts",
@@ -37,7 +37,7 @@
     "doc": "docs"
   },
   "author": "",
-  "license": "ISC",
+  "license": "MIT",
   "exports": {
     ".": {
       "import": "./dist/vfm.es.js",

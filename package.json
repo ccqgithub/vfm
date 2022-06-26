@@ -11,7 +11,7 @@
     "postinstall": "rm -rf node_modules/@types/react"
   },
   "author": "",
-  "license": "ISC",
+  "license": "MIT",
   "workspaces": [
     "packages/*"
   ],
