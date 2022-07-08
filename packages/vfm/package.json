@@ -1,6 +1,6 @@
 {
   "name": "vfm",
-  "version": "1.2.1",
+  "version": "1.2.2",
   "description": "Form Validation for Vue3.",
   "main": "dist/vfm.es.js",
   "types": "dist/types/index.d.ts",
@@ -14,7 +14,7 @@
     "README.md"
   ],
   "scripts": {
-    "build-dts": "vue-tsc --declaration --emitDeclarationOnly && mv dist/src dist/types",
+    "build-dts": "vue-tsc --declaration --emitDeclarationOnly && mv dist/src dist/types && rm -rf dist/test",
     "build": "vite build && npm run build-dts",
     "lint:ts": "vue-ts --noEmit",
     "lint": "eslint --ext .ts 'src/**' && npm run lint:ts",

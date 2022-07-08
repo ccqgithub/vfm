@@ -1,34 +1,3 @@
-var __defProp = Object.defineProperty;
-var __defProps = Object.defineProperties;
-var __getOwnPropDescs = Object.getOwnPropertyDescriptors;
-var __getOwnPropSymbols = Object.getOwnPropertySymbols;
-var __hasOwnProp = Object.prototype.hasOwnProperty;
-var __propIsEnum = Object.prototype.propertyIsEnumerable;
-var __defNormalProp = (obj, key, value) => key in obj ? __defProp(obj, key, { enumerable: true, configurable: true, writable: true, value }) : obj[key] = value;
-var __spreadValues = (a, b) => {
-  for (var prop in b || (b = {}))
-    if (__hasOwnProp.call(b, prop))
-      __defNormalProp(a, prop, b[prop]);
-  if (__getOwnPropSymbols)
-    for (var prop of __getOwnPropSymbols(b)) {
-      if (__propIsEnum.call(b, prop))
-        __defNormalProp(a, prop, b[prop]);
-    }
-  return a;
-};
-var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
-var __objRest = (source, exclude) => {
-  var target = {};
-  for (var prop in source)
-    if (__hasOwnProp.call(source, prop) && exclude.indexOf(prop) < 0)
-      target[prop] = source[prop];
-  if (source != null && __getOwnPropSymbols)
-    for (var prop of __getOwnPropSymbols(source)) {
-      if (exclude.indexOf(prop) < 0 && __propIsEnum.call(source, prop))
-        target[prop] = source[prop];
-    }
-  return target;
-};
 import { ref, reactive, watchEffect, toRaw, readonly, computed, inject, unref, watch, onMounted, onBeforeUnmount, defineComponent, toRefs, renderSlot, createCommentVNode, mergeProps, provide, onUnmounted } from "vue";
 const alpha = (value) => {
   const msg = "{{name}} is not alphabetical";
@@ -923,11 +892,12 @@ class Form {
         };
       }
     }
-    const field = new FieldClass(this, __spreadProps(__spreadValues({}, args), {
+    const field = new FieldClass(this, {
+      ...args,
       name,
       initValue: value,
       initDefaultValue: defaultValue
-    }));
+    });
     fields.set(name, field);
     const register = () => {
       this.runInAction(() => {
@@ -963,9 +933,10 @@ class Form {
         }
       };
     }
-    const field = new VirtualFieldClass(this, __spreadProps(__spreadValues({}, args), {
+    const field = new VirtualFieldClass(this, {
+      ...args,
       name
-    }));
+    });
     virtualFields.set(name, field);
     const register = () => {
       this.runInAction(() => {
@@ -1551,7 +1522,7 @@ const useFieldArray = (args) => {
   if (!form) {
     throw new Error("No provided form!");
   }
-  const _a = createFieldArray(form, path), { onCleanup } = _a, rest = __objRest(_a, ["onCleanup"]);
+  const { onCleanup, ...rest } = createFieldArray(form, path);
   onBeforeUnmount(() => onCleanup());
   return rest;
 };
@@ -1608,10 +1579,10 @@ const _sfc_main$2 = /* @__PURE__ */ defineComponent({
   },
   setup(__props) {
     const props = __props;
-    const _a = useFieldArray({
+    const { fieldsValue, fields, ...rest } = useFieldArray({
       form: props.form,
       path: props.name
-    }), { fieldsValue, fields } = _a, rest = __objRest(_a, ["fieldsValue", "fields"]);
+    });
     return (_ctx, _cache) => {
       return renderSlot(_ctx.$slots, "default", mergeProps(rest, { fields: unref(fields) }));
     };
@@ -1686,7 +1657,7 @@ const _sfc_main = /* @__PURE__ */ defineComponent({
   props: getProps(),
   setup(__props) {
     const props = __props;
-    const _a = toRefs(props), {
+    const {
       form,
       rules,
       transform,
@@ -1696,20 +1667,10 @@ const _sfc_main = /* @__PURE__ */ defineComponent({
       changeType,
       value,
       defaultValue,
-      isEqual
-    } = _a, rest = __objRest(_a, [
-      "form",
-      "rules",
-      "transform",
-      "name",
-      "deps",
-      "debounce",
-      "changeType",
-      "value",
-      "defaultValue",
-      "isEqual"
-    ]);
-    const [slotProps, , { mounted }] = useField(__spreadValues({
+      isEqual,
+      ...rest
+    } = toRefs(props);
+    const [slotProps, , { mounted }] = useField({
       form: form == null ? void 0 : form.value,
       rules: rules.value,
       transform: transform == null ? void 0 : transform.value,
@@ -1719,8 +1680,9 @@ const _sfc_main = /* @__PURE__ */ defineComponent({
       changeType: changeType.value,
       value: value == null ? void 0 : value.value,
       defaultValue: defaultValue == null ? void 0 : defaultValue.value,
-      isEqual: isEqual == null ? void 0 : isEqual.value
-    }, rest));
+      isEqual: isEqual == null ? void 0 : isEqual.value,
+      ...rest
+    });
     return (_ctx, _cache) => {
       return unref(mounted) ? renderSlot(_ctx.$slots, "default", {
         key: 0,
