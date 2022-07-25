@@ -1292,9 +1292,13 @@ const useField = (props) => {
     form.setValue(unref(name), value);
   };
   const onBlur = () => {
+    if (!mounted.value)
+      return;
     touchType.value === "BLUR" && form.setTouched(unref(name), true);
   };
   const onFocus = () => {
+    if (!mounted.value)
+      return;
     touchType.value === "FOCUS" && form.setTouched(unref(name), true);
   };
   let { register, field } = form.registerField(unref(name), {
@@ -1349,6 +1353,7 @@ const useField = (props) => {
     mounted.value = true;
   });
   onBeforeUnmount(() => {
+    mounted.value = false;
     form.unregisterField(unref(name));
     stopWatch();
     stopWatchValue();

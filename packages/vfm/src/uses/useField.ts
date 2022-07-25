@@ -84,9 +84,11 @@ export const useField = <
     form.setValue(unref(name) as any, value as KeyPathValue<T, N>);
   };
   const onBlur = () => {
+    if (!mounted.value) return;
     touchType.value === 'BLUR' && form.setTouched(unref(name) as any, true);
   };
   const onFocus = () => {
+    if (!mounted.value) return;
     touchType.value === 'FOCUS' && form.setTouched(unref(name) as any, true);
   };
 
@@ -157,6 +159,7 @@ export const useField = <
   });
 
   onBeforeUnmount(() => {
+    mounted.value = false;
     form.unregisterField(unref(name));
     stopWatch();
     stopWatchValue();
