@@ -1360,19 +1360,12 @@ const useField = (props) => {
     stopWatchModel();
     elemRef.value = null;
   });
-  const res = props.changeType === "ONCHANGE" ? reactive({
-    get value() {
-      return model.value;
-    },
-    onChange,
-    onBlur,
-    onFocus,
-    ref: setRef
-  }) : reactive({
+  const res = reactive({
     get value() {
       return model.value;
     },
     onInput: onChange,
+    onChange,
     onBlur,
     onFocus,
     ref: setRef

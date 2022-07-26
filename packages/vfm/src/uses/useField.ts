@@ -167,27 +167,16 @@ export const useField = <
     elemRef.value = null;
   });
 
-  const res = (
-    props.changeType === 'ONCHANGE'
-      ? reactive({
-          get value() {
-            return model.value;
-          },
-          onChange,
-          onBlur,
-          onFocus,
-          ref: setRef
-        })
-      : reactive({
-          get value() {
-            return model.value;
-          },
-          onInput: onChange,
-          onBlur,
-          onFocus,
-          ref: setRef
-        })
-  ) as FieldProps<T, N>;
+  const res = reactive({
+    get value() {
+      return model.value;
+    },
+    onInput: onChange,
+    onChange: onChange,
+    onBlur,
+    onFocus,
+    ref: setRef
+  }) as FieldProps<T, N>;
 
   return [
     res,
