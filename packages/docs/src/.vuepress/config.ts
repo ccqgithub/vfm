@@ -11,7 +11,7 @@ import { navbar, sidebar } from './configs';
 const isProd = process.env.NODE_ENV === 'production';
 
 export default defineUserConfig({
-  base: isProd ? '/packages/docs/src/.vuepress/dist/' : '/',
+  base: isProd ? '/vfm/' : '/',
   title: 'VFM',
   description: 'Form Validation for Vue3.',
   locales: {
