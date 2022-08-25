@@ -1,134 +1,55 @@
 <script lang="ts">
-import { defineComponent, h, ref } from 'vue'
-import type { Component, VNode } from 'vue'
+export default {
+  name: 'ExampleBlock'
+}
+</script>
 
-export default defineComponent({
-  name: 'ExampleBlock',
+<script setup lang="ts">
+import { ref, provide } from 'vue';
+import { BlockItem, BlockKey } from './ctx';
 
-  setup(_, { slots }) {
-    // index of current active item
-    const activeIndex = ref(-1)
+const active = ref('');
+const blocks = ref<BlockItem[]>([]);
+const addBlock = (args: { title: string; key: string; active?: boolean }) => {
+  blocks.value.push({
+    key: args.key,
+    title: args.title
+  })
+  if (args.active) {
+    active.value = args.key;
+  }
+};
+const removeBlock = (key: string) => {
+  const index = blocks.value.findIndex((v) => v.key === key);
+  if (index !== -1) {
+    blocks.value.splice(index, 1)
+  }
+}
 
-    // refs of the tab buttons
-    const tabRefs = ref<HTMLButtonElement[]>([])
-
-    // activate next tab
-    const activateNext = (i = activeIndex.value): void => {
-      if (i < tabRefs.value.length - 1) {
-        activeIndex.value = i + 1
-      } else {
-        activeIndex.value = 0
-      }
-      tabRefs.value[activeIndex.value].focus()
-    }
-
-    // activate previous tab
-    const activatePrev = (i = activeIndex.value): void => {
-      if (i > 0) {
-        activeIndex.value = i - 1
-      } else {
-        activeIndex.value = tabRefs.value.length - 1
-      }
-      tabRefs.value[activeIndex.value].focus()
-    }
-
-    // handle keyboard event
-    const keyboardHandler = (event: KeyboardEvent, i: number): void => {
-      if (event.key === ' ' || event.key === 'Enter') {
-        event.preventDefault()
-        activeIndex.value = i
-      } else if (event.key === 'ArrowRight') {
-        event.preventDefault()
-        activateNext(i)
-      } else if (event.key === 'ArrowLeft') {
-        event.preventDefault()
-        activatePrev(i)
-      }
-    }
-
-    return () => {
-      // NOTICE: here we put the `slots.default()` inside the render function to make
-      // the slots reactive, otherwise the slot content won't be changed once the
-      // `setup()` function of current component is called
-
-      // get children code-group-item
-      const items = (slots.default?.() || [])
-        .filter((vnode) => {
-          const name = (vnode.type as Component).name;
-          return name === 'ExampleItem' || name === 'AsyncComponentWrapper';
-        })
-        .map((vnode) => {
-          if (vnode.props === null) {
-            vnode.props = {}
-          }
-          return vnode as VNode & { props: Exclude<VNode['props'], null> }
-        })
-
-      // clear tabRefs for HMR
-      // tabRefs.value = []
-      // do not render anything if there is no code-group-item
-      if (items.length === 0) {
-        return null
-      }
-
-      if (activeIndex.value < 0 || activeIndex.value > items.length - 1) {
-        // if `activeIndex` is invalid
-
-        // find the index of the code-group-item with `active` props
-        activeIndex.value = items.findIndex(
-          (vnode) => vnode.props.active === '' || vnode.props.active === true
-        )
-
-        // if there is no `active` props on code-group-item, set the first item active
-        if (activeIndex.value === -1) {
-          activeIndex.value = 0
-        }
-      } else {
-        // set the active item
-        items.forEach((vnode, i) => {
-          vnode.props.active = i === activeIndex.value
-        })
-      }
-
-      return h('div', { class: 'example-block' }, [
-        h(
-          'div',
-          { class: 'example-block__nav' },
-          h(
-            'ul',
-            { class: 'example-block__ul' },
-            items.map((vnode, i) => {
-              const isActive = i === activeIndex.value
-
-              return h(
-                'li',
-                { class: 'example-block__li' },
-                h(
-                  'button',
-                  {
-                    ref: (element) => {
-                      if (element) {
-                        tabRefs.value[i] = element as HTMLButtonElement
-                      }
-                    },
-                    class: {
-                      'example-block__nav-tab': true,
-                      'example-block__nav-tab-active': isActive,
-                    },
-                    ariaPressed: isActive,
-                    ariaExpanded: isActive,
-                    onClick: () => (activeIndex.value = i),
-                    onKeydown: (e: any) => keyboardHandler(e, i),
-                  },
-                  vnode.props.title
-                )
-              )
-            })
-          )
-        ),
-        items
-      ])
-    }
-  },
+provide(BlockKey, {
+  addBlock,
+  removeBlock,
+  active
 })
 </script>
+
+<template>
+<div class="example-block">
+  <div class="example-block__nav">
+    <ul class="example-block__ul">
+      <li class="example-block__li" v-for="item in blocks" :key="item.key">
+        <button
+          :class="{
+            ['example-block__nav-tab']: true,
+            ['example-block__nav-tab-active']: active === item.key
+          }"
+          @click="() => active = item.key"
+        >
+          {{ item.title }}
+        </button>
+      </li>
+    </ul>
+  </div>
+  <slot />
+</div>
+</template>
