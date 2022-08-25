@@ -2,7 +2,7 @@
 node_modules
 coverage
 temp
+dist
 explorations
 TODOs.md
 *.log
-package-lock.json
