@@ -1,0 +1,1 @@
+const e=JSON.parse('{"key":"v-1020f180","path":"/components/","title":"Components","lang":"en-US","frontmatter":{},"excerpt":"","headers":[],"git":{"updatedTime":1661414129000,"contributors":[{"name":"chen season","email":"chenseason@chendeMacBook-Pro.local","commits":1}]},"filePathRelative":"components/index.md"}');export{e as data};
