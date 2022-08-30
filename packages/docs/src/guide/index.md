@@ -75,7 +75,7 @@ yarn add vfm
 
 You can use `FormProvider` to provide form to children by [Dependency Injection](https://vuejs.org/api/composition-api-dependency-injection.html).
 
-Use this you do not need to pass form to every component, but will lose some type intellisense.
+Use this, you do not need to pass form to every component, but will lose some type intellisense.
 
 <details open>
   <summary>Details:</summary>
