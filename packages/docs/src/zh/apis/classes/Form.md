@@ -48,7 +48,7 @@ Class to management form state.
 
 #### Defined in
 
-[packages/vfm/src/form.ts:41](https://github.com/ccqgithub/vfm/blob/a73018e/packages/vfm/src/form.ts#L41)
+[packages/vfm/src/form.ts:41](https://github.com/ccqgithub/vfm/blob/7a94020/packages/vfm/src/form.ts#L41)
 
 ## Accessors
 
@@ -309,7 +309,7 @@ ___
 | Name | Type | Default value |
 | :------ | :------ | :------ |
 | `name` | `N` | `undefined` |
-| `reportType` | ``"all"`` \| ``"formTouched"`` \| ``"fieldTouched"`` \| ``"all-touched"`` \| ``"anyTouched"`` | `'fieldTouched'` |
+| `reportType` | ``"all"`` \| ``"formTouched"`` \| ``"fieldTouched"`` \| ``"allTouched"`` \| ``"anyTouched"`` | `'anyTouched'` |
 
 #### Returns
 

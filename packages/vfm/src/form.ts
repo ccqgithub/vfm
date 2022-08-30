@@ -689,13 +689,13 @@ export class Form<T extends FormType = FormType, VFK extends string = string> {
     reportType:
       | 'formTouched'
       | 'fieldTouched'
-      | 'all-touched'
+      | 'allTouched'
       | 'anyTouched'
-      | 'all' = 'fieldTouched'
+      | 'all' = 'anyTouched'
   ) {
     const formTouched = this.state.isTouched;
     const fieldTouched = this.isTouched(name);
-    if (reportType === 'all-touched' && (!formTouched || !fieldTouched)) {
+    if (reportType === 'allTouched' && (!formTouched || !fieldTouched)) {
       return null;
     }
     if (reportType === 'formTouched' && !formTouched) {
