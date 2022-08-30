@@ -1199,7 +1199,7 @@ class Form {
   }
   fieldError(name, reportType = "anyTouched") {
     var _a;
-    const formTouched = this.state.isTouched;
+    const formTouched = this.state.submitCount > 0;
     const fieldTouched = this.isTouched(name);
     if (reportType === "allTouched" && (!formTouched || !fieldTouched)) {
       return null;

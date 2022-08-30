@@ -1,6 +1,6 @@
 {
   "name": "vfm",
-  "version": "1.3.2",
+  "version": "1.3.3",
   "description": "Form Validation for Vue3.",
   "main": "dist/vfm.es.js",
   "types": "dist/types/index.d.ts",
