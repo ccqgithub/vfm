@@ -684,7 +684,21 @@ export class Form<T extends FormType = FormType, VFK extends string = string> {
     return this.virtualFieldState(name)?.isError || false;
   }
 
-  fieldError<N extends FieldPath<T>>(name: N) {
+  fieldError<N extends FieldPath<T>>(
+    name: N,
+    reportType: 'formTouched' | 'fieldTouched' | 'all-touched' | 'any' = 'any'
+  ) {
+    const formTouched = this.state.isTouched;
+    const fieldTouched = this.isTouched(name);
+    if (reportType === 'all-touched' && (!formTouched || !fieldTouched)) {
+      return null;
+    }
+    if (reportType === 'formTouched' && !formTouched) {
+      return null;
+    }
+    if (reportType === 'fieldTouched' && !fieldTouched) {
+      return null;
+    }
     return this.fieldState(name)?.error || null;
   }
 

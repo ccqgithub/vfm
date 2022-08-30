@@ -14,7 +14,7 @@ Class to management form state.
 
 | Name | Type | Description |
 | :------ | :------ | :------ |
-| `T` | extends [`FormType`](../index.md#formtype) = [`FormType`](../index.md#formtype) | form structure type |
+| `T` | extends [`FormType`](../index.md#formtype) = [`FormType`](../index.md#formtype) |  |
 | `VFK` | extends `string` = `string` | - |
 
 ## Constructors
@@ -40,10 +40,6 @@ Class to management form state.
 | `args.readonly?` | `boolean` |
 | `args.touchType?` | ``"FOCUS"`` \| ``"BLUR"`` |
 
-#### Defined in
-
-[form.ts:70](https://github.com/ccqgithub/vfm/blob/d83ba3d/packages/vfm/src/form.ts#L70)
-
 ## Properties
 
 ### touchType
@@ -52,7 +48,7 @@ Class to management form state.
 
 #### Defined in
 
-[form.ts:41](https://github.com/ccqgithub/vfm/blob/d83ba3d/packages/vfm/src/form.ts#L41)
+[packages/vfm/src/form.ts:41](https://github.com/ccqgithub/vfm/blob/1466012/packages/vfm/src/form.ts#L41)
 
 ## Accessors
 
@@ -63,10 +59,6 @@ Class to management form state.
 #### Returns
 
 [`FormState`](../index.md#formstate)<`T`, `VFK`\>
-
-#### Defined in
-
-[form.ts:108](https://github.com/ccqgithub/vfm/blob/d83ba3d/packages/vfm/src/form.ts#L108)
 
 ## Methods
 
@@ -90,10 +82,6 @@ Class to management form state.
 #### Returns
 
 `void`
-
-#### Defined in
-
-[form.ts:695](https://github.com/ccqgithub/vfm/blob/d83ba3d/packages/vfm/src/form.ts#L695)
 
 ___
 
@@ -119,10 +107,6 @@ ___
 
 `void`
 
-#### Defined in
-
-[form.ts:715](https://github.com/ccqgithub/vfm/blob/d83ba3d/packages/vfm/src/form.ts#L715)
-
 ___
 
 ### arrayMove
@@ -147,10 +131,6 @@ ___
 
 `void`
 
-#### Defined in
-
-[form.ts:739](https://github.com/ccqgithub/vfm/blob/d83ba3d/packages/vfm/src/form.ts#L739)
-
 ___
 
 ### arrayPrepend
@@ -173,10 +153,6 @@ ___
 #### Returns
 
 `void`
-
-#### Defined in
-
-[form.ts:705](https://github.com/ccqgithub/vfm/blob/d83ba3d/packages/vfm/src/form.ts#L705)
 
 ___
 
@@ -201,10 +177,6 @@ ___
 
 `void`
 
-#### Defined in
-
-[form.ts:762](https://github.com/ccqgithub/vfm/blob/d83ba3d/packages/vfm/src/form.ts#L762)
-
 ___
 
 ### arrayReplace
@@ -227,10 +199,6 @@ ___
 #### Returns
 
 `void`
-
-#### Defined in
-
-[form.ts:769](https://github.com/ccqgithub/vfm/blob/d83ba3d/packages/vfm/src/form.ts#L769)
 
 ___
 
@@ -256,10 +224,6 @@ ___
 
 `void`
 
-#### Defined in
-
-[form.ts:726](https://github.com/ccqgithub/vfm/blob/d83ba3d/packages/vfm/src/form.ts#L726)
-
 ___
 
 ### arrayUpdate
@@ -284,10 +248,6 @@ ___
 
 `void`
 
-#### Defined in
-
-[form.ts:751](https://github.com/ccqgithub/vfm/blob/d83ba3d/packages/vfm/src/form.ts#L751)
-
 ___
 
 ### deletePathValue
@@ -309,10 +269,6 @@ ___
 #### Returns
 
 `void`
-
-#### Defined in
-
-[form.ts:451](https://github.com/ccqgithub/vfm/blob/d83ba3d/packages/vfm/src/form.ts#L451)
 
 ___
 
@@ -336,15 +292,11 @@ ___
 
 `void`
 
-#### Defined in
-
-[form.ts:456](https://github.com/ccqgithub/vfm/blob/d83ba3d/packages/vfm/src/form.ts#L456)
-
 ___
 
 ### fieldError
 
-▸ **fieldError**<`N`\>(`name`): ``null`` \| [`FieldError`](../index.md#fielderror)
+▸ **fieldError**<`N`\>(`name`, `reportType?`): ``null`` \| [`FieldError`](../index.md#fielderror)
 
 #### Type parameters
 
@@ -354,17 +306,14 @@ ___
 
 #### Parameters
 
-| Name | Type |
-| :------ | :------ |
-| `name` | `N` |
+| Name | Type | Default value |
+| :------ | :------ | :------ |
+| `name` | `N` | `undefined` |
+| `reportType` | ``"any"`` \| ``"formTouched"`` \| ``"fieldTouched"`` \| ``"all-touched"`` | `'any'` |
 
 #### Returns
 
 ``null`` \| [`FieldError`](../index.md#fielderror)
-
-#### Defined in
-
-[form.ts:687](https://github.com/ccqgithub/vfm/blob/d83ba3d/packages/vfm/src/form.ts#L687)
 
 ___
 
@@ -388,10 +337,6 @@ ___
 
 ``null`` \| [`FieldState`](../index.md#fieldstate)
 
-#### Defined in
-
-[form.ts:645](https://github.com/ccqgithub/vfm/blob/d83ba3d/packages/vfm/src/form.ts#L645)
-
 ___
 
 ### getPathValue
@@ -413,10 +358,6 @@ ___
 #### Returns
 
 [`KeyPathValue`](../index.md#keypathvalue)<`T`, `N`\>
-
-#### Defined in
-
-[form.ts:485](https://github.com/ccqgithub/vfm/blob/d83ba3d/packages/vfm/src/form.ts#L485)
 
 ___
 
@@ -440,10 +381,6 @@ ___
 
 `ComputedRef`<[`KeyPathValue`](../index.md#keypathvalue)<`T`, `N`\>\>
 
-#### Defined in
-
-[form.ts:465](https://github.com/ccqgithub/vfm/blob/d83ba3d/packages/vfm/src/form.ts#L465)
-
 ___
 
 ### getValue
@@ -465,10 +402,6 @@ ___
 #### Returns
 
 [`KeyPathValue`](../index.md#keypathvalue)<`T`, `N`\>
-
-#### Defined in
-
-[form.ts:489](https://github.com/ccqgithub/vfm/blob/d83ba3d/packages/vfm/src/form.ts#L489)
 
 ___
 
@@ -492,10 +425,6 @@ ___
 
 `ComputedRef`<[`KeyPathValue`](../index.md#keypathvalue)<`T`, `N`\>\>
 
-#### Defined in
-
-[form.ts:473](https://github.com/ccqgithub/vfm/blob/d83ba3d/packages/vfm/src/form.ts#L473)
-
 ___
 
 ### isChanged
@@ -517,10 +446,6 @@ ___
 #### Returns
 
 `boolean`
-
-#### Defined in
-
-[form.ts:667](https://github.com/ccqgithub/vfm/blob/d83ba3d/packages/vfm/src/form.ts#L667)
 
 ___
 
@@ -544,10 +469,6 @@ ___
 
 `boolean`
 
-#### Defined in
-
-[form.ts:659](https://github.com/ccqgithub/vfm/blob/d83ba3d/packages/vfm/src/form.ts#L659)
-
 ___
 
 ### isError
@@ -569,10 +490,6 @@ ___
 #### Returns
 
 `boolean`
-
-#### Defined in
-
-[form.ts:679](https://github.com/ccqgithub/vfm/blob/d83ba3d/packages/vfm/src/form.ts#L679)
 
 ___
 
@@ -596,10 +513,6 @@ ___
 
 `boolean`
 
-#### Defined in
-
-[form.ts:663](https://github.com/ccqgithub/vfm/blob/d83ba3d/packages/vfm/src/form.ts#L663)
-
 ___
 
 ### isValidating
@@ -621,10 +534,6 @@ ___
 #### Returns
 
 `boolean`
-
-#### Defined in
-
-[form.ts:671](https://github.com/ccqgithub/vfm/blob/d83ba3d/packages/vfm/src/form.ts#L671)
 
 ___
 
@@ -648,10 +557,6 @@ ___
 
 `boolean`
 
-#### Defined in
-
-[form.ts:683](https://github.com/ccqgithub/vfm/blob/d83ba3d/packages/vfm/src/form.ts#L683)
-
 ___
 
 ### isVirtualValidating
@@ -674,10 +579,6 @@ ___
 
 `boolean`
 
-#### Defined in
-
-[form.ts:675](https://github.com/ccqgithub/vfm/blob/d83ba3d/packages/vfm/src/form.ts#L675)
-
 ___
 
 ### mount
@@ -687,10 +588,6 @@ ___
 #### Returns
 
 `void`
-
-#### Defined in
-
-[form.ts:120](https://github.com/ccqgithub/vfm/blob/d83ba3d/packages/vfm/src/form.ts#L120)
 
 ___
 
@@ -708,10 +605,6 @@ ___
 #### Returns
 
 `void`
-
-#### Defined in
-
-[form.ts:639](https://github.com/ccqgithub/vfm/blob/d83ba3d/packages/vfm/src/form.ts#L639)
 
 ___
 
@@ -735,13 +628,13 @@ ___
 | `args` | `Object` |
 | `args.debounce?` | `number` |
 | `args.defaultValue?` | [`KeyPathValue`](../index.md#keypathvalue)<`T`, `N`\> |
-| `args.immediate?` | `boolean` |
-| `args.rules?` | [`FieldRule`](../index.md#fieldrule)<`Transform`, `Deps`\>[] |
-| `args.value?` | [`KeyPathValue`](../index.md#keypathvalue)<`T`, `N`\> |
 | `args.deps?` | () => `Deps` |
+| `args.immediate?` | `boolean` |
 | `args.isEqual?` | (`v`: [`KeyPathValue`](../index.md#keypathvalue)<`T`, `N`\>, `d`: [`KeyPathValue`](../index.md#keypathvalue)<`T`, `N`\>) => `boolean` |
 | `args.onFocus?` | () => `void` |
+| `args.rules?` | [`FieldRule`](../index.md#fieldrule)<`Transform`, `Deps`\>[] |
 | `args.transform?` | (`v`: [`KeyPathValue`](../index.md#keypathvalue)<`T`, `N`\>) => `Transform` |
+| `args.value?` | [`KeyPathValue`](../index.md#keypathvalue)<`T`, `N`\> |
 
 #### Returns
 
@@ -751,10 +644,6 @@ ___
 | :------ | :------ |
 | `field` | `FieldClass`<`T`, `N`, `Deps`, `Transform`, `VFK`\> |
 | `register` | () => `void` |
-
-#### Defined in
-
-[form.ts:260](https://github.com/ccqgithub/vfm/blob/d83ba3d/packages/vfm/src/form.ts#L260)
 
 ___
 
@@ -789,10 +678,6 @@ ___
 | `field` | `VirtualFieldClass`<`T`, `V`\> |
 | `register` | () => `void` |
 
-#### Defined in
-
-[form.ts:346](https://github.com/ccqgithub/vfm/blob/d83ba3d/packages/vfm/src/form.ts#L346)
-
 ___
 
 ### reset
@@ -816,10 +701,6 @@ ___
 #### Returns
 
 `void`
-
-#### Defined in
-
-[form.ts:550](https://github.com/ccqgithub/vfm/blob/d83ba3d/packages/vfm/src/form.ts#L550)
 
 ___
 
@@ -849,10 +730,6 @@ ___
 
 `void`
 
-#### Defined in
-
-[form.ts:598](https://github.com/ccqgithub/vfm/blob/d83ba3d/packages/vfm/src/form.ts#L598)
-
 ___
 
 ### runInAction
@@ -868,10 +745,6 @@ ___
 #### Returns
 
 `void`
-
-#### Defined in
-
-[form.ts:116](https://github.com/ccqgithub/vfm/blob/d83ba3d/packages/vfm/src/form.ts#L116)
 
 ___
 
@@ -894,10 +767,6 @@ ___
 #### Returns
 
 `void`
-
-#### Defined in
-
-[form.ts:506](https://github.com/ccqgithub/vfm/blob/d83ba3d/packages/vfm/src/form.ts#L506)
 
 ___
 
@@ -922,10 +791,6 @@ ___
 
 `void`
 
-#### Defined in
-
-[form.ts:434](https://github.com/ccqgithub/vfm/blob/d83ba3d/packages/vfm/src/form.ts#L434)
-
 ___
 
 ### setTouched
@@ -948,10 +813,6 @@ ___
 #### Returns
 
 `void`
-
-#### Defined in
-
-[form.ts:497](https://github.com/ccqgithub/vfm/blob/d83ba3d/packages/vfm/src/form.ts#L497)
 
 ___
 
@@ -976,10 +837,6 @@ ___
 
 `void`
 
-#### Defined in
-
-[form.ts:439](https://github.com/ccqgithub/vfm/blob/d83ba3d/packages/vfm/src/form.ts#L439)
-
 ___
 
 ### submit
@@ -997,10 +854,6 @@ ___
 #### Returns
 
 `void`
-
-#### Defined in
-
-[form.ts:515](https://github.com/ccqgithub/vfm/blob/d83ba3d/packages/vfm/src/form.ts#L515)
 
 ___
 
@@ -1024,10 +877,6 @@ ___
 
 `void`
 
-#### Defined in
-
-[form.ts:628](https://github.com/ccqgithub/vfm/blob/d83ba3d/packages/vfm/src/form.ts#L628)
-
 ___
 
 ### unmount
@@ -1037,10 +886,6 @@ ___
 #### Returns
 
 `void`
-
-#### Defined in
-
-[form.ts:229](https://github.com/ccqgithub/vfm/blob/d83ba3d/packages/vfm/src/form.ts#L229)
 
 ___
 
@@ -1066,10 +911,6 @@ ___
 
 `void`
 
-#### Defined in
-
-[form.ts:389](https://github.com/ccqgithub/vfm/blob/d83ba3d/packages/vfm/src/form.ts#L389)
-
 ___
 
 ### unregisterVirtualField
@@ -1091,10 +932,6 @@ ___
 #### Returns
 
 `void`
-
-#### Defined in
-
-[form.ts:415](https://github.com/ccqgithub/vfm/blob/d83ba3d/packages/vfm/src/form.ts#L415)
 
 ___
 
@@ -1118,10 +955,6 @@ ___
 
 ``null`` \| [`FieldError`](../index.md#fielderror)
 
-#### Defined in
-
-[form.ts:691](https://github.com/ccqgithub/vfm/blob/d83ba3d/packages/vfm/src/form.ts#L691)
-
 ___
 
 ### virtualFieldState
@@ -1143,7 +976,3 @@ ___
 #### Returns
 
 ``null`` \| [`VirtualFieldState`](../index.md#virtualfieldstate)
-
-#### Defined in
-
-[form.ts:652](https://github.com/ccqgithub/vfm/blob/d83ba3d/packages/vfm/src/form.ts#L652)
