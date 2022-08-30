@@ -1215,8 +1215,12 @@ class Form {
     }
     return ((_a = this.fieldState(name)) == null ? void 0 : _a.error) || null;
   }
-  virtualFieldError(name) {
+  virtualFieldError(name, reportType = "formTouched") {
     var _a;
+    const formTouched = this.state.submitCount > 0;
+    if (reportType === "formTouched" && !formTouched) {
+      return null;
+    }
     return ((_a = this.virtualFieldState(name)) == null ? void 0 : _a.error) || null;
   }
   arrayAppend(name, v) {

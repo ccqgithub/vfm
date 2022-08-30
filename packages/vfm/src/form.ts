@@ -710,7 +710,14 @@ export class Form<T extends FormType = FormType, VFK extends string = string> {
     return this.fieldState(name)?.error || null;
   }
 
-  virtualFieldError<N extends VFK>(name: N) {
+  virtualFieldError<N extends VFK>(
+    name: N,
+    reportType: 'formTouched' | 'all' = 'formTouched'
+  ) {
+    const formTouched = this.state.submitCount > 0;
+    if (reportType === 'formTouched' && !formTouched) {
+      return null;
+    }
     return this.virtualFieldState(name)?.error || null;
   }
 

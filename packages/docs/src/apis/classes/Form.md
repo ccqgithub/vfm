@@ -48,7 +48,7 @@ Class to management form state.
 
 #### Defined in
 
-[packages/vfm/src/form.ts:41](https://github.com/ccqgithub/vfm/blob/9854205/packages/vfm/src/form.ts#L41)
+[packages/vfm/src/form.ts:41](https://github.com/ccqgithub/vfm/blob/bf2487f/packages/vfm/src/form.ts#L41)
 
 ## Accessors
 
@@ -937,7 +937,7 @@ ___
 
 ### virtualFieldError
 
-▸ **virtualFieldError**<`N`\>(`name`): ``null`` \| [`FieldError`](../index.md#fielderror)
+▸ **virtualFieldError**<`N`\>(`name`, `reportType?`): ``null`` \| [`FieldError`](../index.md#fielderror)
 
 #### Type parameters
 
@@ -947,9 +947,10 @@ ___
 
 #### Parameters
 
-| Name | Type |
-| :------ | :------ |
-| `name` | `N` |
+| Name | Type | Default value |
+| :------ | :------ | :------ |
+| `name` | `N` | `undefined` |
+| `reportType` | ``"all"`` \| ``"formTouched"`` | `'formTouched'` |
 
 #### Returns
 

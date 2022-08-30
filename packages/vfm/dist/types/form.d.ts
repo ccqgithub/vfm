@@ -107,7 +107,7 @@ export declare class Form<T extends FormType = FormType, VFK extends string = st
     isError<N extends FieldPath<T>>(name: N): boolean;
     isVirtualError<N extends VFK>(name: N): boolean;
     fieldError<N extends FieldPath<T>>(name: N, reportType?: 'formTouched' | 'fieldTouched' | 'allTouched' | 'anyTouched' | 'all'): FieldError | null;
-    virtualFieldError<N extends VFK>(name: N): FieldError | null;
+    virtualFieldError<N extends VFK>(name: N, reportType?: 'formTouched' | 'all'): FieldError | null;
     arrayAppend<N extends ArrayFieldPath<T>>(name: N, v: ArrayItem<KeyPathValue<T, N>>): void;
     arrayPrepend<N extends ArrayFieldPath<T>>(name: N, v: ArrayItem<KeyPathValue<T, N>>): void;
     arrayInsert<N extends ArrayFieldPath<T>>(name: N, index: number, v: ArrayItem<KeyPathValue<T, N>>): void;
