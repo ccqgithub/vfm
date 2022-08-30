@@ -686,7 +686,12 @@ export class Form<T extends FormType = FormType, VFK extends string = string> {
 
   fieldError<N extends FieldPath<T>>(
     name: N,
-    reportType: 'formTouched' | 'fieldTouched' | 'all-touched' | 'any' = 'any'
+    reportType:
+      | 'formTouched'
+      | 'fieldTouched'
+      | 'all-touched'
+      | 'anyTouched'
+      | 'all' = 'fieldTouched'
   ) {
     const formTouched = this.state.isTouched;
     const fieldTouched = this.isTouched(name);
@@ -697,6 +702,9 @@ export class Form<T extends FormType = FormType, VFK extends string = string> {
       return null;
     }
     if (reportType === 'fieldTouched' && !fieldTouched) {
+      return null;
+    }
+    if (reportType === 'anyTouched' && !fieldTouched && !formTouched) {
       return null;
     }
     return this.fieldState(name)?.error || null;

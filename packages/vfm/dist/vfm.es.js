@@ -1197,7 +1197,7 @@ class Form {
     var _a;
     return ((_a = this.virtualFieldState(name)) == null ? void 0 : _a.isError) || false;
   }
-  fieldError(name, reportType = "any") {
+  fieldError(name, reportType = "fieldTouched") {
     var _a;
     const formTouched = this.state.isTouched;
     const fieldTouched = this.isTouched(name);
@@ -1208,6 +1208,9 @@ class Form {
       return null;
     }
     if (reportType === "fieldTouched" && !fieldTouched) {
+      return null;
+    }
+    if (reportType === "anyTouched" && !fieldTouched && !formTouched) {
       return null;
     }
     return ((_a = this.fieldState(name)) == null ? void 0 : _a.error) || null;
