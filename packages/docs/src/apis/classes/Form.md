@@ -48,7 +48,7 @@ Class to management form state.
 
 #### Defined in
 
-[packages/vfm/src/form.ts:41](https://github.com/ccqgithub/vfm/blob/bf2487f/packages/vfm/src/form.ts#L41)
+[packages/vfm/src/form.ts:41](https://github.com/ccqgithub/vfm/blob/bbf78b1/packages/vfm/src/form.ts#L41)
 
 ## Accessors
 

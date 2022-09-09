@@ -2,7 +2,7 @@ import { createForm, NestedValue } from 'vfm';
 
 // define form sturcture
 // 定义 form 的结构
-export const form = createForm<
+export const getForm = () => createForm<
 // 表单结构
 {
   // base fields

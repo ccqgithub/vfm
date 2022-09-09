@@ -72,23 +72,21 @@ yarn add vfm
 </details>
 
 
-## Form Provider
+## 在子组件中使用form
 
-你可以使用 `FormProvider` 来为子组件提供`form`实例，内部使用Vue的 [依赖注入](https://vuejs.org/api/composition-api-dependency-injection.html).
+1. 使用 `FormProvider` 或 `useProvideForm` 来向子组件注入form [Dependency Injection](https://vuejs.org/api/composition-api-dependency-injection.html).
 
-这样，你就不用给每个组件传递`form`属性，不过缺点是类型提示没有传递`form`友好。
+2. 在子组件中使用 `useForm` 来获取form。
 
-<details open>
-  <summary>详情:</summary>
-  <ExampleBlock>
-    <ExampleItem title="运行结果" active>
-      <ProviderForm />
-    </ExampleItem>
-    <ExampleItem title="<ProviderForm>">
+**提示:** 如果你使用 typescript, 你可以传递 `form getter` 给 `useForm` 来获取更好的类型提示。
 
-  @[code vue](../.vuepress/components/ProviderForm.vue)
+```ts
+// in vue
+import { useForm } from 'vfm';
+import { getForm } from '../form';
 
-  </ExampleItem>
-  </ExampleBlock>
-</details>
+const form = useForm(getForm);
+// or
+const form = useForm();
+```
 

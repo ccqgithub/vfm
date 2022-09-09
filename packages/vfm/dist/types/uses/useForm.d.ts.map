@@ -1,1 +1,1 @@
-{"version":3,"file":"useForm.d.ts","sourceRoot":"","sources":["../../../src/uses/useForm.ts"],"names":[],"mappings":"AAGA;;GAEG;AACH,eAAO,MAAM,OAAO,+DAEnB,CAAC"}
+{"version":3,"file":"useForm.d.ts","sourceRoot":"","sources":["../../../src/uses/useForm.ts"],"names":[],"mappings":"AACA,OAAO,EAAE,QAAQ,EAAE,MAAM,UAAU,CAAC;AAEpC,OAAO,EAAE,IAAI,EAAE,MAAM,SAAS,CAAC;AAE/B;;GAEG;AACH,eAAO,MAAM,OAAO,6HAQnB,CAAC"}

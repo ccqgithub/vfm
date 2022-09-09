@@ -28,13 +28,14 @@ API Documentation
 - [useField](index.md#usefield)
 - [useFieldArray](index.md#usefieldarray)
 - [useForm](index.md#useform)
+- [useProvideForm](index.md#useprovideform)
 - [useVirtualField](index.md#usevirtualfield)
 
 ## Type Aliases
 
 ### ArrayFieldPath
 
-Ƭ **ArrayFieldPath**<`T`, `L`\>: `T` extends [`NestedValueType`](index.md#nestedvaluetype) \| [`NativeObjectType`](index.md#nativeobjecttype) ? `never` : `T` extends infer U[] ? `L` \| [`Join`](index.md#join)<[`Join`](index.md#join)<`L`, \`${number}\`\>, [`ArrayFieldPath`](index.md#arrayfieldpath)<`U`\>\> : `T` extends [`ObjectType`](index.md#objecttype) ? { `[key: string]`: `any`;  } extends `T` ? `string` : { [K in keyof T]: Join<Join<L, K\>, ArrayFieldPath<T[K]\>\> }[keyof `T`] : `never`
+Ƭ **ArrayFieldPath**<`T`, `L`\>: `T` extends [`NestedValueType`](index.md#nestedvaluetype) \| [`NativeObjectType`](index.md#nativeobjecttype) ? `never` : `T` extends infer U[] ? `U` extends [`ObjectType`](index.md#objecttype) ? `L` \| [`Join`](index.md#join)<[`Join`](index.md#join)<`L`, \`${number}\`\>, [`ArrayFieldPath`](index.md#arrayfieldpath)<`U`\>\> : `L` : `T` extends [`ObjectType`](index.md#objecttype) ? { `[key: string]`: `any`;  } extends `T` ? `string` : { [K in keyof T]: Join<Join<L, K\>, ArrayFieldPath<T[K]\>\> }[keyof `T`] : `never`
 
 #### Type parameters
 
@@ -45,7 +46,7 @@ API Documentation
 
 #### Defined in
 
-[packages/vfm/src/types.ts:300](https://github.com/ccqgithub/vfm/blob/bf2487f/packages/vfm/src/types.ts#L300)
+[packages/vfm/src/types.ts:304](https://github.com/ccqgithub/vfm/blob/bbf78b1/packages/vfm/src/types.ts#L304)
 
 ___
 
@@ -61,7 +62,7 @@ ___
 
 #### Defined in
 
-[packages/vfm/src/types.ts:315](https://github.com/ccqgithub/vfm/blob/bf2487f/packages/vfm/src/types.ts#L315)
+[packages/vfm/src/types.ts:321](https://github.com/ccqgithub/vfm/blob/bbf78b1/packages/vfm/src/types.ts#L321)
 
 ___
 
@@ -77,13 +78,13 @@ ___
 
 #### Defined in
 
-[packages/vfm/src/types.ts:44](https://github.com/ccqgithub/vfm/blob/bf2487f/packages/vfm/src/types.ts#L44)
+[packages/vfm/src/types.ts:44](https://github.com/ccqgithub/vfm/blob/bbf78b1/packages/vfm/src/types.ts#L44)
 
 ___
 
 ### AutoPath
 
-Ƭ **AutoPath**<`T`, `L`\>: `T` extends [`NestedValueType`](index.md#nestedvaluetype) \| [`NativeObjectType`](index.md#nativeobjecttype) ? `L` : `T` extends infer U[] ? [`Join`](index.md#join)<`L`, \`${number}\`\> \| [`Join`](index.md#join)<[`Join`](index.md#join)<`L`, \`${number}\`\>, [`AutoPath`](index.md#autopath)<`U`\>\> : `T` extends [`ObjectType`](index.md#objecttype) ? { `[key: string]`: `any`;  } extends `T` ? `string` : { [K in keyof T]: Join<L, K\> \| Join<Join<L, K\>, AutoPath<T[K]\>\> }[keyof `T`] : `L`
+Ƭ **AutoPath**<`T`, `L`\>: `T` extends [`NestedValueType`](index.md#nestedvaluetype) \| [`NativeObjectType`](index.md#nativeobjecttype) ? `L` : `T` extends infer U[] ? `U` extends [`ObjectType`](index.md#objecttype) ? [`Join`](index.md#join)<`L`, \`${number}\`\> \| [`Join`](index.md#join)<[`Join`](index.md#join)<`L`, \`${number}\`\>, [`AutoPath`](index.md#autopath)<`U`\>\> : [`Join`](index.md#join)<`L`, \`${number}\`\> : `T` extends [`ObjectType`](index.md#objecttype) ? { `[key: string]`: `any`;  } extends `T` ? `string` : { [K in keyof T]: Join<L, K\> \| Join<Join<L, K\>, AutoPath<T[K]\>\> }[keyof `T`] : `L`
 
 #### Type parameters
 
@@ -94,7 +95,7 @@ ___
 
 #### Defined in
 
-[packages/vfm/src/types.ts:272](https://github.com/ccqgithub/vfm/blob/bf2487f/packages/vfm/src/types.ts#L272)
+[packages/vfm/src/types.ts:272](https://github.com/ccqgithub/vfm/blob/bbf78b1/packages/vfm/src/types.ts#L272)
 
 ___
 
@@ -110,7 +111,7 @@ ___
 
 #### Defined in
 
-[packages/vfm/src/types.ts:74](https://github.com/ccqgithub/vfm/blob/bf2487f/packages/vfm/src/types.ts#L74)
+[packages/vfm/src/types.ts:74](https://github.com/ccqgithub/vfm/blob/bbf78b1/packages/vfm/src/types.ts#L74)
 
 ___
 
@@ -133,7 +134,7 @@ ___
 
 #### Defined in
 
-[packages/vfm/src/types.ts:91](https://github.com/ccqgithub/vfm/blob/bf2487f/packages/vfm/src/types.ts#L91)
+[packages/vfm/src/types.ts:91](https://github.com/ccqgithub/vfm/blob/bbf78b1/packages/vfm/src/types.ts#L91)
 
 ___
 
@@ -163,7 +164,7 @@ ___
 
 #### Defined in
 
-[packages/vfm/src/fieldArray.ts:118](https://github.com/ccqgithub/vfm/blob/bf2487f/packages/vfm/src/fieldArray.ts#L118)
+[packages/vfm/src/fieldArray.ts:118](https://github.com/ccqgithub/vfm/blob/bbf78b1/packages/vfm/src/fieldArray.ts#L118)
 
 ___
 
@@ -180,13 +181,13 @@ ___
 
 #### Defined in
 
-[packages/vfm/src/types.ts:96](https://github.com/ccqgithub/vfm/blob/bf2487f/packages/vfm/src/types.ts#L96)
+[packages/vfm/src/types.ts:96](https://github.com/ccqgithub/vfm/blob/bbf78b1/packages/vfm/src/types.ts#L96)
 
 ___
 
 ### FieldPath
 
-Ƭ **FieldPath**<`T`, `L`\>: `T` extends [`NestedValueType`](index.md#nestedvaluetype) \| [`NativeObjectType`](index.md#nativeobjecttype) ? `L` : `T` extends infer U[] ? [`Join`](index.md#join)<[`Join`](index.md#join)<`L`, \`${number}\`\>, [`FieldPath`](index.md#fieldpath)<`U`\>\> : `T` extends [`ObjectType`](index.md#objecttype) ? { `[key: string]`: `any`;  } extends `T` ? `string` : { [K in keyof T]: Join<Join<L, K\>, FieldPath<T[K]\>\> }[keyof `T`] : `L`
+Ƭ **FieldPath**<`T`, `L`\>: `T` extends [`NestedValueType`](index.md#nestedvaluetype) \| [`NativeObjectType`](index.md#nativeobjecttype) ? `L` : `T` extends infer U[] ? `U` extends [`ObjectType`](index.md#objecttype) ? [`Join`](index.md#join)<[`Join`](index.md#join)<`L`, \`${number}\`\>, [`FieldPath`](index.md#fieldpath)<`U`\>\> : [`Join`](index.md#join)<`L`, \`${number}\`\> : `T` extends [`ObjectType`](index.md#objecttype) ? { `[key: string]`: `any`;  } extends `T` ? `string` : { [K in keyof T]: Join<Join<L, K\>, FieldPath<T[K]\>\> }[keyof `T`] : `L`
 
 #### Type parameters
 
@@ -197,7 +198,7 @@ ___
 
 #### Defined in
 
-[packages/vfm/src/types.ts:286](https://github.com/ccqgithub/vfm/blob/bf2487f/packages/vfm/src/types.ts#L286)
+[packages/vfm/src/types.ts:288](https://github.com/ccqgithub/vfm/blob/bbf78b1/packages/vfm/src/types.ts#L288)
 
 ___
 
@@ -225,7 +226,7 @@ ___
 
 #### Defined in
 
-[packages/vfm/src/types.ts:317](https://github.com/ccqgithub/vfm/blob/bf2487f/packages/vfm/src/types.ts#L317)
+[packages/vfm/src/types.ts:323](https://github.com/ccqgithub/vfm/blob/bbf78b1/packages/vfm/src/types.ts#L323)
 
 ___
 
@@ -266,7 +267,7 @@ ___
 
 #### Defined in
 
-[packages/vfm/src/types.ts:201](https://github.com/ccqgithub/vfm/blob/bf2487f/packages/vfm/src/types.ts#L201)
+[packages/vfm/src/types.ts:201](https://github.com/ccqgithub/vfm/blob/bbf78b1/packages/vfm/src/types.ts#L201)
 
 ___
 
@@ -289,7 +290,7 @@ ___
 
 #### Defined in
 
-[packages/vfm/src/types.ts:329](https://github.com/ccqgithub/vfm/blob/bf2487f/packages/vfm/src/types.ts#L329)
+[packages/vfm/src/types.ts:335](https://github.com/ccqgithub/vfm/blob/bbf78b1/packages/vfm/src/types.ts#L335)
 
 ___
 
@@ -310,7 +311,7 @@ ___
 
 #### Defined in
 
-[packages/vfm/src/types.ts:157](https://github.com/ccqgithub/vfm/blob/bf2487f/packages/vfm/src/types.ts#L157)
+[packages/vfm/src/types.ts:157](https://github.com/ccqgithub/vfm/blob/bbf78b1/packages/vfm/src/types.ts#L157)
 
 ___
 
@@ -327,7 +328,7 @@ ___
 
 #### Defined in
 
-[packages/vfm/src/types.ts:86](https://github.com/ccqgithub/vfm/blob/bf2487f/packages/vfm/src/types.ts#L86)
+[packages/vfm/src/types.ts:86](https://github.com/ccqgithub/vfm/blob/bbf78b1/packages/vfm/src/types.ts#L86)
 
 ___
 
@@ -343,7 +344,7 @@ ___
 
 #### Defined in
 
-[packages/vfm/src/types.ts:101](https://github.com/ccqgithub/vfm/blob/bf2487f/packages/vfm/src/types.ts#L101)
+[packages/vfm/src/types.ts:101](https://github.com/ccqgithub/vfm/blob/bbf78b1/packages/vfm/src/types.ts#L101)
 
 ___
 
@@ -384,7 +385,7 @@ ___
 
 #### Defined in
 
-[packages/vfm/src/types.ts:113](https://github.com/ccqgithub/vfm/blob/bf2487f/packages/vfm/src/types.ts#L113)
+[packages/vfm/src/types.ts:113](https://github.com/ccqgithub/vfm/blob/bbf78b1/packages/vfm/src/types.ts#L113)
 
 ___
 
@@ -394,7 +395,7 @@ ___
 
 #### Defined in
 
-[packages/vfm/src/types.ts:72](https://github.com/ccqgithub/vfm/blob/bf2487f/packages/vfm/src/types.ts#L72)
+[packages/vfm/src/types.ts:72](https://github.com/ccqgithub/vfm/blob/bbf78b1/packages/vfm/src/types.ts#L72)
 
 ___
 
@@ -410,7 +411,7 @@ ___
 
 #### Defined in
 
-[packages/vfm/src/form.ts:34](https://github.com/ccqgithub/vfm/blob/bf2487f/packages/vfm/src/form.ts#L34)
+[packages/vfm/src/form.ts:34](https://github.com/ccqgithub/vfm/blob/bbf78b1/packages/vfm/src/form.ts#L34)
 
 ___
 
@@ -420,7 +421,7 @@ ___
 
 #### Defined in
 
-[packages/vfm/src/types.ts:255](https://github.com/ccqgithub/vfm/blob/bf2487f/packages/vfm/src/types.ts#L255)
+[packages/vfm/src/types.ts:255](https://github.com/ccqgithub/vfm/blob/bbf78b1/packages/vfm/src/types.ts#L255)
 
 ___
 
@@ -437,7 +438,7 @@ ___
 
 #### Defined in
 
-[packages/vfm/src/types.ts:53](https://github.com/ccqgithub/vfm/blob/bf2487f/packages/vfm/src/types.ts#L53)
+[packages/vfm/src/types.ts:53](https://github.com/ccqgithub/vfm/blob/bbf78b1/packages/vfm/src/types.ts#L53)
 
 ___
 
@@ -454,7 +455,7 @@ ___
 
 #### Defined in
 
-[packages/vfm/src/types.ts:263](https://github.com/ccqgithub/vfm/blob/bf2487f/packages/vfm/src/types.ts#L263)
+[packages/vfm/src/types.ts:263](https://github.com/ccqgithub/vfm/blob/bbf78b1/packages/vfm/src/types.ts#L263)
 
 ___
 
@@ -471,7 +472,7 @@ ___
 
 #### Defined in
 
-[packages/vfm/src/types.ts:67](https://github.com/ccqgithub/vfm/blob/bf2487f/packages/vfm/src/types.ts#L67)
+[packages/vfm/src/types.ts:67](https://github.com/ccqgithub/vfm/blob/bbf78b1/packages/vfm/src/types.ts#L67)
 
 ___
 
@@ -481,7 +482,7 @@ ___
 
 #### Defined in
 
-[packages/vfm/src/types.ts:7](https://github.com/ccqgithub/vfm/blob/bf2487f/packages/vfm/src/types.ts#L7)
+[packages/vfm/src/types.ts:7](https://github.com/ccqgithub/vfm/blob/bbf78b1/packages/vfm/src/types.ts#L7)
 
 ___
 
@@ -497,7 +498,7 @@ ___
 
 #### Defined in
 
-[packages/vfm/src/types.ts:15](https://github.com/ccqgithub/vfm/blob/bf2487f/packages/vfm/src/types.ts#L15)
+[packages/vfm/src/types.ts:15](https://github.com/ccqgithub/vfm/blob/bbf78b1/packages/vfm/src/types.ts#L15)
 
 ___
 
@@ -513,7 +514,7 @@ ___
 
 #### Defined in
 
-[packages/vfm/src/types.ts:19](https://github.com/ccqgithub/vfm/blob/bf2487f/packages/vfm/src/types.ts#L19)
+[packages/vfm/src/types.ts:19](https://github.com/ccqgithub/vfm/blob/bbf78b1/packages/vfm/src/types.ts#L19)
 
 ___
 
@@ -529,7 +530,7 @@ ___
 
 #### Defined in
 
-[packages/vfm/src/types.ts:47](https://github.com/ccqgithub/vfm/blob/bf2487f/packages/vfm/src/types.ts#L47)
+[packages/vfm/src/types.ts:47](https://github.com/ccqgithub/vfm/blob/bbf78b1/packages/vfm/src/types.ts#L47)
 
 ___
 
@@ -539,7 +540,7 @@ ___
 
 #### Defined in
 
-[packages/vfm/src/types.ts:5](https://github.com/ccqgithub/vfm/blob/bf2487f/packages/vfm/src/types.ts#L5)
+[packages/vfm/src/types.ts:5](https://github.com/ccqgithub/vfm/blob/bbf78b1/packages/vfm/src/types.ts#L5)
 
 ___
 
@@ -555,7 +556,7 @@ ___
 
 #### Defined in
 
-[packages/vfm/src/types.ts:33](https://github.com/ccqgithub/vfm/blob/bf2487f/packages/vfm/src/types.ts#L33)
+[packages/vfm/src/types.ts:33](https://github.com/ccqgithub/vfm/blob/bbf78b1/packages/vfm/src/types.ts#L33)
 
 ___
 
@@ -571,7 +572,7 @@ ___
 
 #### Defined in
 
-[packages/vfm/src/types.ts:23](https://github.com/ccqgithub/vfm/blob/bf2487f/packages/vfm/src/types.ts#L23)
+[packages/vfm/src/types.ts:23](https://github.com/ccqgithub/vfm/blob/bbf78b1/packages/vfm/src/types.ts#L23)
 
 ___
 
@@ -606,7 +607,7 @@ ___
 
 #### Defined in
 
-[packages/vfm/src/uses/useField.ts:24](https://github.com/ccqgithub/vfm/blob/bf2487f/packages/vfm/src/uses/useField.ts#L24)
+[packages/vfm/src/uses/useField.ts:24](https://github.com/ccqgithub/vfm/blob/bbf78b1/packages/vfm/src/uses/useField.ts#L24)
 
 ___
 
@@ -635,7 +636,7 @@ ___
 
 #### Defined in
 
-[packages/vfm/src/uses/useVirtualField.ts:7](https://github.com/ccqgithub/vfm/blob/bf2487f/packages/vfm/src/uses/useVirtualField.ts#L7)
+[packages/vfm/src/uses/useVirtualField.ts:7](https://github.com/ccqgithub/vfm/blob/bbf78b1/packages/vfm/src/uses/useVirtualField.ts#L7)
 
 ___
 
@@ -669,7 +670,7 @@ ___
 
 #### Defined in
 
-[packages/vfm/src/types.ts:181](https://github.com/ccqgithub/vfm/blob/bf2487f/packages/vfm/src/types.ts#L181)
+[packages/vfm/src/types.ts:181](https://github.com/ccqgithub/vfm/blob/bbf78b1/packages/vfm/src/types.ts#L181)
 
 ___
 
@@ -701,7 +702,7 @@ ___
 
 #### Defined in
 
-[packages/vfm/src/types.ts:192](https://github.com/ccqgithub/vfm/blob/bf2487f/packages/vfm/src/types.ts#L192)
+[packages/vfm/src/types.ts:192](https://github.com/ccqgithub/vfm/blob/bbf78b1/packages/vfm/src/types.ts#L192)
 
 ___
 
@@ -741,7 +742,7 @@ ___
 
 #### Defined in
 
-[packages/vfm/src/types.ts:228](https://github.com/ccqgithub/vfm/blob/bf2487f/packages/vfm/src/types.ts#L228)
+[packages/vfm/src/types.ts:228](https://github.com/ccqgithub/vfm/blob/bbf78b1/packages/vfm/src/types.ts#L228)
 
 ___
 
@@ -759,7 +760,7 @@ ___
 
 #### Defined in
 
-[packages/vfm/src/types.ts:172](https://github.com/ccqgithub/vfm/blob/bf2487f/packages/vfm/src/types.ts#L172)
+[packages/vfm/src/types.ts:172](https://github.com/ccqgithub/vfm/blob/bbf78b1/packages/vfm/src/types.ts#L172)
 
 ___
 
@@ -789,7 +790,7 @@ ___
 
 #### Defined in
 
-[packages/vfm/src/types.ts:197](https://github.com/ccqgithub/vfm/blob/bf2487f/packages/vfm/src/types.ts#L197)
+[packages/vfm/src/types.ts:197](https://github.com/ccqgithub/vfm/blob/bbf78b1/packages/vfm/src/types.ts#L197)
 
 ___
 
@@ -821,7 +822,7 @@ ___
 
 #### Defined in
 
-[packages/vfm/src/types.ts:187](https://github.com/ccqgithub/vfm/blob/bf2487f/packages/vfm/src/types.ts#L187)
+[packages/vfm/src/types.ts:187](https://github.com/ccqgithub/vfm/blob/bbf78b1/packages/vfm/src/types.ts#L187)
 
 ## Component Variables
 
@@ -833,7 +834,7 @@ ___
 
 #### Defined in
 
-[packages/vfm/src/components/Field/index.ts:7](https://github.com/ccqgithub/vfm/blob/bf2487f/packages/vfm/src/components/Field/index.ts#L7)
+[packages/vfm/src/components/Field/index.ts:7](https://github.com/ccqgithub/vfm/blob/bbf78b1/packages/vfm/src/components/Field/index.ts#L7)
 
 ___
 
@@ -845,7 +846,7 @@ ___
 
 #### Defined in
 
-[packages/vfm/src/components/index.ts:22](https://github.com/ccqgithub/vfm/blob/bf2487f/packages/vfm/src/components/index.ts#L22)
+[packages/vfm/src/components/index.ts:22](https://github.com/ccqgithub/vfm/blob/bbf78b1/packages/vfm/src/components/index.ts#L22)
 
 ___
 
@@ -857,7 +858,7 @@ ___
 
 #### Defined in
 
-[packages/vfm/src/components/index.ts:27](https://github.com/ccqgithub/vfm/blob/bf2487f/packages/vfm/src/components/index.ts#L27)
+[packages/vfm/src/components/index.ts:27](https://github.com/ccqgithub/vfm/blob/bbf78b1/packages/vfm/src/components/index.ts#L27)
 
 ___
 
@@ -869,7 +870,7 @@ ___
 
 #### Defined in
 
-[packages/vfm/src/components/index.ts:17](https://github.com/ccqgithub/vfm/blob/bf2487f/packages/vfm/src/components/index.ts#L17)
+[packages/vfm/src/components/index.ts:17](https://github.com/ccqgithub/vfm/blob/bbf78b1/packages/vfm/src/components/index.ts#L17)
 
 ___
 
@@ -881,7 +882,7 @@ ___
 
 #### Defined in
 
-[packages/vfm/src/context.ts:4](https://github.com/ccqgithub/vfm/blob/bf2487f/packages/vfm/src/context.ts#L4)
+[packages/vfm/src/context.ts:4](https://github.com/ccqgithub/vfm/blob/bbf78b1/packages/vfm/src/context.ts#L4)
 
 ___
 
@@ -904,7 +905,7 @@ ___
 
 #### Defined in
 
-[packages/vfm/src/validators/index.ts:10](https://github.com/ccqgithub/vfm/blob/bf2487f/packages/vfm/src/validators/index.ts#L10)
+[packages/vfm/src/validators/index.ts:10](https://github.com/ccqgithub/vfm/blob/bbf78b1/packages/vfm/src/validators/index.ts#L10)
 
 ## Other Functions
 
@@ -1040,11 +1041,40 @@ ___
 
 ### useForm
 
-▸ **useForm**(): ``null`` \| [`Form`](classes/Form.md)<[`FormType`](index.md#formtype), `string`\>
+▸ **useForm**<`F`, `VFK`\>(`formGetter?`): [`Form`](classes/Form.md)<`F`, `VFK`\>
+
+#### Type parameters
+
+| Name | Type |
+| :------ | :------ |
+| `F` | extends [`FormType`](index.md#formtype) = [`FormType`](index.md#formtype) |
+| `VFK` | extends `string` = `string` |
+
+#### Parameters
+
+| Name | Type |
+| :------ | :------ |
+| `formGetter?` | () => [`Form`](classes/Form.md)<`F`, `VFK`\> |
 
 #### Returns
 
-``null`` \| [`Form`](classes/Form.md)<[`FormType`](index.md#formtype), `string`\>
+[`Form`](classes/Form.md)<`F`, `VFK`\>
+
+___
+
+### useProvideForm
+
+▸ **useProvideForm**(`form`): `void`
+
+#### Parameters
+
+| Name | Type |
+| :------ | :------ |
+| `form` | [`Form`](classes/Form.md)<[`FormType`](index.md#formtype), `string`\> |
+
+#### Returns
+
+`void`
 
 ___
 

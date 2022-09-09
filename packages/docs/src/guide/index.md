@@ -21,7 +21,9 @@ yarn add vfm
   </CodeGroupItem>
 </CodeGroup>
 
-## Create Form Structure
+## Create Form Getter
+
+> A `Form Getter` is a function that return the form.
 
 <details open>
   <summary>Details:</summary>
@@ -71,23 +73,20 @@ yarn add vfm
   </ExampleBlock>
 </details>
 
-## Form Provider
+## Use form in child components
 
-You can use `FormProvider` to provide form to children by [Dependency Injection](https://vuejs.org/api/composition-api-dependency-injection.html).
+1. Use `FormProvider` or `useProvideForm` to provide form to children by [Dependency Injection](https://vuejs.org/api/composition-api-dependency-injection.html).
 
-Use this, you do not need to pass form to every component, but will lose some type intellisense.
+2. Use `useForm` in child components to get the form.
 
-<details open>
-  <summary>Details:</summary>
-  <ExampleBlock>
-    <ExampleItem title="Result" active>
-      <ProviderForm />
-    </ExampleItem>
-    <ExampleItem title="<ProviderForm>">
+**Tips:** If you use typescript, you can pass `form getter` to `useForm` for get more type intellisense.
 
-  @[code vue](../.vuepress/components/ProviderForm.vue)
+```ts
+// in vue
+import { useForm } from 'vfm';
+import { getForm } from '../form';
 
-  </ExampleItem>
-  </ExampleBlock>
-</details>
-
+const form = useForm(getForm);
+// or
+const form = useForm();
+```

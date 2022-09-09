@@ -1,7 +1,7 @@
 <script setup lang="ts">
-import { PropType, provide, onMounted, onUnmounted } from 'vue';
+import { PropType } from 'vue';
+import { useProvideForm } from '../uses';
 import { Form } from '../form';
-import { FormContextKey } from '../context';
 
 const props = defineProps({
   /**
@@ -13,10 +13,7 @@ const props = defineProps({
   }
 });
 
-provide(FormContextKey, props.form);
-
-onMounted(() => props.form.mount());
-onUnmounted(() => props.form.unmount());
+useProvideForm(props.form);
 </script>
 
 <template>

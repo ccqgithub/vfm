@@ -1,4 +1,4 @@
-import { ref, reactive, watchEffect, toRaw, readonly, computed, inject, unref, watch, onMounted, onBeforeUnmount, defineComponent, toRefs, renderSlot, createCommentVNode, mergeProps, provide, onUnmounted } from "vue";
+import { ref, reactive, watchEffect, toRaw, readonly, computed, inject, unref, watch, onMounted, onBeforeUnmount, provide, onUnmounted, defineComponent, toRefs, renderSlot, createCommentVNode, mergeProps } from "vue";
 const alpha = (value) => {
   const msg = "{{name}} is not alphabetical";
   if (typeof value !== "string")
@@ -1287,7 +1287,7 @@ const createForm = (args) => {
   return new Form(args);
 };
 const FormContextKey = Symbol();
-const useForm = () => {
+const useForm = (formGetter) => {
   return inject(FormContextKey, null);
 };
 const useField = (props) => {
@@ -1542,6 +1542,11 @@ const useFieldArray = (args) => {
   onBeforeUnmount(() => onCleanup());
   return rest;
 };
+const useProvideForm = (form) => {
+  provide(FormContextKey, form);
+  onMounted(() => form.mount());
+  onUnmounted(() => form.unmount());
+};
 const _sfc_main$3 = /* @__PURE__ */ defineComponent({
   __name: "VirtualField",
   props: {
@@ -1614,9 +1619,7 @@ const _sfc_main$1 = /* @__PURE__ */ defineComponent({
   },
   setup(__props) {
     const props = __props;
-    provide(FormContextKey, props.form);
-    onMounted(() => props.form.mount());
-    onUnmounted(() => props.form.unmount());
+    useProvideForm(props.form);
     return (_ctx, _cache) => {
       return renderSlot(_ctx.$slots, "default");
     };
@@ -1711,4 +1714,4 @@ const Field = _sfc_main;
 const VirtualField = _sfc_main$3;
 const FieldArray = _sfc_main$2;
 const FormProvider = _sfc_main$1;
-export { Field, FieldArray, FieldClass, Form, FormContextKey, FormProvider, VirtualField, VirtualFieldClass, createFieldArray, createForm, useField, useFieldArray, useForm, useVirtualField, validators };
+export { Field, FieldArray, FieldClass, Form, FormContextKey, FormProvider, VirtualField, VirtualFieldClass, createFieldArray, createForm, useField, useFieldArray, useForm, useProvideForm, useVirtualField, validators };

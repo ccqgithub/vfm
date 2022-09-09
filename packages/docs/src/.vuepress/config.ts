@@ -103,8 +103,7 @@ export default defineUserConfig({
       components: {
         ExampleBlock: path.resolve(__dirname, './components/ExampleBlock.vue'),
         ExampleItem: path.resolve(__dirname, './components/ExampleItem.vue'),
-        BaseForm: path.resolve(__dirname, './components/BaseForm.vue'),
-        ProviderForm: path.resolve(__dirname, './components/ProviderForm.vue'),
+        BaseForm: path.resolve(__dirname, './components/BaseForm.vue')
       }
     })
   ],

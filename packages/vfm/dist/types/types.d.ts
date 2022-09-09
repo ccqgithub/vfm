@@ -120,17 +120,17 @@ export declare type InputLikeRef = Element | Component | {
     focus?: () => void;
 };
 export declare type Join<K, P> = K extends string | number ? P extends string | number ? '' extends K ? P : `${K}${'' extends P ? '' : '.'}${P}` : '' : '';
-export declare type AutoPath<T extends ObjectType, L extends string = ''> = T extends NestedValueType | NativeObjectType ? L : T extends Array<infer U> ? Join<L, `${number}`> | Join<Join<L, `${number}`>, AutoPath<U>> : T extends ObjectType ? {
+export declare type AutoPath<T extends ObjectType, L extends string = ''> = T extends NestedValueType | NativeObjectType ? L : T extends Array<infer U> ? U extends ObjectType ? Join<L, `${number}`> | Join<Join<L, `${number}`>, AutoPath<U>> : Join<L, `${number}`> : T extends ObjectType ? {
     [key: string]: any;
 } extends T ? string : {
     [K in keyof T]: Join<L, K> | Join<Join<L, K>, AutoPath<T[K]>>;
 }[keyof T] : L;
-export declare type FieldPath<T extends ObjectType, L extends string = ''> = T extends NestedValueType | NativeObjectType ? L : T extends Array<infer U> ? Join<Join<L, `${number}`>, FieldPath<U>> : T extends ObjectType ? {
+export declare type FieldPath<T extends ObjectType, L extends string = ''> = T extends NestedValueType | NativeObjectType ? L : T extends Array<infer U> ? U extends ObjectType ? Join<Join<L, `${number}`>, FieldPath<U>> : Join<L, `${number}`> : T extends ObjectType ? {
     [key: string]: any;
 } extends T ? string : {
     [K in keyof T]: Join<Join<L, K>, FieldPath<T[K]>>;
 }[keyof T] : L;
-export declare type ArrayFieldPath<T extends ObjectType, L extends string = ''> = T extends NestedValueType | NativeObjectType ? never : T extends Array<infer U> ? L | Join<Join<L, `${number}`>, ArrayFieldPath<U>> : T extends ObjectType ? {
+export declare type ArrayFieldPath<T extends ObjectType, L extends string = ''> = T extends NestedValueType | NativeObjectType ? never : T extends Array<infer U> ? U extends ObjectType ? L | Join<Join<L, `${number}`>, ArrayFieldPath<U>> : L : T extends ObjectType ? {
     [key: string]: any;
 } extends T ? string : {
     [K in keyof T]: Join<Join<L, K>, ArrayFieldPath<T[K]>>;

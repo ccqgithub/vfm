@@ -5,10 +5,11 @@
 
 <script setup lang="ts">
 import { ref } from 'vue';
-import { Field } from 'vfm';
-import { form } from '../form';
+import { Field, useForm } from 'vfm';
+import { getForm } from '../form';
 import SelectSchool from './SelectSchool.vue';
 
+const form = useForm(getForm);
 const values = form.getPathValueRef('schools');
 
 const visible = ref(false);

@@ -2,9 +2,10 @@
 <!-- // 嵌套字段 -->
 
 <script setup lang="ts">
-import { Field } from 'vfm';
-import { form } from '../form';
+import { Field, useForm } from 'vfm';
+import { getForm } from '../form';
 
+const form = useForm(getForm);
 const formState = form.state;
 </script>
 

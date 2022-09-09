@@ -274,7 +274,9 @@ export type AutoPath<T extends ObjectType, L extends string = ''> = T extends
   | NativeObjectType
   ? L
   : T extends Array<infer U>
-  ? Join<L, `${number}`> | Join<Join<L, `${number}`>, AutoPath<U>>
+  ? U extends ObjectType
+    ? Join<L, `${number}`> | Join<Join<L, `${number}`>, AutoPath<U>>
+    : Join<L, `${number}`>
   : T extends ObjectType
   ? { [key: string]: any } extends T
     ? string
@@ -288,7 +290,9 @@ export type FieldPath<T extends ObjectType, L extends string = ''> = T extends
   | NativeObjectType
   ? L
   : T extends Array<infer U>
-  ? Join<Join<L, `${number}`>, FieldPath<U>>
+  ? U extends ObjectType
+    ? Join<Join<L, `${number}`>, FieldPath<U>>
+    : Join<L, `${number}`>
   : T extends ObjectType
   ? { [key: string]: any } extends T
     ? string
@@ -303,7 +307,9 @@ export type ArrayFieldPath<
 > = T extends NestedValueType | NativeObjectType
   ? never
   : T extends Array<infer U>
-  ? L | Join<Join<L, `${number}`>, ArrayFieldPath<U>>
+  ? U extends ObjectType
+    ? L | Join<Join<L, `${number}`>, ArrayFieldPath<U>>
+    : L
   : T extends ObjectType
   ? { [key: string]: any } extends T
     ? string

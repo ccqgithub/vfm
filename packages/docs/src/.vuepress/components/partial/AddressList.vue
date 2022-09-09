@@ -2,9 +2,10 @@
 <!-- // 嵌套的数组字段 -->
 
 <script setup lang="ts">
-import { useFieldArray, Field } from 'vfm';
-import { form } from '../form';
+import { useFieldArray, Field, useForm } from 'vfm';
+import { getForm } from '../form';
 
+const form = useForm(getForm);
 const { fields, append, remove } = useFieldArray({
   form, path: 'address'
 });
