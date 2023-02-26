@@ -11,3 +11,5 @@ Form Validation for Vue3.
 
 - Better Typescript support (vue limition) (e.g. `component generic props types`, `scoped slot props types`).
 - Unit Tests.
+  
+  
