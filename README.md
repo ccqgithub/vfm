@@ -1,3 +1,5 @@
+> :hand: This project is no longer updated.
+
 > :hand: It is recommended to use similar but more powerful [vee-validate](https://github.com/logaretm/vee-validate).
 
 # VFM: Vue Form Management
