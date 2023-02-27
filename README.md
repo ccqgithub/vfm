@@ -1,3 +1,5 @@
+> It is recommended to use similar but more powerful [vee-validate](https://github.com/logaretm/vee-validate).
+
 # VFM: Vue Form Management
 
 Form Validation for Vue3.
